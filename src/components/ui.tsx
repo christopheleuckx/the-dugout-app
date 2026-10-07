@@ -139,7 +139,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: { color: shell.text, fontFamily: fonts.display, fontSize: 28, textTransform: 'uppercase' },
-  content: { padding: 16, gap: 10, paddingBottom: 32 },
+  // Bottom padding keeps the last cards clear of the floating tab bar.
+  content: { padding: 16, gap: 10, paddingBottom: 120 },
   sectionTitle: {
     fontFamily: fonts.displaySemi,
     fontSize: 16,
