@@ -1,32 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router/js-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import type { ComponentProps } from 'react';
-import type { ColorValue } from 'react-native';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { shell } from '../../lib/theme';
+import { useColors } from '../../lib/theme';
 
-type IconName = ComponentProps<typeof Ionicons>['name'];
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
-const icon = (name: IconName) =>
-  function TabIcon({ color, size }: { color: ColorValue; size: number }) {
-    return <Ionicons name={name} color={color} size={size} />;
-  };
+// The system tab bar: floating Liquid Glass on iOS 26, Material on Android.
+// SF Symbols are used on iOS; the Ionicon is the Android fallback.
+const TABS: { name: string; label: string; sf: SFSymbol; sfSelected: SFSymbol; ion: IoniconName }[] = [
+  { name: 'index', label: 'Home', sf: 'house', sfSelected: 'house.fill', ion: 'home-outline' },
+  { name: 'games', label: 'Games', sf: 'soccerball', sfSelected: 'soccerball', ion: 'football-outline' },
+  { name: 'trainings', label: 'Trainings', sf: 'figure.run', sfSelected: 'figure.run', ion: 'fitness-outline' },
+  { name: 'squad', label: 'Squad', sf: 'person.3', sfSelected: 'person.3.fill', ion: 'people-outline' },
+  { name: 'profile', label: 'Profile', sf: 'person.crop.circle', sfSelected: 'person.crop.circle.fill', ion: 'person-circle-outline' },
+];
 
 export default function TabsLayout() {
+  const c = useColors();
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: { backgroundColor: shell.bg, borderTopColor: shell.border },
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: shell.textSoft,
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: 'Dashboard', tabBarIcon: icon('home-outline') }} />
-      <Tabs.Screen name="games" options={{ title: 'Games', tabBarIcon: icon('football-outline') }} />
-      <Tabs.Screen name="trainings" options={{ title: 'Trainings', tabBarIcon: icon('fitness-outline') }} />
-      <Tabs.Screen name="squad" options={{ title: 'Squad', tabBarIcon: icon('people-outline') }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: icon('person-circle-outline') }} />
-    </Tabs>
+    <NativeTabs tintColor={c.pitch} minimizeBehavior="onScrollDown">
+      {TABS.map((tab) => (
+        <NativeTabs.Trigger key={tab.name} name={tab.name}>
+          <NativeTabs.Trigger.Icon
+            sf={{ default: tab.sf, selected: tab.sfSelected }}
+            src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name={tab.ion} />}
+          />
+          <NativeTabs.Trigger.Label>{tab.label}</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      ))}
+    </NativeTabs>
   );
 }

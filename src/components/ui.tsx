@@ -7,7 +7,7 @@ import { fonts, radius, shell, useColors } from '../lib/theme';
 
 // Page frame shared by every tab: navy title bar, pull-to-refresh, and the
 // loading / error states for the shared data load.
-export function Screen({ title, children }: { title: string; children: ReactNode }) {
+export function Screen({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { loading, error, refresh } = useData();
@@ -16,6 +16,7 @@ export function Screen({ title, children }: { title: string; children: ReactNode
     <View style={{ flex: 1, backgroundColor: c.chalk }}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.headerTitle}>{title}</Text>
+        {right}
       </View>
       {loading ? (
         <ActivityIndicator style={{ marginTop: 48 }} color={c.pitch} />
@@ -129,7 +130,14 @@ export function TrainingCard({ training }: { training: Training }) {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: shell.bg, paddingHorizontal: 16, paddingBottom: 12 },
+  header: {
+    backgroundColor: shell.bg,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: { color: shell.text, fontFamily: fonts.display, fontSize: 28, textTransform: 'uppercase' },
   content: { padding: 16, gap: 10, paddingBottom: 32 },
   sectionTitle: {

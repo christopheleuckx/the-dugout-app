@@ -17,6 +17,7 @@ const light = {
   teamRed: '#C81E2E',
   training: '#1E7D82',
   onPitch: '#FFFFFF',
+  calGameBg: '#DCEAFB',
 };
 
 const dark: typeof light = {
@@ -35,6 +36,7 @@ const dark: typeof light = {
   teamRed: '#E2707A',
   training: '#4FC4C9',
   onPitch: '#0A101B',
+  calGameBg: '#1A2A45',
 };
 
 export type Colors = typeof light;
