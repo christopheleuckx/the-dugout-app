@@ -3,20 +3,21 @@ import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, Text,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fmtDate, useData, type Game, type Training } from '../lib/data';
-import { fonts, radius, shell, useColors } from '../lib/theme';
+import { fonts, radius, useColors } from '../lib/theme';
 
-// Page frame shared by every tab: navy title bar, pull-to-refresh, and the
+// Page frame shared by every tab: light centred title bar, pull-to-refresh, and the
 // loading / error states for the shared data load.
-export function Screen({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
+export function Screen({ title, left, children }: { title: string; left?: ReactNode; children: ReactNode }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { loading, error, refresh } = useData();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.chalk }}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.headerTitle}>{title}</Text>
-        {right}
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        <View style={styles.headerSide}>{left}</View>
+        <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
+        <View style={styles.headerSide} />
       </View>
       {loading ? (
         <ActivityIndicator style={{ marginTop: 48 }} color={c.pitch} />
@@ -34,7 +35,7 @@ export function Screen({ title, right, children }: { title: string; right?: Reac
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   const c = useColors();
-  return <Text style={[styles.sectionTitle, { color: c.inkSoft }]}>{children}</Text>;
+  return <Text style={[styles.sectionTitle, { color: c.ink }]}>{children}</Text>;
 }
 
 export function Card({ children }: { children: ReactNode }) {
@@ -130,24 +131,11 @@ export function TrainingCard({ training }: { training: Training }) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: shell.bg,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: { color: shell.text, fontFamily: fonts.display, fontSize: 28, textTransform: 'uppercase' },
-  // Bottom padding keeps the last cards clear of the floating tab bar.
+  header: { paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center' },
+  headerSide: { width: 36, height: 36, justifyContent: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 19 },
   content: { padding: 16, gap: 10, paddingBottom: 120 },
-  sectionTitle: {
-    fontFamily: fonts.displaySemi,
-    fontSize: 16,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginTop: 8,
-  },
+  sectionTitle: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
   card: { borderRadius: radius, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 16, fontWeight: '600' },

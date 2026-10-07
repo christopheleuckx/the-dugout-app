@@ -54,7 +54,13 @@ export const shell = {
 export const fonts = {
   display: 'BarlowCondensed_700Bold',
   displaySemi: 'BarlowCondensed_600SemiBold',
+  regular: 'Outfit_400Regular',
+  medium: 'Outfit_500Medium',
+  semi: 'Outfit_600SemiBold',
 };
+
+// Fixed brand colours for filled cards: the same in light and dark.
+export const brand = { navy: '#14306B', blue: '#1E4289', red: '#C81E2E' };
 
 export const radius = 14;
 

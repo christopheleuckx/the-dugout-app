@@ -32,6 +32,18 @@ export type Game = {
   scores: { team: Team; score: Score }[];
 };
 
+// A U15 game involving our own club: a competition fixture, friendly or tournament.
+export type U15Fixture = {
+  id: string;
+  date: string;
+  time: string | null;
+  opponent: string;
+  opponentLogoUrl: string | null;
+  homeAway: string;
+  competition: string;
+  cancelStatus: string | null;
+};
+
 export type Training = {
   id: string;
   date: string;
@@ -59,6 +71,7 @@ type Data = {
   players: Player[];
   games: Game[];
   trainings: Training[];
+  u15Fixtures: U15Fixture[];
   me: Profile | null;
   clubLogoUrl: string | null;
 };
@@ -69,7 +82,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], me: null, clubLogoUrl: null };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -95,18 +108,23 @@ function teamScore(game: any, team: Team): Score | null {
 }
 
 async function load(userId: string): Promise<Data> {
-  const [players, games, squad, competitors, trainings, absences, profile, club] = await Promise.all([
+  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot'),
     supabase.from('games').select('id, date, time, opponent, competition, home_away, location, cancel_status, hidden_from_calendar, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, team'),
-    supabase.from('competitors').select('id, logo_path'),
+    supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
     supabase.from('training_absences').select('training_id, reason'),
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('club_settings').select('logo_path').maybeSingle(),
+    supabase.from('u15_competitions').select('id, name'),
+    supabase.from('u15_competition_teams').select('id, competitor_id, is_own_team'),
+    supabase.from('u15_matchdays').select('id, competition_id, date'),
+    supabase.from('u15_matchday_games').select('id, matchday_id, team_a_id, team_b_id, kickoff_date, kickoff_time'),
+    supabase.from('u15_extra_games').select('id, kind, title, date, kickoff_time, cancel_status, home_away'),
   ]);
 
-  const failed = [players, games, squad, competitors, trainings, absences, profile, club].find((r) => r.error);
+  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra].find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
 
   const logoByCompetitor = new Map((competitors.data ?? []).map((c) => [c.id, logoUrl(c.logo_path)]));
@@ -121,6 +139,44 @@ async function load(userId: string): Promise<Data> {
     if (!EXCUSED_TRAINING_ABSENCE_REASONS.includes(r.reason)) {
       unexcusedByTraining.set(r.training_id, (unexcusedByTraining.get(r.training_id) ?? 0) + 1);
     }
+  }
+
+  // U15 fixtures involving our own club (never the other clubs' games in the
+  // same competition), dated by their own kickoff date if set, else the matchday's.
+  const competitorById = new Map((competitors.data ?? []).map((c) => [c.id, c]));
+  const logoByName = new Map((competitors.data ?? []).map((c) => [c.name, logoUrl(c.logo_path)]));
+  const teamById = new Map((u15Teams.data ?? []).map((t) => [t.id, t]));
+  const dayById = new Map((u15Days.data ?? []).map((d) => [d.id, d]));
+  const compName = new Map((u15Comps.data ?? []).map((c) => [c.id, c.name]));
+  const u15Fixtures: U15Fixture[] = [];
+  for (const g of u15Games.data ?? []) {
+    const a = teamById.get(g.team_a_id);
+    const b = g.team_b_id ? teamById.get(g.team_b_id) : null;
+    const matchday = dayById.get(g.matchday_id);
+    if (!a || !b || !matchday || (!a.is_own_team && !b.is_own_team)) continue;
+    const them = competitorById.get((a.is_own_team ? b : a).competitor_id);
+    u15Fixtures.push({
+      id: g.id,
+      date: g.kickoff_date ?? matchday.date,
+      time: hhmm(g.kickoff_time),
+      opponent: them?.name ?? 'Unknown',
+      opponentLogoUrl: logoUrl(them?.logo_path),
+      homeAway: a.is_own_team ? 'Home' : 'Away',
+      competition: compName.get(matchday.competition_id) ?? '',
+      cancelStatus: null,
+    });
+  }
+  for (const x of u15Extra.data ?? []) {
+    u15Fixtures.push({
+      id: x.id,
+      date: x.date,
+      time: hhmm(x.kickoff_time),
+      opponent: x.title,
+      opponentLogoUrl: (x.kind === 'friendly' && logoByName.get(x.title)) || null,
+      homeAway: x.home_away,
+      competition: x.kind === 'tournament' ? 'Tournament' : 'Friendly',
+      cancelStatus: x.cancel_status,
+    });
   }
 
   const p = profile.data;
@@ -163,6 +219,7 @@ async function load(userId: string): Promise<Data> {
       absentCount: absentByTraining.get(t.id) ?? 0,
       unexcusedCount: unexcusedByTraining.get(t.id) ?? 0,
     })),
+    u15Fixtures,
     me: p
       ? {
           id: p.id,
@@ -223,10 +280,10 @@ export function todayIso() {
   return toIso(new Date());
 }
 
-// Monday to Sunday of the current week, as ISO dates.
-export function currentWeek() {
+// Monday to Sunday as ISO dates: the current week, or `offset` weeks from it.
+export function currentWeek(offset = 0) {
   const monday = new Date();
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);

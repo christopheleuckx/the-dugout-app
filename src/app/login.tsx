@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -31,6 +32,7 @@ export default function Login() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <StatusBar style="light" />
       <View style={styles.form}>
         <Text style={styles.brand}>The Dugout</Text>
         <Text style={styles.sub}>Sign in with your Dugout account</Text>
