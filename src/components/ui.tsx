@@ -19,18 +19,21 @@ export function Screen({
 }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { loading, error, refresh, clubLogoUrl } = useData();
+  const { loading, error, refresh } = useData();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.chalk }}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <Image source={require('../../assets/icon.png')} style={styles.appLogo} accessibilityLabel="The Dugout" />
         <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
-        {/* Same rounded tile as the app logo, so the two sides balance. */}
+        {/* The club crest ships with the app, in the same rounded tile as the app logo. */}
         <View style={[styles.appLogo, styles.clubTile]}>
-          {clubLogoUrl ? (
-            <Image source={{ uri: clubLogoUrl }} style={styles.clubLogo} resizeMode="contain" accessibilityLabel="FCV Dender" />
-          ) : null}
+          <Image
+            source={require('../../assets/club-logo.png')}
+            style={styles.clubLogo}
+            resizeMode="contain"
+            accessibilityLabel="FCV Dender"
+          />
         </View>
       </View>
       {loading ? (
@@ -105,8 +108,9 @@ export function TrainingCard({ training }: { training: Training }) {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center' },
   appLogo: { width: 40, height: 40, borderRadius: 10 },
-  clubTile: { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  clubLogo: { width: 36, height: 36 },
+  // The tile takes the blue of the logo file's own background.
+  clubTile: { backgroundColor: '#1D418B', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  clubLogo: { width: 40, height: 40 },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 19 },
   content: { padding: 16, gap: 10, paddingBottom: 120 },
   sectionTitle: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
