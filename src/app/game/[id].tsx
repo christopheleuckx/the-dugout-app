@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Crest } from '../../components/MatchCard';
+import { Crest, ResultBadge } from '../../components/MatchCard';
 import { fmtDate, useData, type Game, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 
@@ -61,6 +61,7 @@ export default function GameScreen() {
   const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
+  const place = game.records.find((r) => r.team === team)?.place;
   const teamSide = (side: { name: string; url: string | null }) => (
     <View style={styles.side}>
       <Crest url={side.url} name={side.name} size={72} />
@@ -99,7 +100,54 @@ export default function GameScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {score && !tournament ? (
+        {tournament ? (
+          <>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Text style={[styles.sub, { color: c.inkSoft }]}>
+                {game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament'}
+              </Text>
+              <Text style={[styles.host, { color: c.ink }]}>{game.opponent || 'Tournament'}</Text>
+              {place ? (
+                <View style={[styles.place, { backgroundColor: c.amber + '2E' }]}>
+                  <Ionicons name="trophy-outline" size={14} color={c.amber} />
+                  <Text style={{ color: c.amber, fontFamily: fonts.medium, fontSize: 13 }}>{place}</Text>
+                </View>
+              ) : null}
+            </View>
+            {quarters.map((q, i) => {
+              // Each quarter of a tournament is a match of its own: our goals first.
+              const [us, opp] = game.homeAway === 'Away' ? [q.away, q.home] : [q.home, q.away];
+              return (
+                <View key={i} style={[styles.card, { backgroundColor: c.surface, gap: 8 }]}>
+                  <View style={styles.matchHead}>
+                    <Text style={[styles.matchName, { color: c.ink }]} numberOfLines={2}>
+                      {q.label}
+                    </Text>
+                    {us !== null && opp !== null ? (
+                      <>
+                        <Text style={[styles.matchScore, { color: c.ink }]}>
+                          {us} - {opp}
+                        </Text>
+                        <ResultBadge
+                          result={us > opp ? 'W' : us < opp ? 'L' : 'D'}
+                          colors={{ W: c.win, D: c.amber, L: c.danger }}
+                        />
+                      </>
+                    ) : null}
+                  </View>
+                  {q.scorers.map((name, n) => (
+                    <View key={n} style={styles.scorer}>
+                      <Ionicons name="football-outline" size={14} color={c.inkSoft} />
+                      <Text style={[styles.sub, { color: c.ink }]} numberOfLines={1}>
+                        {name}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              );
+            })}
+          </>
+        ) : score ? (
           <View style={[styles.card, styles.result, { backgroundColor: c.surface }]}>
             {teamSide(sides[0])}
             <View style={styles.middle}>
@@ -116,13 +164,13 @@ export default function GameScreen() {
             {game.teams.length > 1 ? `Team ${team === 'blue' ? 'Blue' : 'Red'}` : game.competition}
           </Text>
           <Text style={[styles.big, { color: c.ink }]}>
-            {score && !tournament ? `${score.home} : ${score.away}` : (game.time ?? 'No time yet')}
+            {game.time ?? 'No time yet'}
           </Text>
           {game.location ? <Text style={[styles.sub, { color: c.inkSoft }]}>{game.location}</Text> : null}
         </View>
         )}
 
-        {quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
+        {!tournament && quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
           <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
             {quarters.map((q, i) => (
               <View key={i} style={[styles.quarter, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
@@ -188,6 +236,11 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
   card: { borderRadius: 12, padding: 18, gap: 2 },
   big: { fontFamily: fonts.semi, fontSize: 30 },
+  host: { fontFamily: fonts.semi, fontSize: 24 },
+  place: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8 },
+  matchHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  matchName: { flex: 1, fontFamily: fonts.medium, fontSize: 16 },
+  matchScore: { fontFamily: fonts.semi, fontSize: 20 },
   quarter: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   quarterLabel: { width: 32, fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
   quarterScore: { width: 62, fontFamily: fonts.semi, fontSize: 17 },
