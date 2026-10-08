@@ -13,7 +13,9 @@ const RED = '#F2545F';
 const RUN_LENGTH = 520;
 
 // The app icon as a loader: the run draws itself around the opponent, over and over.
-export function Loader({ size = 88 }: { size?: number }) {
+// `bare` leaves out the tile (background, stripes, rounded corners) so only
+// the markings float on whatever is behind, as on the splash.
+export function Loader({ size = 88, bare = false }: { size?: number; bare?: boolean }) {
   const t = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -31,15 +33,19 @@ export function Loader({ size = 88 }: { size?: number }) {
 
   return (
     <View
-      style={{ width: size, height: size, borderRadius: size * 0.23, overflow: 'hidden' }}
+      style={{ width: size, height: size, borderRadius: bare ? 0 : size * 0.23, overflow: bare ? 'visible' : 'hidden' }}
       accessibilityRole="progressbar"
       accessibilityLabel="Loading"
     >
       <Svg width={size} height={size} viewBox="0 0 1024 1024">
-        <Rect width={1024} height={1024} fill={NAVY} />
-        {[0, 256, 512, 768].map((y) => (
-          <Rect key={y} y={y} width={1024} height={128} fill={BAND} />
-        ))}
+        {bare ? null : (
+          <>
+            <Rect width={1024} height={1024} fill={NAVY} />
+            {[0, 256, 512, 768].map((y) => (
+              <Rect key={y} y={y} width={1024} height={128} fill={BAND} />
+            ))}
+          </>
+        )}
         <G fill="none" stroke="#FFFFFF" strokeOpacity={0.28} strokeWidth={20}>
           <Line x1={0} y1={512} x2={1024} y2={512} />
           <Circle cx={512} cy={512} r={330} />

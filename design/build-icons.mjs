@@ -66,20 +66,10 @@ for (let i = 0; i < mono.data.length; i += 4) {
 }
 save('android-icon-monochrome.png', mono, true);
 
-// Splash screen: the icon as a rounded tile on a transparent background, the
-// same tile the in-app loader shows, so start-up runs splash -> loader -> app.
-const tile = render('tile', svg(pitch + board(RED, '#FFFFFF')));
-const radius = tile.width * 0.23;
-for (let y = 0; y < tile.height; y++) {
-  for (let x = 0; x < tile.width; x++) {
-    // Distance past the rounded corner, softened over one pixel.
-    const dx = Math.max(radius - x - 0.5, x + 0.5 - (tile.width - radius), 0);
-    const dy = Math.max(radius - y - 0.5, y + 0.5 - (tile.height - radius), 0);
-    const cover = Math.min(1, Math.max(0, radius - Math.hypot(dx, dy) + 0.5));
-    tile.data[(y * tile.width + x) * 4 + 3] = Math.round(cover * 255);
-  }
-}
-save('splash-icon.png', tile, true);
+// Splash screen: only the markings, on the splash's own dark blue (the same
+// colour as its background in app.json and Splash.tsx), so no tile is visible.
+const SPLASH_BG = '#0C1F4A';
+save('splash-icon.png', render('splash', svg(`<rect width="1024" height="1024" fill="${SPLASH_BG}"/>` + board(RED, '#FFFFFF').replace('x1="-600"', 'x1="0"').replace('x2="1624"', 'x2="1024"'))));
 
 writeFileSync(join(here, 'app-icon.svg'), svg(pitch + board(RED, '#FFFFFF')));
 console.log('icons written to', assets);
