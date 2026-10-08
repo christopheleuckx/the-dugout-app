@@ -10,6 +10,14 @@ import { fonts, useColors } from '../../lib/theme';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+// Position numbers back to front: keeper, defenders, midfielders, wingers,
+// attackers. Players without a known position come last.
+const POSITION_ORDER = ['K', '1', '2', '3', '4', '5', '6', '8', '10', '7', '11', '9'];
+function lineOf(position: string) {
+  const index = POSITION_ORDER.indexOf(position.trim().toUpperCase());
+  return index === -1 ? POSITION_ORDER.length : index;
+}
+
 // The team a game opens on: the one the signed-in coach is assigned to in
 // this game, else the team on their profile, else Blue before Red.
 function defaultTeam(game: Game, me: Profile | null): Team {
@@ -61,7 +69,9 @@ export default function GameScreen() {
   const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
-  const selection = game.teams.find((t) => t.team === team)?.players ?? [];
+  const selection = (game.teams.find((t) => t.team === team)?.players ?? [])
+    .slice()
+    .sort((a, b) => lineOf(a.bestPosition) - lineOf(b.bestPosition) || a.firstName.localeCompare(b.firstName));
   // Above the score or kick-off time: End once played, else the countdown.
   const today = todayIso();
   const status = game.cancelStatus
