@@ -277,11 +277,18 @@ export default function NewGameScreen() {
         <View style={[styles.card, { backgroundColor: c.surface }]}>
           <View style={styles.row}>
             <Text style={[styles.label, { color: c.ink, flex: 0, width: 84 }]}>Location</Text>
-            <TextInput style={[styles.input, { color: c.ink }]} placeholder="Address" placeholderTextColor={c.inkSoft} value={location} onChangeText={setLocation} />
+            <TextInput style={[styles.input, { color: c.ink, paddingVertical: 0 }]} placeholder="Address" placeholderTextColor={c.inkSoft} value={location} onChangeText={setLocation} />
           </View>
-          <View style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line, alignItems: 'flex-start' }]}>
+          <View style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
             <Text style={[styles.label, { color: c.ink, flex: 0, width: 84 }]}>Remarks</Text>
-            <TextInput style={[styles.input, { color: c.ink }]} placeholder="Optional" placeholderTextColor={c.inkSoft} value={remarks} onChangeText={setRemarks} multiline />
+            <TextInput
+              style={[styles.input, { color: c.ink, paddingTop: 0, paddingBottom: 0 }]}
+              placeholder="Optional"
+              placeholderTextColor={c.inkSoft}
+              value={remarks}
+              onChangeText={setRemarks}
+              multiline
+            />
           </View>
         </View>
         {error ? <Text style={[styles.hint, { color: c.danger }]}>{error}</Text> : null}
