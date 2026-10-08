@@ -22,7 +22,17 @@ const BENCH_SLOTS = ['S1', 'S2', 'S3', 'S4', 'S5'];
 // The field positions per line, back to front, as in selection.ts.
 const LINE_SPOTS = [['K'], ['3', '4'], ['6', '10'], ['7', '11'], ['9']];
 
-// Everyone on their best position, then the open spots filled with whoever
+function shuffle<T>(list: T[]) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Everyone on their best position (in the order given, so a shuffled squad
+// gives a different line-up each time), then the open spots filled with whoever
 // is left (keepers last, so a second keeper isn't put up front).
 function autoFill(players: Player[]): Spots {
   const spots: Spots = {};
@@ -164,12 +174,19 @@ export default function GameLineupEditScreen() {
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
   // A settings row whose whole width toggles the switch.
-  const toggleRow = (key: string, text: string, value: boolean, set: (v: boolean) => void, first = false) => (
-    <Pressable key={key} style={[styles.setting, !first && line]} onPress={() => set(!value)} accessibilityRole="switch" accessibilityState={{ checked: value }}>
-      <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.regular, fontSize: 16 }} numberOfLines={1}>
+  const toggleRow = (key: string, text: string, value: boolean, set: (v: boolean) => void, first = false, disabled = false) => (
+    <Pressable
+      key={key}
+      style={[styles.setting, !first && line]}
+      onPress={() => set(!value)}
+      disabled={disabled}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+    >
+      <Text style={{ flex: 1, color: disabled ? c.inkSoft : c.ink, fontFamily: fonts.regular, fontSize: 16 }} numberOfLines={1}>
         {text}
       </Text>
-      <Switch value={value} onValueChange={set} trackColor={{ true: c.pitch }} />
+      <Switch value={value} onValueChange={set} disabled={disabled} trackColor={{ true: c.pitch }} />
     </Pressable>
   );
 
@@ -179,7 +196,8 @@ export default function GameLineupEditScreen() {
       equalTime,
       equalStarting,
       subsAllowed: subs,
-      highMinuteIds: extra,
+      // Extra playing time only applies when the time isn't shared equally.
+      highMinuteIds: equalTime ? [] : extra,
     });
     const same = (a: Spots, b: Spots) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((id) => a[id] === b[id]);
     setQuarters(made.map((q) => ({ start: q.start, after: same(q.start, q.after) ? null : q.after })));
@@ -206,9 +224,20 @@ export default function GameLineupEditScreen() {
           <Ionicons name={generating ? 'chevron-back' : 'close'} size={20} color={c.ink} />
         </Pressable>
         <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-          {generating ? 'Generate line-up' : `Line-up ${label(page)}`}
+          {generating ? 'Generate game line-ups' : `Line-up ${label(page)}`}
         </Text>
-        <View style={{ width: 36 }} />
+        {generating || !squad.length ? (
+          <View style={{ width: 36 }} />
+        ) : (
+          <Pressable
+            style={[styles.round, { backgroundColor: c.pitch }]}
+            onPress={() => setGenerating(true)}
+            accessibilityLabel="Generate game line-ups"
+            hitSlop={8}
+          >
+            <Ionicons name="sparkles" size={18} color={c.onPitch} />
+          </Pressable>
+        )}
       </View>
 
       {generating ? (
@@ -230,13 +259,17 @@ export default function GameLineupEditScreen() {
           <Text style={[styles.group, { color: c.inkSoft }]}>Extra playing time</Text>
           <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 2 }]}>
             {squad.map((p, n) =>
-              toggleRow(p.id, `${p.firstName} ${p.lastName}`.trim(), extra.includes(p.id), (v) => setExtra(v ? [...extra, p.id] : extra.filter((id) => id !== p.id)), n === 0),
+              toggleRow(p.id, `${p.firstName} ${p.lastName}`.trim(), !equalTime && extra.includes(p.id), (v) => setExtra(v ? [...extra, p.id] : extra.filter((id) => id !== p.id)), n === 0, equalTime),
             )}
           </View>
-          <Text style={[styles.hint, { color: c.inkSoft }]}>On: the player gets at least 75% of the playing time.</Text>
+          <Text style={[styles.hint, { color: c.inkSoft }]}>
+            {equalTime
+              ? 'Switch off "Equal time per game" to give specific players extra playing time.'
+              : 'On: the player gets at least 75% of the playing time.'}
+          </Text>
 
           <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={generate}>
-            <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Generate line-up</Text>
+            <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Generate game line-ups</Text>
           </Pressable>
         </ScrollView>
       ) : (
@@ -262,13 +295,6 @@ export default function GameLineupEditScreen() {
           </Pressable>
         ))}
       </View>
-
-      {squad.length ? (
-        <Pressable style={[styles.action, { backgroundColor: c.surface, marginHorizontal: 16, marginTop: 12 }]} onPress={() => setGenerating(true)}>
-          <Ionicons name="sparkles-outline" size={16} color={c.pitch} />
-          <Text style={[styles.actionText, { color: c.pitch }]}>Generate line-up</Text>
-        </Pressable>
-      ) : null}
 
       {squad.length === 0 ? (
         <Text style={[styles.hint, { color: c.inkSoft, textAlign: 'center', marginTop: 40 }]}>
@@ -297,9 +323,9 @@ export default function GameLineupEditScreen() {
                 </View>
 
                 {moment === 'starting' ? (
-                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => update(i, autoFill(squad), 'starting')}>
-                    <Ionicons name="sparkles-outline" size={16} color={c.pitch} />
-                    <Text style={[styles.actionText, { color: c.pitch }]}>Auto-fill on best positions</Text>
+                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => update(i, autoFill(shuffle(squad)), 'starting')}>
+                    <Ionicons name="shuffle" size={18} color={c.pitch} />
+                    <Text style={[styles.actionText, { color: c.pitch }]}>Random line-up</Text>
                   </Pressable>
                 ) : (
                   <Pressable

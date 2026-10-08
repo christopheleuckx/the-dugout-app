@@ -80,6 +80,7 @@ export default function Dashboard() {
         key: g.id,
         // Only U12 games have a game screen to open.
         gameId: g.id as string | null,
+        trainingId: null,
         date: g.date!,
         sort: g.time ?? '99:99',
         title: `U12 · ${g.opponent || 'TBD'}`,
@@ -93,6 +94,7 @@ export default function Dashboard() {
       .map((f) => ({
         key: f.id,
         gameId: null,
+        trainingId: null,
         date: f.date,
         sort: f.time ?? '99:99',
         title: `U15 · ${f.opponent}`,
@@ -106,6 +108,7 @@ export default function Dashboard() {
       .map((t) => ({
         key: t.id,
         gameId: null,
+        trainingId: t.id as string | null,
         date: t.date,
         sort: t.startTime ?? '99:99',
         title: t.label,
@@ -184,8 +187,8 @@ export default function Dashboard() {
               return (
                 <Pressable
                   key={it.key}
-                  disabled={!it.gameId}
-                  onPress={() => router.push(`/game/${it.gameId}`)}
+                  disabled={!it.gameId && !it.trainingId}
+                  onPress={() => router.push(it.gameId ? `/game/${it.gameId}` : `/training/${it.trainingId}`)}
                   style={[styles.rowItem, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
                 >
                   {it.kind === 'Game' ? <Crest url={it.logoUrl} name={it.crestName} size={36} /> : null}

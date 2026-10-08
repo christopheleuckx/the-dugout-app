@@ -120,6 +120,8 @@ export type Training = {
   cancelStatus: string | null;
   hiddenFromCalendar: boolean;
   absentCount: number;
+  // Per absent player id: the reason.
+  absences: Record<string, string>;
   // Absences that count against attendance (not GK training etc.).
   unexcusedCount: number;
 };
@@ -220,7 +222,7 @@ async function load(userId: string): Promise<Data> {
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
-    supabase.from('training_absences').select('training_id, reason'),
+    supabase.from('training_absences').select('training_id, player_id, reason'),
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('club_settings').select('logo_path').maybeSingle(),
     supabase.from('u15_competitions').select('id, name'),
@@ -437,6 +439,7 @@ async function load(userId: string): Promise<Data> {
       cancelStatus: t.cancel_status,
       hiddenFromCalendar: t.hidden_from_calendar,
       absentCount: absentByTraining.get(t.id) ?? 0,
+      absences: Object.fromEntries((absences.data ?? []).filter((r) => r.training_id === t.id).map((r) => [r.player_id, r.reason ?? ''])),
       unexcusedCount: unexcusedByTraining.get(t.id) ?? 0,
     })),
     u15Fixtures,

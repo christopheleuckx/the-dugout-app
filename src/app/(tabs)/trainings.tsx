@@ -1,5 +1,8 @@
+import { router } from 'expo-router';
+import { Pressable } from 'react-native';
+
 import { Empty, Screen, SectionTitle, TrainingCard } from '../../components/ui';
-import { todayIso, useData } from '../../lib/data';
+import { todayIso, useData, type Training } from '../../lib/data';
 
 export default function Trainings() {
   const { trainings } = useData();
@@ -11,17 +14,23 @@ export default function Trainings() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 10);
 
+  const card = (t: Training) => (
+    <Pressable key={t.id} onPress={() => router.push(`/training/${t.id}`)}>
+      <TrainingCard training={t} />
+    </Pressable>
+  );
+
   return (
     <Screen title="Trainings">
       <SectionTitle>Upcoming</SectionTitle>
       {upcoming.length ? (
-        upcoming.map((t) => <TrainingCard key={t.id} training={t} />)
+        upcoming.map((t) => card(t))
       ) : (
         <Empty>No upcoming trainings.</Empty>
       )}
 
       <SectionTitle>Last 10</SectionTitle>
-      {past.length ? past.map((t) => <TrainingCard key={t.id} training={t} />) : <Empty>No past trainings.</Empty>}
+      {past.length ? past.map((t) => card(t)) : <Empty>No past trainings.</Empty>}
     </Screen>
   );
 }
