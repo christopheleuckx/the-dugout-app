@@ -52,7 +52,7 @@ export type Report = {
 
 // One quarter's line-up for a team: where each player starts and where they
 // are after the 10-minute change (a field position, or a bench slot S1..S5).
-export type QuarterLineup = { label: string; players: { id: string; starting: string; after10: string }[] };
+export type QuarterLineup = { index: number; label: string; players: { id: string; starting: string; after10: string }[] };
 
 export type Game = {
   id: string;
@@ -350,6 +350,7 @@ async function load(userId: string): Promise<Data> {
   const teamLineups = (g: any, team: Team): QuarterLineup[] =>
     ((g.lineups?.[team]?.quarters ?? []) as any[])
       .map((quarter, i) => ({
+        index: i,
         label: g.quarter_labels?.[i] || `Q${i + 1}`,
         players: Object.entries<any>(quarter ?? {})
           .filter(([id, entry]) => entry?.starting && teamOfPlayer.get(`${g.id}|${id}`) === team)
