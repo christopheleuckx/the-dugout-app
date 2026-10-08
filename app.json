@@ -42,7 +42,8 @@
             "backgroundColor": "#0A101B"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "thedugout",
     "extra": {

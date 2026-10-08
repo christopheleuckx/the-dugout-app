@@ -129,6 +129,8 @@ type Data = {
   u15Fixtures: U15Fixture[];
   me: Profile | null;
   clubLogoUrl: string | null;
+  // Known opponent clubs, by name.
+  competitors: { id: string; name: string; logoUrl: string | null }[];
 };
 
 type DataValue = Data & {
@@ -137,7 +139,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, competitors: [] };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -427,6 +429,9 @@ async function load(userId: string): Promise<Data> {
         }
       : null,
     clubLogoUrl: logoUrl(club.data?.logo_path),
+    competitors: (competitors.data ?? [])
+      .map((c) => ({ id: c.id, name: c.name, logoUrl: logoUrl(c.logo_path) }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
   };
 }
 

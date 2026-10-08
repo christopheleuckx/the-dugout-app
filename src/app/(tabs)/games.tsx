@@ -1,10 +1,12 @@
 import { useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { isPlayed, MatchCard } from '../../components/MatchCard';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
 import { todayIso, useData } from '../../lib/data';
+import { useColors } from '../../lib/theme';
 
 const monthTitle = (iso: string) =>
   new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
@@ -13,6 +15,7 @@ const monthTitle = (iso: string) =>
 // It opens with the last played game at the top and the next game right
 // below it: scroll up for results, down for what's coming.
 export default function Games() {
+  const c = useColors();
   const { games } = useData();
   const today = todayIso();
   const scrollRef = useRef<ScrollView>(null);
@@ -28,6 +31,7 @@ export default function Games() {
   const anchorId = sorted[Math.max(0, nextIndex - 1)]?.id;
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen title="Games" scrollRef={scrollRef}>
       {sorted.length === 0 ? <Empty>No games planned.</Empty> : null}
       {sorted.map((g, i) => {
@@ -55,5 +59,32 @@ export default function Games() {
         );
       })}
     </Screen>
+      <Pressable
+        style={[styles.add, { backgroundColor: c.pitch }]}
+        onPress={() => router.push('/game-new')}
+        accessibilityLabel="New game"
+      >
+        <Ionicons name="add" size={28} color={c.onPitch} />
+      </Pressable>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // Floats above the tab bar.
+  add: {
+    position: 'absolute',
+    right: 18,
+    bottom: 104,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0E1320',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+});
