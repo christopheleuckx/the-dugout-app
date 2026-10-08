@@ -100,14 +100,15 @@ export default function GameSelectionScreen() {
             <Text style={[styles.label, { color: c.ink }]}>Number of teams</Text>
             {stepper(numTeams, setNumTeams, 1, 2)}
           </View>
-          <View style={[styles.row, line]}>
+          {/* The whole row toggles, not only the switch itself. */}
+          <Pressable style={[styles.row, line]} onPress={() => setRotation(!rotation)} accessibilityRole="switch" accessibilityState={{ checked: rotation }}>
             <Text style={[styles.label, { color: c.ink }]}>Take rotation into account</Text>
             <Switch value={rotation} onValueChange={setRotation} trackColor={{ true: c.pitch }} />
-          </View>
-          <View style={[styles.row, line]}>
+          </Pressable>
+          <Pressable style={[styles.row, line]} onPress={() => setMixed(!mixed)} accessibilityRole="switch" accessibilityState={{ checked: mixed }}>
             <Text style={[styles.label, { color: c.ink }]}>Mixed teams</Text>
             <Switch value={mixed} onValueChange={setMixed} trackColor={{ true: c.pitch }} />
-          </View>
+          </Pressable>
         </View>
         <Text style={[styles.hint, { color: c.inkSoft }]}>
           Rotation picks players with the fewest selections first. Mixed teams spreads quality evenly over the teams. Players
