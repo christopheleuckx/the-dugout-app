@@ -101,6 +101,7 @@ export function TrainingCard({ training }: { training: Training }) {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center' },
   appLogo: { width: 40, height: 40, borderRadius: 10 },
+  headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 19 },
   content: { padding: 16, gap: 10, paddingBottom: 120 },
   sectionTitle: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
   card: { borderRadius: radius, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 10 },
