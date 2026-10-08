@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { ScrollView, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { isPlayed, MatchCard } from '../../components/MatchCard';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
@@ -43,11 +44,13 @@ export default function Games() {
             }}
           >
             {newMonth ? <SectionTitle>{g.date ? monthTitle(g.date) : 'No date yet'}</SectionTitle> : null}
-            <MatchCard
-              game={g}
-              today={today}
-              variant={g.id === next?.id ? 'next' : isPlayed(g, today) ? 'played' : 'upcoming'}
-            />
+            <Pressable onPress={() => router.push(`/game/${g.id}`)}>
+              <MatchCard
+                game={g}
+                today={today}
+                variant={g.id === next?.id ? 'next' : isPlayed(g, today) ? 'played' : 'upcoming'}
+              />
+            </Pressable>
           </View>
         );
       })}

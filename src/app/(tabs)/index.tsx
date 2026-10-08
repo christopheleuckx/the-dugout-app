@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -131,7 +132,9 @@ export default function Dashboard() {
       {upcoming.length ? (
         <Swimlane cardWidth={upcoming.length > 1 ? Math.round(width * 0.78) : width - 32}>
           {upcoming.map((g, i) => (
-            <MatchCard key={g.id} game={g} variant={i === 0 ? 'next' : 'upcoming'} today={today} notched />
+            <Pressable key={g.id} style={{ flex: 1 }} onPress={() => router.push(`/game/${g.id}`)}>
+              <MatchCard game={g} variant={i === 0 ? 'next' : 'upcoming'} today={today} notched />
+            </Pressable>
           ))}
         </Swimlane>
       ) : (
@@ -201,7 +204,9 @@ export default function Dashboard() {
       {results.length ? (
         <Swimlane cardWidth={Math.round(width * 0.62)}>
           {results.map((g) => (
-            <ResultCard key={g.id} game={g} />
+            <Pressable key={g.id} onPress={() => router.push(`/game/${g.id}`)}>
+              <ResultCard game={g} />
+            </Pressable>
           ))}
         </Swimlane>
       ) : (
