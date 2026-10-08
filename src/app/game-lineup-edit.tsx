@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FIELD_POSITIONS, onPitch, Pitch } from '../components/Pitch';
 import { useData, type Player, type Team } from '../lib/data';
+import { generateLineups } from '../lib/lineup';
 import { groupOf } from '../lib/selection';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -70,6 +71,13 @@ export default function GameLineupEditScreen() {
   const [page, setPage] = useState(0);
   const [moment, setMoment] = useState<Moment>('starting');
   const [sheet, setSheet] = useState<Sheet>(null);
+  // The "Generate line-up" page and its settings, with the web app's defaults.
+  const [generating, setGenerating] = useState(false);
+  const [bestOnly, setBestOnly] = useState(true);
+  const [equalTime, setEqualTime] = useState(true);
+  const [equalStarting, setEqualStarting] = useState(true);
+  const [subs, setSubs] = useState<boolean[]>(() => game?.subsAllowed ?? []);
+  const [extra, setExtra] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const pager = useRef<ScrollView>(null);
@@ -140,6 +148,11 @@ export default function GameLineupEditScreen() {
       confirmed: Array.from({ length: count }, (_, i) => existing.confirmed?.[i] ?? false),
     };
     const saved = fresh.error ? fresh : await supabase.rpc('patch_game_team_lineup', { p_game_id: game!.id, p_team: team, p_value: value });
+    // Keep the per-quarter substitution setting the generator used, as the web app does.
+    if (!saved.error && subs.some((v, i) => v !== game!.subsAllowed[i])) {
+      const evalRow = await supabase.from('games').select('team_eval').eq('id', game!.id).single();
+      if (!evalRow.error) await supabase.from('games').update({ team_eval: { ...(evalRow.data.team_eval ?? {}), subsAllowed: subs } }).eq('id', game!.id);
+    }
     if (saved.error) {
       setError(`Could not save the line-ups: ${saved.error.message}`);
       setSaving(false);
@@ -150,6 +163,30 @@ export default function GameLineupEditScreen() {
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
+  // A settings row whose whole width toggles the switch.
+  const toggleRow = (key: string, text: string, value: boolean, set: (v: boolean) => void, first = false) => (
+    <Pressable key={key} style={[styles.setting, !first && line]} onPress={() => set(!value)} accessibilityRole="switch" accessibilityState={{ checked: value }}>
+      <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.regular, fontSize: 16 }} numberOfLines={1}>
+        {text}
+      </Text>
+      <Switch value={value} onValueChange={set} trackColor={{ true: c.pitch }} />
+    </Pressable>
+  );
+
+  function generate() {
+    const made = generateLineups(squad, count, game!.quarterLength, {
+      bestPositionOnly: bestOnly,
+      equalTime,
+      equalStarting,
+      subsAllowed: subs,
+      highMinuteIds: extra,
+    });
+    const same = (a: Spots, b: Spots) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((id) => a[id] === b[id]);
+    setQuarters(made.map((q) => ({ start: q.start, after: same(q.start, q.after) ? null : q.after })));
+    setGenerating(false);
+    setMoment('starting');
+    goTo(0);
+  }
   const sheetSpots = spotsOf(current);
   // Players for a tapped position: those whose best position matches come first.
   const candidates =
@@ -160,17 +197,52 @@ export default function GameLineupEditScreen() {
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => router.back()} accessibilityLabel="Close" hitSlop={8}>
-          <Ionicons name="close" size={20} color={c.ink} />
+        <Pressable
+          style={[styles.round, { backgroundColor: c.surface }]}
+          onPress={() => (generating ? setGenerating(false) : router.back())}
+          accessibilityLabel={generating ? 'Back' : 'Close'}
+          hitSlop={8}
+        >
+          <Ionicons name={generating ? 'chevron-back' : 'close'} size={20} color={c.ink} />
         </Pressable>
         <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-          Line-up {label(page)}
+          {generating ? 'Generate line-up' : `Line-up ${label(page)}`}
         </Text>
         <View style={{ width: 36 }} />
       </View>
 
+      {generating ? (
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 2 }]}>
+            {toggleRow('best', 'Always best position', bestOnly, setBestOnly, true)}
+            {toggleRow('time', 'Equal time per game', equalTime, setEqualTime)}
+            {toggleRow('start', 'Equal starting time', equalStarting, setEqualStarting)}
+          </View>
+
+          <Text style={[styles.group, { color: c.inkSoft }]}>Substitution</Text>
+          <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 2 }]}>
+            {Array.from({ length: count }, (_, i) =>
+              toggleRow(`q${i}`, label(i), subs[i] ?? true, (v) => setSubs(Array.from({ length: count }, (_, n) => (n === i ? v : (subs[n] ?? true)))), i === 0),
+            )}
+          </View>
+          <Text style={[styles.hint, { color: c.inkSoft }]}>On: players may change after 10 minutes in that quarter.</Text>
+
+          <Text style={[styles.group, { color: c.inkSoft }]}>Extra playing time</Text>
+          <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 2 }]}>
+            {squad.map((p, n) =>
+              toggleRow(p.id, `${p.firstName} ${p.lastName}`.trim(), extra.includes(p.id), (v) => setExtra(v ? [...extra, p.id] : extra.filter((id) => id !== p.id)), n === 0),
+            )}
+          </View>
+          <Text style={[styles.hint, { color: c.inkSoft }]}>On: the player gets at least 75% of the playing time.</Text>
+
+          <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={generate}>
+            <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Generate line-up</Text>
+          </Pressable>
+        </ScrollView>
+      ) : (
+        <>
       {/* Quarter bar: tap to jump; a dot marks quarters that have a line-up. */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quarterScroll} contentContainerStyle={styles.quarterBar}>
+      <View style={styles.quarterBar}>
         {quarters.map((q, i) => (
           <Pressable key={i} style={[styles.quarterChip, { backgroundColor: i === page ? c.pitch : c.surface }]} onPress={() => goTo(i)}>
             <Text style={{ color: i === page ? c.onPitch : c.ink, fontFamily: fonts.medium, fontSize: 13 }} numberOfLines={1}>
@@ -179,7 +251,7 @@ export default function GameLineupEditScreen() {
             {Object.keys(q.start).length ? <View style={[styles.filled, { backgroundColor: i === page ? c.onPitch : c.win }]} /> : null}
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
 
       <View style={[styles.toggle, { backgroundColor: c.surface2 }]}>
         {(['starting', 'after10'] as Moment[]).map((m) => (
@@ -190,6 +262,13 @@ export default function GameLineupEditScreen() {
           </Pressable>
         ))}
       </View>
+
+      {squad.length ? (
+        <Pressable style={[styles.action, { backgroundColor: c.surface, marginHorizontal: 16, marginTop: 12 }]} onPress={() => setGenerating(true)}>
+          <Ionicons name="sparkles-outline" size={16} color={c.pitch} />
+          <Text style={[styles.actionText, { color: c.pitch }]}>Generate line-up</Text>
+        </Pressable>
+      ) : null}
 
       {squad.length === 0 ? (
         <Text style={[styles.hint, { color: c.inkSoft, textAlign: 'center', marginTop: 40 }]}>
@@ -286,6 +365,8 @@ export default function GameLineupEditScreen() {
           })}
         </ScrollView>
       )}
+        </>
+      )}
 
       <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
         <Pressable style={{ flex: 1 }} onPress={() => setSheet(null)} accessibilityLabel="Close" />
@@ -344,12 +425,11 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 17 },
-  // A fixed height: a horizontal list otherwise collapses and clips the chips.
-  quarterScroll: { flexGrow: 0, height: 44 },
-  quarterBar: { paddingHorizontal: 16, gap: 8, alignItems: 'flex-start' },
+  // Centred; wraps to a second row when a tournament has long names.
+  quarterBar: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 16, marginBottom: 18 },
   quarterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, borderRadius: 17, paddingHorizontal: 14, maxWidth: 170 },
   filled: { width: 6, height: 6, borderRadius: 3 },
-  toggle: { flexDirection: 'row', alignSelf: 'center', borderRadius: 10, padding: 3, marginBottom: 4 },
+  toggle: { flexDirection: 'row', alignSelf: 'center', borderRadius: 10, padding: 3 },
   toggleOption: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 18 },
   content: { padding: 16, gap: 10, paddingBottom: 48 },
   pitch: { borderRadius: 12, overflow: 'hidden' },
@@ -362,6 +442,8 @@ const styles = StyleSheet.create({
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   track: { width: 90, height: 6, borderRadius: 3, overflow: 'hidden' },
   hint: { fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12 },
+  group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 8 },
+  setting: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingVertical: 8 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, marginTop: 4 },
   sheet: {
     borderTopLeftRadius: 20,

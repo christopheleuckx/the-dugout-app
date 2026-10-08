@@ -12,6 +12,8 @@ export type Player = {
   number: number | null;
   bestPosition: string;
   preferredFoot: string;
+  // A second position the player is being developed in, if any.
+  developingPosition: string;
   // The coach's 1 to 5 star rating, if set.
   qualityRating: number | null;
 };
@@ -86,6 +88,9 @@ export type Game = {
   stints: Record<string, Stint[]>;
   // Number of matches planned in a tournament (the game's quarters).
   matches: number;
+  // Minutes per quarter, and per quarter whether a change after 10 minutes is allowed.
+  quarterLength: number;
+  subsAllowed: boolean[];
   // Per team, one entry per quarter: its name, the score in home-away order
   // (null while not filled in) and who scored for us.
   quarters: Partial<Record<Team, Quarter[]>>;
@@ -210,8 +215,8 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings] = await Promise.all([
-    supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot, quality_rating'),
-    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
+    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating'),
+    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
@@ -321,6 +326,7 @@ async function load(userId: string): Promise<Data> {
       number: r.number,
       bestPosition: r.best_position,
       preferredFoot: r.preferred_foot,
+      developingPosition: r.developing_position ?? '',
       qualityRating: r.quality_rating,
     }))
     .sort((a, b) => a.firstName.localeCompare(b.firstName));
@@ -413,6 +419,8 @@ async function load(userId: string): Promise<Data> {
       stints: gameStints(g),
       lineups: Object.fromEntries(playingTeams(g.id).map((team) => [team, teamLineups(g, team)])),
       matches: g.quarters,
+      quarterLength: g.quarter_length,
+      subsAllowed: Array.from({ length: g.quarters }, (_, i) => g.team_eval?.subsAllowed?.[i] ?? true),
       quarters: Object.fromEntries(playingTeams(g.id).map((team) => [team, teamQuarters(g, team)])),
       records:
         g.competition === 'Tournament'
