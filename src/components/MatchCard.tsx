@@ -68,7 +68,7 @@ export function isPlayed(game: Game, today: string) {
 // own match) with W / D / L in place of the kick-off time. `notched` cuts the
 // top-right and bottom-left corners off; otherwise all four keep the card radius.
 // A tournament has no single opponent, so it gets its own card: the host
-// club's logo in the header and, once played, one row per team with wins,
+// club's logo and name as the title, the level (IP3, Elite) beside the date and, once played, one row per team with wins,
 // draws, losses and goals scored and conceded.
 function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' | 'upcoming' | 'played'; today: string }) {
   const c = useColors();
@@ -101,12 +101,13 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
       </View>
     );
   };
-  const title = game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament';
+  const level = game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament';
 
   let body;
   let tag = null;
   if (game.cancelStatus) {
-    tag = { label: game.cancelStatus, bg: c.danger + '24', fg: c.danger };
+    const status = game.cancelStatus;
+    tag = { label: status[0].toUpperCase() + status.slice(1), bg: c.danger + '24', fg: c.danger };
   } else if (variant !== 'played') {
     tag = {
       label: game.date ? countdown(game.date, today) : 'No date',
@@ -156,14 +157,16 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
       <View style={styles.tHead}>
         <Crest url={game.opponentLogoUrl} name={game.opponent || 'TBD'} size={46} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: fg }]}>{title}</Text>
+          <Text style={[styles.title, { color: fg }]} numberOfLines={1}>
+            {game.opponent || 'Tournament'}
+          </Text>
           <Text style={[styles.sub, { color: soft }]} numberOfLines={1}>
-            {[fmtDate(game.date), game.opponent].filter(Boolean).join(' · ')}
+            {fmtDate(game.date)} · {level}
           </Text>
         </View>
         {tag ? (
           <View style={[styles.pill, { backgroundColor: tag.bg }]}>
-            <Text style={[styles.pillText, { color: tag.fg, textTransform: 'capitalize' }]}>{tag.label}</Text>
+            <Text style={[styles.pillText, { color: tag.fg }]}>{tag.label}</Text>
           </View>
         ) : null}
       </View>
