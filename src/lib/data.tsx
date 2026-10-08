@@ -99,8 +99,14 @@ const EXCUSED_TRAINING_ABSENCE_REASONS = ['GK Training', 'Training with another 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : null);
 
 // Same "us / them" sum as totalScore() in the web app, shown in home-away order.
+// Scores are kept per team. Older games still have them in the shared,
+// game-level quarter_scores field, which the web app falls back to as well.
+function quarterScores(game: any, team: Team) {
+  return game.lineups?.[team]?.quarterScores ?? game.quarter_scores;
+}
+
 function teamScore(game: any, team: Team): Score | null {
-  const quarters = game.lineups?.[team]?.quarterScores;
+  const quarters = quarterScores(game, team);
   if (!Array.isArray(quarters)) return null;
   let f = 0;
   let a = 0;
@@ -115,7 +121,7 @@ function teamScore(game: any, team: Team): Score | null {
 }
 
 function teamRecord(game: any, team: Team): TeamRecord | null {
-  const quarters = game.lineups?.[team]?.quarterScores;
+  const quarters = quarterScores(game, team);
   if (!Array.isArray(quarters)) return null;
   const r: TeamRecord = { team, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0 };
   for (const q of quarters) {
@@ -132,7 +138,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot'),
-    supabase.from('games').select('id, date, time, opponent, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, lineups, competitor_id'),
+    supabase.from('games').select('id, date, time, opponent, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_scores, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, team'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
@@ -151,8 +157,11 @@ async function load(userId: string): Promise<Data> {
 
   const logoByCompetitor = new Map((competitors.data ?? []).map((c) => [c.id, logoUrl(c.logo_path)]));
   const squadByGame = new Map<string, number>();
+  const teamsByGame = new Map<string, Set<Team>>();
   for (const r of squad.data ?? []) {
-    if (r.team) squadByGame.set(r.game_id, (squadByGame.get(r.game_id) ?? 0) + 1);
+    if (r.team !== 'blue' && r.team !== 'red') continue;
+    squadByGame.set(r.game_id, (squadByGame.get(r.game_id) ?? 0) + 1);
+    teamsByGame.set(r.game_id, (teamsByGame.get(r.game_id) ?? new Set<Team>()).add(r.team));
   }
   const absentByTraining = new Map<string, number>();
   const unexcusedByTraining = new Map<string, number>();
@@ -201,6 +210,13 @@ async function load(userId: string): Promise<Data> {
     });
   }
 
+  // Only teams with players in the squad have a result; a game without a
+  // squad yet counts as Team Blue's, like in the web app.
+  const playingTeams = (gameId: string): Team[] => {
+    const teams = (['blue', 'red'] as Team[]).filter((t) => teamsByGame.get(gameId)?.has(t));
+    return teams.length ? teams : ['blue'];
+  };
+
   const p = profile.data;
   return {
     players: (players.data ?? [])
@@ -225,13 +241,13 @@ async function load(userId: string): Promise<Data> {
       hiddenFromCalendar: g.hidden_from_calendar,
       opponentLogoUrl: (g.competitor_id && logoByCompetitor.get(g.competitor_id)) || null,
       squadCount: squadByGame.get(g.id) ?? 0,
-      scores: (['blue', 'red'] as Team[])
+      scores: playingTeams(g.id)
         .map((team) => ({ team, score: teamScore(g, team) }))
         .filter((s): s is { team: Team; score: Score } => s.score !== null),
       matches: g.quarters,
       records:
         g.competition === 'Tournament'
-          ? (['blue', 'red'] as Team[]).map((team) => teamRecord(g, team)).filter((r) => r !== null)
+          ? playingTeams(g.id).map((team) => teamRecord(g, team)).filter((r) => r !== null)
           : [],
     })),
     trainings: (trainings.data ?? []).map((t) => ({
