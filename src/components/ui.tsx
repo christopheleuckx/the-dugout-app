@@ -71,6 +71,7 @@ function Badge({ label, color }: { label: string; color: string }) {
 
 export function TrainingCard({ training }: { training: Training }) {
   const c = useColors();
+  const { players } = useData();
   const time = [training.startTime, training.endTime].filter(Boolean).join(' – ');
 
   return (
@@ -89,9 +90,11 @@ export function TrainingCard({ training }: { training: Training }) {
         </View>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
           {training.cancelStatus ? <Badge label={training.cancelStatus} color={c.danger} /> : null}
-          {training.absentCount > 0 ? (
-            <Text style={{ color: c.inkSoft }}>{training.absentCount} absent</Text>
-          ) : null}
+          {training.cancelStatus ? null : (
+            <Text style={{ color: c.inkSoft }}>
+              Attendance: {players.filter((p) => !(p.id in training.absences)).length}/{players.length}
+            </Text>
+          )}
         </View>
       </View>
     </Card>

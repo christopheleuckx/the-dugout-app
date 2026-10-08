@@ -135,7 +135,7 @@ export default function TrainingScreen() {
         ) : (
           <>
             <Text style={[styles.sub, { color: c.inkSoft, textAlign: 'center' }]}>
-              {players.length - absentCount} present · {absentCount} absent
+              Attendance: {players.length - absentCount}/{players.length}
             </Text>
             {groups.map((g) => (
               <View key={g.label} style={{ gap: 8 }}>
