@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useColors } from '../lib/theme';
+import { StatusBar } from 'expo-status-bar';
+
+import { fonts } from '../lib/theme';
 import { Loader } from './Loader';
 
+const SPLASH_BG = '#0C1F4A';
 // Long enough for the loader's run to draw once, so the splash never just flashes by.
 const MIN_VISIBLE_MS = 1400;
 
@@ -12,7 +15,6 @@ const MIN_VISIBLE_MS = 1400;
 // `ready`, then fades out. The text waits for `fontsLoaded` so it never
 // appears in the wrong typeface first.
 export function Splash({ ready, fontsLoaded }: { ready: boolean; fontsLoaded: boolean }) {
-  const c = useColors();
   const opacity = useRef(new Animated.Value(1)).current;
   const [waited, setWaited] = useState(false);
   const [gone, setGone] = useState(false);
@@ -30,14 +32,15 @@ export function Splash({ ready, fontsLoaded }: { ready: boolean; fontsLoaded: bo
   if (gone) return null;
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.root, { backgroundColor: c.chalk, opacity }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, styles.root, { opacity }]}>
+      <StatusBar style="light" />
       <Loader />
       {/* Positioned below the icon without moving it off the centre. */}
       <View style={styles.words}>
         {fontsLoaded ? (
           <>
-            <Text style={[styles.name, { color: c.ink }]}>The Dugout</Text>
-            <Text style={[styles.motto, { color: c.inkSoft }]}>Stay calm, be positive.</Text>
+            <Text style={styles.name}>The Dugout</Text>
+            <Text style={styles.motto}>Stay calm, be positive.</Text>
           </>
         ) : null}
       </View>
@@ -46,8 +49,10 @@ export function Splash({ ready, fontsLoaded }: { ready: boolean; fontsLoaded: bo
 }
 
 const styles = StyleSheet.create({
-  root: { alignItems: 'center', justifyContent: 'center' },
+  // A deeper navy than the icon tile, so the tile still stands out. Same in
+  // light and dark mode, and the same colour as the native splash (app.json).
+  root: { alignItems: 'center', justifyContent: 'center', backgroundColor: SPLASH_BG },
   words: { position: 'absolute', top: '50%', marginTop: 64, alignItems: 'center', gap: 4 },
-  name: { fontFamily: fonts.semi, fontSize: 22 },
-  motto: { fontFamily: fonts.regular, fontSize: 15 },
+  name: { fontFamily: fonts.semi, fontSize: 22, color: '#FFFFFF' },
+  motto: { fontFamily: fonts.regular, fontSize: 15, color: 'rgba(255,255,255,0.75)' },
 });
