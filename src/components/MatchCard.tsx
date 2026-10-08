@@ -65,7 +65,7 @@ export function isPlayed(game: Game, today: string) {
 // `next` is the filled card for the very next game, `upcoming` the light blue
 // one, and `played` shows the score per team (Blue and Red each play their
 // own match) with W / D / L in place of the kick-off time. `notched` cuts the
-// top-right and bottom-left corners off; otherwise those two are rounded wider.
+// top-right and bottom-left corners off; otherwise all four are evenly rounded.
 export function MatchCard({
   game,
   variant,
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   crest: { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   badge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   card: { flex: 1, borderRadius: 12, paddingVertical: 18, paddingHorizontal: 20, overflow: 'hidden' },
-  rounded: { borderTopRightRadius: 30, borderBottomLeftRadius: 30 },
+  rounded: { borderRadius: 24 },
   title: { fontFamily: fonts.medium, fontSize: 15 },
   sub: { fontFamily: fonts.regular, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 18 },
