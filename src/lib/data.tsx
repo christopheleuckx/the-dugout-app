@@ -28,6 +28,8 @@ export type TeamRecord = {
   place: string | null;
 };
 
+export type Quarter = { label: string; home: number | null; away: number | null; scorers: string[] };
+
 export type Game = {
   id: string;
   date: string | null;
@@ -48,6 +50,9 @@ export type Game = {
   teams: { team: Team; coaches: string[] }[];
   // Number of matches planned in a tournament (the game's quarters).
   matches: number;
+  // Per team, one entry per quarter: its name, the score in home-away order
+  // (null while not filled in) and who scored for us.
+  quarters: Partial<Record<Team, Quarter[]>>;
   // Per-team tally of those matches; only filled for tournaments.
   records: TeamRecord[];
 };
@@ -150,10 +155,10 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 }
 
 async function load(userId: string): Promise<Data> {
-  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches] = await Promise.all([
+  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot'),
-    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, num_teams, quarter_scores, lineups, competitor_id'),
-    supabase.from('game_squad').select('game_id, team'),
+    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
+    supabase.from('game_squad').select('game_id, player_id, team'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
     supabase.from('training_absences').select('training_id, reason'),
@@ -166,18 +171,21 @@ async function load(userId: string): Promise<Data> {
     supabase.from('u15_extra_games').select('id, kind, title, date, kickoff_time, cancel_status, home_away'),
     supabase.from('coaches').select('id, first_name, last_name'),
     supabase.from('game_coaches').select('game_id, coach_id, team'),
+    supabase.from('goals').select('game_id, quarter, scorer_id, created_at').order('created_at'),
   ]);
 
-  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches].find((r) => r.error);
+  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals].find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
 
   const logoByCompetitor = new Map((competitors.data ?? []).map((c) => [c.id, logoUrl(c.logo_path)]));
   const squadByGame = new Map<string, number>();
   const teamsByGame = new Map<string, Set<Team>>();
+  const teamOfPlayer = new Map<string, Team>();
   for (const r of squad.data ?? []) {
     if (r.team !== 'blue' && r.team !== 'red') continue;
     squadByGame.set(r.game_id, (squadByGame.get(r.game_id) ?? 0) + 1);
     teamsByGame.set(r.game_id, (teamsByGame.get(r.game_id) ?? new Set<Team>()).add(r.team));
+    teamOfPlayer.set(`${r.game_id}|${r.player_id}`, r.team);
   }
   const absentByTraining = new Map<string, number>();
   const unexcusedByTraining = new Map<string, number>();
@@ -233,6 +241,23 @@ async function load(userId: string): Promise<Data> {
     return teams.length ? teams : ['blue'];
   };
 
+  // A goal belongs to the team its scorer was selected in for that game.
+  const playerName = new Map((players.data ?? []).map((pl) => [pl.id, `${pl.first_name} ${pl.last_name}`.trim()]));
+  const teamQuarters = (g: any, team: Team): Quarter[] =>
+    Array.from({ length: g.quarters }, (_, i) => {
+      const q = quarterScores(g, team)?.[i];
+      const us = q?.for ?? null;
+      const opp = q?.against ?? null;
+      return {
+        label: g.quarter_labels?.[i] || `Q${i + 1}`,
+        home: g.home_away === 'Away' ? opp : us,
+        away: g.home_away === 'Away' ? us : opp,
+        scorers: (goals.data ?? [])
+          .filter((x) => x.game_id === g.id && x.quarter === i + 1 && teamOfPlayer.get(`${g.id}|${x.scorer_id}`) === team)
+          .map((x) => playerName.get(x.scorer_id) ?? 'Unknown'),
+      };
+    });
+
   // The teams a game is opened with: those with a squad, or, before a
   // selection exists, as many as the game was set up for.
   const coachName = new Map((coaches.data ?? []).map((c) => [c.id, `${c.first_name} ${c.last_name}`.trim()]));
@@ -278,6 +303,7 @@ async function load(userId: string): Promise<Data> {
         .filter((s): s is { team: Team; score: Score } => s.score !== null),
       teams: gameTeams(g),
       matches: g.quarters,
+      quarters: Object.fromEntries(playingTeams(g.id).map((team) => [team, teamQuarters(g, team)])),
       records:
         g.competition === 'Tournament'
           ? playingTeams(g.id).map((team) => teamRecord(g, team)).filter((r) => r !== null)

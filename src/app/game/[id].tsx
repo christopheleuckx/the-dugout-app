@@ -10,6 +10,13 @@ import { fonts, useColors } from '../../lib/theme';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+// Scorers in order of their first goal, each with how many they scored.
+function tally(names: string[]) {
+  const counts = new Map<string, number>();
+  for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
+  return [...counts];
+}
+
 // The team a game opens on: the one the signed-in coach is assigned to in
 // this game, else the team on their profile, else Blue before Red.
 function defaultTeam(game: Game, me: Profile | null): Team {
@@ -60,6 +67,7 @@ export default function GameScreen() {
   };
   const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
+  const quarters = game.quarters[team] ?? [];
   const teamSide = (side: { name: string; url: string | null }) => (
     <View style={styles.side}>
       <Crest url={side.url} name={side.name} size={72} />
@@ -120,6 +128,32 @@ export default function GameScreen() {
           {game.location ? <Text style={[styles.sub, { color: c.inkSoft }]}>{game.location}</Text> : null}
         </View>
         )}
+
+        {quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
+          <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
+            {quarters.map((q, i) => (
+              <View key={i} style={[styles.quarter, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
+                <Text style={[styles.quarterLabel, { color: c.inkSoft }]} numberOfLines={1}>
+                  {q.label}
+                </Text>
+                <View style={{ flex: 1, gap: 2 }}>
+                  {tally(q.scorers).map(([name, count]) => (
+                    <View key={name} style={styles.scorer}>
+                      <Ionicons name="football-outline" size={14} color={c.inkSoft} />
+                      <Text style={[styles.sub, { color: c.ink }]} numberOfLines={1}>
+                        {name}
+                        {count > 1 ? ` ×${count}` : ''}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={[styles.quarterScore, { color: c.ink }]}>
+                  {q.home ?? '–'} - {q.away ?? '–'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </ScrollView>
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)}>
@@ -162,6 +196,10 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
   card: { borderRadius: 12, padding: 18, gap: 2 },
   big: { fontFamily: fonts.semi, fontSize: 30 },
+  quarter: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
+  quarterLabel: { width: 44, fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
+  quarterScore: { fontFamily: fonts.semi, fontSize: 17 },
+  scorer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   result: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingVertical: 24 },
   side: { width: 96, alignItems: 'center', gap: 10 },
   sideName: { fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' },
