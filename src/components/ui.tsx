@@ -1,34 +1,33 @@
 import type { ReactNode, RefObject } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fmtDate, useData, type Training } from '../lib/data';
 import { fonts, radius, useColors } from '../lib/theme';
 import { Loader } from './Loader';
+import { Crest } from './MatchCard';
 
-// Page frame shared by every tab: light centred title bar, pull-to-refresh, and the
+// Page frame shared by every tab: title bar with the app logo and the club crest, pull-to-refresh, and the
 // loading / error states for the shared data load.
 export function Screen({
   title,
-  left,
   scrollRef,
   children,
 }: {
   title: string;
-  left?: ReactNode;
   scrollRef?: RefObject<ScrollView | null>;
   children: ReactNode;
 }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { loading, error, refresh } = useData();
+  const { loading, error, refresh, clubLogoUrl } = useData();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.chalk }}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <View style={styles.headerSide}>{left}</View>
+        <Image source={require('../../assets/icon.png')} style={styles.appLogo} accessibilityLabel="The Dugout" />
         <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
-        <View style={styles.headerSide} />
+        <Crest url={clubLogoUrl} name="FCV" size={36} />
       </View>
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
@@ -101,7 +100,7 @@ export function TrainingCard({ training }: { training: Training }) {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center' },
-  headerSide: { width: 36, height: 36, justifyContent: 'center' },
+  appLogo: { width: 36, height: 36, borderRadius: 9 },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 19 },
   content: { padding: 16, gap: 10, paddingBottom: 120 },
   sectionTitle: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },

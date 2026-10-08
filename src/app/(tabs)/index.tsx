@@ -55,7 +55,7 @@ function ResultCard({ game }: { game: Game }) {
 export default function Dashboard() {
   const c = useColors();
   const { width } = useWindowDimensions();
-  const { games, trainings, u15Fixtures, me, clubLogoUrl } = useData();
+  const { games, trainings, u15Fixtures, me } = useData();
   const today = todayIso();
   const [weekOffset, setWeekOffset] = useState(0);
   const week = currentWeek(weekOffset);
@@ -121,7 +121,7 @@ export default function Dashboard() {
     .filter((group) => group.items.length);
 
   return (
-    <Screen title="The Dugout" left={<Crest url={clubLogoUrl} name="FCV" size={36} />}>
+    <Screen title="The Dugout">
       <View>
         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14 }}>
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
