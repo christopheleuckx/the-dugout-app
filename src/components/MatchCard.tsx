@@ -9,7 +9,7 @@ const CLUB = 'FCV Dender';
 const NOTCH = 26;
 const day = (iso: string) => new Date(iso + 'T00:00:00');
 
-function countdown(iso: string, today: string) {
+export function countdown(iso: string, today: string) {
   const days = Math.round((day(iso).getTime() - day(today).getTime()) / 86400000);
   return days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`;
 }

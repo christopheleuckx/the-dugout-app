@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Crest, ResultBadge } from '../../components/MatchCard';
-import { fmtDate, useData, type Game, type Profile, type Team } from '../../lib/data';
+import { countdown, Crest, ResultBadge } from '../../components/MatchCard';
+import { fmtDate, todayIso, useData, type Game, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -61,6 +61,15 @@ export default function GameScreen() {
   const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
+  // Above the score or kick-off time: End once played, else the countdown.
+  const today = todayIso();
+  const status = game.cancelStatus
+    ? game.cancelStatus
+    : score
+      ? 'End'
+      : game.date && game.date >= today
+        ? countdown(game.date, today)
+        : 'No score';
   const place = game.records.find((r) => r.team === team)?.place;
   const teamSide = (side: { name: string; url: string | null }) => (
     <View style={styles.side}>
@@ -147,27 +156,17 @@ export default function GameScreen() {
               );
             })}
           </>
-        ) : score ? (
+        ) : (
           <View style={[styles.card, styles.result, { backgroundColor: c.surface }]}>
             {teamSide(sides[0])}
             <View style={styles.middle}>
-              <Text style={[styles.end, { color: c.inkSoft }]}>End</Text>
+              <Text style={[styles.end, { color: c.inkSoft }]}>{status}</Text>
               <Text style={[styles.final, { color: c.ink }]}>
-                {score.home} - {score.away}
+                {score ? `${score.home} - ${score.away}` : (game.time ?? '–')}
               </Text>
             </View>
             {teamSide(sides[1])}
           </View>
-        ) : (
-        <View style={[styles.card, { backgroundColor: c.surface }]}>
-          <Text style={[styles.sub, { color: c.inkSoft }]}>
-            {game.teams.length > 1 ? `Team ${team === 'blue' ? 'Blue' : 'Red'}` : game.competition}
-          </Text>
-          <Text style={[styles.big, { color: c.ink }]}>
-            {game.time ?? 'No time yet'}
-          </Text>
-          {game.location ? <Text style={[styles.sub, { color: c.inkSoft }]}>{game.location}</Text> : null}
-        </View>
         )}
 
         {!tournament && quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
@@ -243,7 +242,6 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.regular, fontSize: 13 },
   content: { padding: 16, gap: 10 },
   card: { borderRadius: 12, padding: 18, gap: 2 },
-  big: { fontFamily: fonts.semi, fontSize: 30 },
   host: { fontFamily: fonts.semi, fontSize: 24 },
   place: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8 },
   matchHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
