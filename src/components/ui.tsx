@@ -1,9 +1,10 @@
 import type { ReactNode, RefObject } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fmtDate, useData, type Training } from '../lib/data';
 import { fonts, radius, useColors } from '../lib/theme';
+import { Loader } from './Loader';
 
 // Page frame shared by every tab: light centred title bar, pull-to-refresh, and the
 // loading / error states for the shared data load.
@@ -30,7 +31,9 @@ export function Screen({
         <View style={styles.headerSide} />
       </View>
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 48 }} color={c.pitch} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
+          <Loader />
+        </View>
       ) : (
         <ScrollView
           ref={scrollRef}

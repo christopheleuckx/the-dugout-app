@@ -2,13 +2,15 @@ import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold, useFonts } from '
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from '@expo-google-fonts/outfit';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AuthProvider, useAuth } from '../lib/auth';
 import { DataProvider } from '../lib/data';
-import { shell } from '../lib/theme';
+import { Loader } from '../components/Loader';
+import { useColors } from '../lib/theme';
 
 function RootNavigator() {
+  const c = useColors();
   const { session, loading } = useAuth();
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
@@ -20,8 +22,8 @@ function RootNavigator() {
 
   if (loading || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: shell.bg, justifyContent: 'center' }}>
-        <ActivityIndicator color={shell.text} />
+      <View style={{ flex: 1, backgroundColor: c.chalk, alignItems: 'center', justifyContent: 'center' }}>
+        <Loader />
       </View>
     );
   }
