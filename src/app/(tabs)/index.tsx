@@ -78,6 +78,8 @@ export default function Dashboard() {
       .filter((g) => inWeek(g.date) && !g.hiddenFromCalendar)
       .map((g) => ({
         key: g.id,
+        // Only U12 games have a game screen to open.
+        gameId: g.id as string | null,
         date: g.date!,
         sort: g.time ?? '99:99',
         title: `U12 · ${g.opponent || 'TBD'}`,
@@ -90,6 +92,7 @@ export default function Dashboard() {
       .filter((f) => inWeek(f.date))
       .map((f) => ({
         key: f.id,
+        gameId: null,
         date: f.date,
         sort: f.time ?? '99:99',
         title: `U15 · ${f.opponent}`,
@@ -102,6 +105,7 @@ export default function Dashboard() {
       .filter((t) => inWeek(t.date) && !t.hiddenFromCalendar)
       .map((t) => ({
         key: t.id,
+        gameId: null,
         date: t.date,
         sort: t.startTime ?? '99:99',
         title: t.label,
@@ -178,7 +182,12 @@ export default function Dashboard() {
             {group.items.map((it, i) => {
               const tint = it.kind === 'Game' ? c.pitch : c.training;
               return (
-                <View key={it.key} style={[styles.rowItem, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
+                <Pressable
+                  key={it.key}
+                  disabled={!it.gameId}
+                  onPress={() => router.push(`/game/${it.gameId}`)}
+                  style={[styles.rowItem, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+                >
                   {it.kind === 'Game' ? <Crest url={it.logoUrl} name={it.crestName} size={36} /> : null}
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowTitle, { color: c.ink }]} numberOfLines={1}>
@@ -193,7 +202,7 @@ export default function Dashboard() {
                       {it.kind}
                     </Text>
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </View>
