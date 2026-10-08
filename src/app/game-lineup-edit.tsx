@@ -19,8 +19,6 @@ type Quarter = { start: Spots; after: Spots | null };
 type Sheet = null | { position: string } | { player: string };
 
 const BENCH_SLOTS = ['S1', 'S2', 'S3', 'S4', 'S5'];
-// The field positions per line, back to front, as in selection.ts.
-const LINE_SPOTS = [['K'], ['3', '4'], ['6', '10'], ['7', '11'], ['9']];
 
 function shuffle<T>(list: T[]) {
   const a = list.slice();
@@ -31,27 +29,18 @@ function shuffle<T>(list: T[]) {
   return a;
 }
 
-// Everyone on their best position (in the order given, so a shuffled squad
-// gives a different line-up each time), then the open spots filled with whoever
-// is left (keepers last, so a second keeper isn't put up front).
-function autoFill(players: Player[]): Spots {
+// A random line-up: a keeper in goal when the squad has one, every other
+// position filled by any player regardless of their best position.
+function randomFill(players: Player[]): Spots {
   const spots: Spots = {};
-  const taken = new Set<string>();
-  LINE_SPOTS.forEach((positions, line) => {
-    const inLine = players.filter((p) => groupOf(p.bestPosition) === line);
-    for (const p of inLine) if (positions.includes(p.bestPosition) && !taken.has(p.bestPosition)) { spots[p.id] = p.bestPosition; taken.add(p.bestPosition); }
-    for (const p of inLine) {
-      const free = positions.find((x) => !taken.has(x));
-      if (!spots[p.id] && free) { spots[p.id] = free; taken.add(free); }
-    }
-  });
-  const rest = players.filter((p) => !spots[p.id]).sort((a, b) => Number(groupOf(a.bestPosition) === 0) - Number(groupOf(b.bestPosition) === 0));
+  const keeper = shuffle(players.filter((p) => p.bestPosition === 'K'))[0];
+  if (keeper) spots[keeper.id] = 'K';
+  const rest = shuffle(players.filter((p) => p.id !== keeper?.id));
   for (const position of FIELD_POSITIONS) {
-    if (taken.has(position)) continue;
+    if (position === 'K' && keeper) continue;
     const p = rest.shift();
     if (!p) break;
     spots[p.id] = position;
-    taken.add(position);
   }
   return spots;
 }
@@ -323,7 +312,7 @@ export default function GameLineupEditScreen() {
                 </View>
 
                 {moment === 'starting' ? (
-                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => update(i, autoFill(shuffle(squad)), 'starting')}>
+                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => update(i, randomFill(squad), 'starting')}>
                     <Ionicons name="shuffle" size={18} color={c.pitch} />
                     <Text style={[styles.actionText, { color: c.pitch }]}>Random line-up</Text>
                   </Pressable>

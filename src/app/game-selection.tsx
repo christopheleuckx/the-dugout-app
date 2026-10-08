@@ -161,10 +161,6 @@ export default function GameSelectionScreen() {
       .filter((g) => g.players.length);
     body = (
       <>
-        <Pressable style={[styles.button, { backgroundColor: c.surface, flexDirection: 'row', gap: 8 }]} onPress={() => setPage('generate')}>
-          <Ionicons name="sparkles-outline" size={18} color={c.pitch} />
-          <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 16 }}>Generate selection</Text>
-        </Pressable>
         <Text style={[styles.hint, { color: c.inkSoft, textAlign: 'center', marginTop: 0 }]}>
           {numTeams === 1 ? `${selectedCount('blue')} selected` : `Blue ${selectedCount('blue')} · Red ${selectedCount('red')}`}
         </Text>
@@ -222,7 +218,18 @@ export default function GameSelectionScreen() {
         <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
           {title}
         </Text>
-        <View style={{ width: 36 }} />
+        {page ? (
+          <View style={{ width: 36 }} />
+        ) : (
+          <Pressable
+            style={[styles.round, { backgroundColor: c.pitch }]}
+            onPress={() => setPage('generate')}
+            accessibilityLabel="Generate selection"
+            hitSlop={8}
+          >
+            <Ionicons name="sparkles" size={18} color={c.onPitch} />
+          </Pressable>
+        )}
       </View>
       <ScrollView contentContainerStyle={styles.content}>{body}</ScrollView>
     </View>
