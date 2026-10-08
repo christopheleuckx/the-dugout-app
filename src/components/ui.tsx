@@ -6,7 +6,7 @@ import { fmtDate, useData, type Training } from '../lib/data';
 import { fonts, radius, useColors } from '../lib/theme';
 import { Loader } from './Loader';
 
-// Page frame shared by every tab: title bar with the app logo and the club crest, pull-to-refresh, and the
+// Page frame shared by every tab: title bar with the app logo, pull-to-refresh, and the
 // loading / error states for the shared data load.
 export function Screen({
   title,
@@ -26,15 +26,8 @@ export function Screen({
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <Image source={require('../../assets/icon.png')} style={styles.appLogo} accessibilityLabel="The Dugout" />
         <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
-        {/* The club crest ships with the app, in the same rounded tile as the app logo. */}
-        <View style={[styles.appLogo, styles.clubTile]}>
-          <Image
-            source={require('../../assets/club-logo.png')}
-            style={styles.clubLogo}
-            resizeMode="contain"
-            accessibilityLabel="FCV Dender"
-          />
-        </View>
+        {/* Spacer the size of the logo keeps the title centred. */}
+        <View style={{ width: 40 }} />
       </View>
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
@@ -108,10 +101,6 @@ export function TrainingCard({ training }: { training: Training }) {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center' },
   appLogo: { width: 40, height: 40, borderRadius: 10 },
-  // The tile takes the blue of the logo file's own background.
-  clubTile: { backgroundColor: '#1D418B', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  clubLogo: { width: 40, height: 40 },
-  headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 19 },
   content: { padding: 16, gap: 10, paddingBottom: 120 },
   sectionTitle: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
   card: { borderRadius: radius, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 10 },
