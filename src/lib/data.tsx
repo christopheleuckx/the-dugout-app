@@ -48,6 +48,10 @@ export type Report = {
   toImprove: string;
 };
 
+// One quarter's line-up for a team: where each player starts and where they
+// are after the 10-minute change (a field position, or a bench slot S1..S5).
+export type QuarterLineup = { label: string; players: { id: string; starting: string; after10: string }[] };
+
 export type Game = {
   id: string;
   date: string | null;
@@ -67,6 +71,8 @@ export type Game = {
   // The teams playing this game, Blue first, each with its coaches' names
   // and the players selected for it.
   teams: { team: Team; coaches: string[]; players: Player[] }[];
+  // Per team: the quarters that have a line-up filled in.
+  lineups: Partial<Record<Team, QuarterLineup[]>>;
   // Per team: its report, when at least one field has been filled in.
   reports: Partial<Record<Team, Report>>;
   // Per player id: their rating, and where they played in each confirmed quarter.
@@ -332,6 +338,16 @@ async function load(userId: string): Promise<Data> {
     return out;
   };
 
+  const teamLineups = (g: any, team: Team): QuarterLineup[] =>
+    ((g.lineups?.[team]?.quarters ?? []) as any[])
+      .map((quarter, i) => ({
+        label: g.quarter_labels?.[i] || `Q${i + 1}`,
+        players: Object.entries<any>(quarter ?? {})
+          .filter(([id, entry]) => entry?.starting && teamOfPlayer.get(`${g.id}|${id}`) === team)
+          .map(([id, entry]) => ({ id, starting: entry.starting, after10: entry.after10 || entry.starting })),
+      }))
+      .filter((quarter) => quarter.players.length);
+
   // The teams a game is opened with: those with a squad, or, before a
   // selection exists, as many as the game was set up for.
   const coachName = new Map((coaches.data ?? []).map((c) => [c.id, `${c.first_name} ${c.last_name}`.trim()]));
@@ -379,6 +395,7 @@ async function load(userId: string): Promise<Data> {
           .filter(([, report]) => report !== null),
       ),
       stints: gameStints(g),
+      lineups: Object.fromEntries(playingTeams(g.id).map((team) => [team, teamLineups(g, team)])),
       matches: g.quarters,
       quarters: Object.fromEntries(playingTeams(g.id).map((team) => [team, teamQuarters(g, team)])),
       records:

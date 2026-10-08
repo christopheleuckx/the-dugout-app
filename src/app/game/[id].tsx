@@ -70,6 +70,7 @@ export default function GameScreen() {
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
   const report = game.reports[team];
+  const lineups = game.lineups[team] ?? [];
   const selection = (game.teams.find((t) => t.team === team)?.players ?? [])
     .slice()
     .sort((a, b) => lineOf(a.bestPosition) - lineOf(b.bestPosition) || a.firstName.localeCompare(b.firstName));
@@ -214,23 +215,39 @@ export default function GameScreen() {
           </View>
         ) : null}
 
-        {report ? (
+        {report || lineups.length ? (
           <>
             <Text style={[styles.section, { color: c.ink }]}>Game report</Text>
-            <Pressable
-              style={[styles.card, styles.player, { backgroundColor: c.surface, paddingVertical: 14 }]}
-              onPress={() => router.push({ pathname: '/game-report', params: { game: game.id, team } })}
-            >
-              <View style={[styles.rating, { backgroundColor: report.score ? c.rating[report.score - 1] : c.surface2 }]}>
-                <Text style={{ color: report.score ? '#fff' : c.inkSoft, fontFamily: fonts.semi, fontSize: 13 }}>
-                  {report.score ?? '–'}
-                </Text>
-              </View>
-              <Text style={[styles.playerName, { color: c.ink }]}>
-                {report.score ? TEAM_RATING_LABELS[report.score - 1] : 'Not rated yet'}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
+            <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 4 }]}>
+              {report ? (
+                <Pressable
+                  style={styles.player}
+                  onPress={() => router.push({ pathname: '/game-report', params: { game: game.id, team } })}
+                >
+                  <View style={[styles.rating, { backgroundColor: report.score ? c.rating[report.score - 1] : c.surface2 }]}>
+                    <Text style={{ color: report.score ? '#fff' : c.inkSoft, fontFamily: fonts.semi, fontSize: 13 }}>
+                      {report.score ?? '–'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.playerName, { color: c.ink }]}>
+                    {report.score ? TEAM_RATING_LABELS[report.score - 1] : 'Not rated yet'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                </Pressable>
+              ) : null}
+              {lineups.length ? (
+                <Pressable
+                  style={[styles.player, report && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+                  onPress={() => router.push({ pathname: '/game-lineups', params: { game: game.id, team } })}
+                >
+                  <View style={[styles.rating, { backgroundColor: c.surface2 }]}>
+                    <Ionicons name="people-outline" size={16} color={c.ink} />
+                  </View>
+                  <Text style={[styles.playerName, { color: c.ink }]}>Line-ups and subs</Text>
+                  <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                </Pressable>
+              ) : null}
+            </View>
           </>
         ) : null}
 
