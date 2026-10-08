@@ -275,6 +275,7 @@ export default function GameScreen() {
         <Pressable style={styles.backdrop} onPress={() => setChoosing(false)} accessibilityLabel="Close" />
         <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 12 }]}>
           <View style={[styles.grabber, { backgroundColor: c.line }]} />
+          <Text style={[styles.sheetTitle, { color: c.ink }]}>Select your team</Text>
           {game.teams.map((t) => (
             <Pressable
               key={t.team}
@@ -346,6 +347,7 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
+  sheetTitle: { fontFamily: fonts.medium, fontSize: 17, marginLeft: 10, marginBottom: 6 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 10 },
   optionTitle: { fontFamily: fonts.medium, fontSize: 15 },
 });
