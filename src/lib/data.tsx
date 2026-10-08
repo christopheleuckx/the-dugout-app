@@ -46,8 +46,9 @@ export type Game = {
   squadCount: number;
   // One scoreline per team that played: a 2-team game is two separate matches.
   scores: { team: Team; score: Score }[];
-  // The teams playing this game, Blue first, each with its coaches' names.
-  teams: { team: Team; coaches: string[] }[];
+  // The teams playing this game, Blue first, each with its coaches' names
+  // and the players selected for it.
+  teams: { team: Team; coaches: string[]; players: Player[] }[];
   // Number of matches planned in a tournament (the game's quarters).
   matches: number;
   // Per team, one entry per quarter: its name, the score in home-away order
@@ -258,6 +259,17 @@ async function load(userId: string): Promise<Data> {
       };
     });
 
+  const playerList: Player[] = (players.data ?? [])
+    .map((r) => ({
+      id: r.id,
+      firstName: r.first_name,
+      lastName: r.last_name,
+      number: r.number,
+      bestPosition: r.best_position,
+      preferredFoot: r.preferred_foot,
+    }))
+    .sort((a, b) => a.firstName.localeCompare(b.firstName));
+
   // The teams a game is opened with: those with a squad, or, before a
   // selection exists, as many as the game was set up for.
   const coachName = new Map((coaches.data ?? []).map((c) => [c.id, `${c.first_name} ${c.last_name}`.trim()]));
@@ -266,6 +278,7 @@ async function load(userId: string): Promise<Data> {
     const teams: Team[] = withSquad.length ? withSquad : g.num_teams === 1 ? ['blue'] : ['blue', 'red'];
     return teams.map((team) => ({
       team,
+      players: playerList.filter((pl) => teamOfPlayer.get(`${g.id}|${pl.id}`) === team),
       coaches: (gameCoaches.data ?? [])
         .filter((gc) => gc.game_id === g.id && gc.team === team)
         .map((gc) => coachName.get(gc.coach_id))
@@ -275,16 +288,7 @@ async function load(userId: string): Promise<Data> {
 
   const p = profile.data;
   return {
-    players: (players.data ?? [])
-      .map((r) => ({
-        id: r.id,
-        firstName: r.first_name,
-        lastName: r.last_name,
-        number: r.number,
-        bestPosition: r.best_position,
-        preferredFoot: r.preferred_foot,
-      }))
-      .sort((a, b) => a.firstName.localeCompare(b.firstName)),
+    players: playerList,
     games: (games.data ?? []).map((g) => ({
       id: g.id,
       date: g.date,

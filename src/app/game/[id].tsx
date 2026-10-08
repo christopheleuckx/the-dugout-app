@@ -61,6 +61,7 @@ export default function GameScreen() {
   const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
+  const selection = game.teams.find((t) => t.team === team)?.players ?? [];
   // Above the score or kick-off time: End once played, else the countdown.
   const today = todayIso();
   const status = game.cancelStatus
@@ -201,6 +202,32 @@ export default function GameScreen() {
             ))}
           </View>
         ) : null}
+
+        <Text style={[styles.section, { color: c.ink }]}>Selection</Text>
+        {selection.length ? (
+          <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
+            {/* The badge is the player's best position (7, 10, K), as the squad has no shirt numbers. */}
+            {selection.map((pl, i) => (
+              <View key={pl.id} style={[styles.player, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
+                <View style={[styles.number, { backgroundColor: c.surface2 }]}>
+                  <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 13 }}>{pl.bestPosition || '–'}</Text>
+                </View>
+                <Text style={[styles.playerName, { color: c.ink }]} numberOfLines={1}>
+                  {pl.firstName} {pl.lastName}
+                </Text>
+                {pl.number != null ? <Text style={[styles.sub, { color: c.inkSoft }]}>#{pl.number}</Text> : null}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.card, { backgroundColor: c.surface, alignItems: 'center', gap: 12 }]}>
+            <Text style={[styles.sub, { color: c.inkSoft }]}>No players selected yet.</Text>
+            {/* Creating a selection in the app comes later; the button is a placeholder. */}
+            <Pressable style={[styles.cta, { backgroundColor: c.pitch }]}>
+              <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 15 }}>Create selection</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)}>
@@ -240,9 +267,14 @@ const styles = StyleSheet.create({
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: fonts.medium, fontSize: 17 },
   sub: { fontFamily: fonts.regular, fontSize: 13 },
-  content: { padding: 16, gap: 10 },
+  content: { padding: 16, gap: 10, paddingBottom: 48 },
   card: { borderRadius: 12, padding: 18, gap: 2 },
   host: { fontFamily: fonts.semi, fontSize: 24 },
+  section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
+  player: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  number: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  playerName: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
+  cta: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20 },
   place: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8 },
   matchHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   matchName: { flex: 1, fontFamily: fonts.medium, fontSize: 16 },
