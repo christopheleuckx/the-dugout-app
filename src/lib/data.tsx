@@ -17,7 +17,16 @@ export type Player = {
 export type Score = { home: number; away: number; result: 'W' | 'D' | 'L' };
 
 // A team's tournament day: every "quarter" of a tournament game is a match of its own.
-export type TeamRecord = { team: Team; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number };
+export type TeamRecord = {
+  team: Team;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  // Final ranking in the tournament, when it has been filled in.
+  place: number | null;
+};
 
 export type Game = {
   id: string;
@@ -25,6 +34,8 @@ export type Game = {
   time: string | null;
   opponent: string;
   competition: string;
+  // Elite, IP3 or Other.
+  type: string;
   homeAway: string;
   location: string;
   cancelStatus: string | null;
@@ -123,7 +134,8 @@ function teamScore(game: any, team: Team): Score | null {
 function teamRecord(game: any, team: Team): TeamRecord | null {
   const quarters = quarterScores(game, team);
   if (!Array.isArray(quarters)) return null;
-  const r: TeamRecord = { team, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0 };
+  const place = game.lineups?.[team]?.place ?? null;
+  const r: TeamRecord = { team, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, place };
   for (const q of quarters) {
     if (q?.for == null || q?.against == null) continue;
     r.goalsFor += q.for;
@@ -138,7 +150,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot'),
-    supabase.from('games').select('id, date, time, opponent, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_scores, lineups, competitor_id'),
+    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_scores, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, team'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
@@ -235,6 +247,7 @@ async function load(userId: string): Promise<Data> {
       time: hhmm(g.time),
       opponent: g.opponent,
       competition: g.competition,
+      type: g.type,
       homeAway: g.home_away,
       location: g.location,
       cancelStatus: g.cancel_status,

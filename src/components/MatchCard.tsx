@@ -90,8 +90,20 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
     </View>
   );
 
+  // 1 -> 1st, 2 -> 2nd, 11 -> 11th.
+  const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  // First place gets the gold chip, any other place a neutral one.
+  const place = (n: number, small: boolean) => (
+    <View style={[styles.place, small && { paddingVertical: 2 }, { backgroundColor: n === 1 ? c.amber + '2E' : c.surface2 }]}>
+      <Ionicons name="trophy-outline" size={small ? 13 : 15} color={n === 1 ? c.amber : c.inkSoft} />
+      <Text style={[styles.pillText, { fontSize: small ? 12 : 13, color: n === 1 ? c.amber : c.inkSoft }]}>{ordinal(n)}</Text>
+    </View>
+  );
+  const title = game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament';
+
   let body;
   let tag = null;
+  let headPlace = null;
   if (game.cancelStatus) {
     tag = { label: game.cancelStatus, bg: c.danger + '24', fg: c.danger };
   } else if (variant !== 'played') {
@@ -114,12 +126,16 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
     tag = { label: 'No score', bg: c.surface2, fg: c.inkSoft };
   } else {
     const multi = game.records.length > 1;
+    if (!multi && game.records[0].place) headPlace = place(game.records[0].place, false);
     body = game.records.map((r, i) => (
       <View key={r.team} style={i > 0 && [styles.teamBlock, { borderTopColor: c.line }]}>
         {multi ? (
           <View style={styles.teamLine}>
             <View style={[styles.teamDot, { backgroundColor: r.team === 'blue' ? c.teamBlue : c.teamRed }]} />
-            <Text style={{ color: fg, fontFamily: fonts.medium, fontSize: 13 }}>{r.team === 'blue' ? 'Blue' : 'Red'}</Text>
+            <Text style={{ flex: 1, color: fg, fontFamily: fonts.medium, fontSize: 13 }}>
+              {r.team === 'blue' ? 'Blue' : 'Red'}
+            </Text>
+            {r.place ? place(r.place, true) : null}
           </View>
         ) : null}
         <View style={[styles.statRow, multi && { marginTop: 8 }]}>
@@ -140,7 +156,7 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
       <View style={styles.tHead}>
         <Crest url={game.opponentLogoUrl} name={game.opponent || 'TBD'} size={46} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: fg }]}>Tournament</Text>
+          <Text style={[styles.title, { color: fg }]}>{title}</Text>
           <Text style={[styles.sub, { color: soft }]} numberOfLines={1}>
             {[fmtDate(game.date), game.opponent].filter(Boolean).join(' · ')}
           </Text>
@@ -150,6 +166,7 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
             <Text style={[styles.pillText, { color: tag.fg, textTransform: 'capitalize' }]}>{tag.label}</Text>
           </View>
         ) : null}
+        {headPlace}
       </View>
       {body}
     </View>
@@ -269,6 +286,7 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   teamBlock: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16, paddingTop: 16 },
   teamLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  place: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   chip: { minWidth: 42, alignItems: 'center', borderRadius: 999, paddingVertical: 3 },
   chipText: { fontFamily: fonts.medium, fontSize: 13 },
   goals: { marginLeft: 'auto', flexDirection: 'row', gap: 14 },
