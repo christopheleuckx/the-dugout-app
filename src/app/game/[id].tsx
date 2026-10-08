@@ -218,7 +218,11 @@ export default function GameScreen() {
           <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
             {/* The badge is the player's best position (7, 10, K), as the squad has no shirt numbers. */}
             {selection.map((pl, i) => (
-              <View key={pl.id} style={[styles.player, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
+              <Pressable
+                key={pl.id}
+                onPress={() => router.push({ pathname: '/game-player', params: { game: game.id, player: pl.id } })}
+                style={[styles.player, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+              >
                 <View style={[styles.number, { backgroundColor: c.surface2 }]}>
                   <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 13 }}>{pl.bestPosition || '–'}</Text>
                 </View>
@@ -226,7 +230,13 @@ export default function GameScreen() {
                   {pl.firstName} {pl.lastName}
                 </Text>
                 {pl.number != null ? <Text style={[styles.sub, { color: c.inkSoft }]}>#{pl.number}</Text> : null}
-              </View>
+                {game.ratings[pl.id]?.score ? (
+                  <View style={[styles.rating, { backgroundColor: c.rating[game.ratings[pl.id].score! - 1] }]}>
+                    <Text style={{ color: '#fff', fontFamily: fonts.semi, fontSize: 13 }}>{game.ratings[pl.id].score}</Text>
+                  </View>
+                ) : null}
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
             ))}
           </View>
         ) : (
@@ -284,6 +294,7 @@ const styles = StyleSheet.create({
   player: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   number: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   playerName: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
+  rating: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   cta: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20 },
   place: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8 },
   matchHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },

@@ -18,6 +18,8 @@ const light = {
   training: '#1E7D82',
   onPitch: '#FFFFFF',
   calGameBg: '#DCEAFB',
+  // Player rating 1 to 5, same scale colours as the web app.
+  rating: ['#B5473F', '#D9822E', '#2E6FB0', '#7CC576', '#1F5C2E'],
 };
 
 const dark: typeof light = {
@@ -37,6 +39,7 @@ const dark: typeof light = {
   training: '#4FC4C9',
   onPitch: '#0A101B',
   calGameBg: '#1A2A45',
+  rating: ['#D97A72', '#E8A054', '#6FA8FF', '#8FDB8A', '#3C8C50'],
 };
 
 export type Colors = typeof light;

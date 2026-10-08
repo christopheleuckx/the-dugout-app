@@ -30,6 +30,12 @@ export type TeamRecord = {
 
 export type Quarter = { label: string; home: number | null; away: number | null; scorers: string[] };
 
+// A player's evaluation for one game, as filled in on the web app's Ratings page.
+export type Rating = { score: number | null; comment: string };
+
+// Where a player lined up in one quarter: at kick-off and after the 10-minute change.
+export type Stint = { label: string; starting: string; after10: string };
+
 export type Game = {
   id: string;
   date: string | null;
@@ -49,6 +55,9 @@ export type Game = {
   // The teams playing this game, Blue first, each with its coaches' names
   // and the players selected for it.
   teams: { team: Team; coaches: string[]; players: Player[] }[];
+  // Per player id: their rating, and where they played in each confirmed quarter.
+  ratings: Record<string, Rating>;
+  stints: Record<string, Stint[]>;
   // Number of matches planned in a tournament (the game's quarters).
   matches: number;
   // Per team, one entry per quarter: its name, the score in home-away order
@@ -156,7 +165,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 }
 
 async function load(userId: string): Promise<Data> {
-  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals] = await Promise.all([
+  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot'),
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, player_id, team'),
@@ -173,9 +182,10 @@ async function load(userId: string): Promise<Data> {
     supabase.from('coaches').select('id, first_name, last_name'),
     supabase.from('game_coaches').select('game_id, coach_id, team'),
     supabase.from('goals').select('game_id, quarter, scorer_id, created_at').order('created_at'),
+    supabase.from('player_ratings').select('game_id, player_id, score, comment'),
   ]);
 
-  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals].find((r) => r.error);
+  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings].find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
 
   const logoByCompetitor = new Map((competitors.data ?? []).map((c) => [c.id, logoUrl(c.logo_path)]));
@@ -270,6 +280,28 @@ async function load(userId: string): Promise<Data> {
     }))
     .sort((a, b) => a.firstName.localeCompare(b.firstName));
 
+  // Line-ups are stored per team and quarter as { playerId: { starting, after10 } };
+  // like the web app, only quarters whose line-up was confirmed count.
+  const gameStints = (g: any) => {
+    const out: Record<string, Stint[]> = {};
+    for (const team of ['blue', 'red'] as Team[]) {
+      const lineup = g.lineups?.[team];
+      (lineup?.quarters ?? []).forEach((quarter: any, i: number) => {
+        if (!lineup.confirmed?.[i]) return;
+        for (const [playerId, entry] of Object.entries<any>(quarter ?? {})) {
+          if (teamOfPlayer.get(`${g.id}|${playerId}`) !== team) continue;
+          const starting = entry?.starting ?? '';
+          (out[playerId] ??= []).push({
+            label: g.quarter_labels?.[i] || `Q${i + 1}`,
+            starting,
+            after10: entry?.after10 || starting,
+          });
+        }
+      });
+    }
+    return out;
+  };
+
   // The teams a game is opened with: those with a squad, or, before a
   // selection exists, as many as the game was set up for.
   const coachName = new Map((coaches.data ?? []).map((c) => [c.id, `${c.first_name} ${c.last_name}`.trim()]));
@@ -306,6 +338,12 @@ async function load(userId: string): Promise<Data> {
         .map((team) => ({ team, score: teamScore(g, team) }))
         .filter((s): s is { team: Team; score: Score } => s.score !== null),
       teams: gameTeams(g),
+      ratings: Object.fromEntries(
+        (ratings.data ?? [])
+          .filter((r) => r.game_id === g.id)
+          .map((r) => [r.player_id, { score: r.score, comment: r.comment ?? '' }]),
+      ),
+      stints: gameStints(g),
       matches: g.quarters,
       quarters: Object.fromEntries(playingTeams(g.id).map((team) => [team, teamQuarters(g, team)])),
       records:
