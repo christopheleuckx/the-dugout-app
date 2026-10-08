@@ -180,6 +180,14 @@ export default function GameScreen() {
                 <Text style={[styles.quarterScore, { color: c.ink }]}>
                   {q.home ?? '–'} - {q.away ?? '–'}
                 </Text>
+                <View style={{ width: 24 }}>
+                  {q.home !== null && q.away !== null ? (
+                    <ResultBadge
+                      result={q.home === q.away ? 'D' : (q.home > q.away) === (game.homeAway !== 'Away') ? 'W' : 'L'}
+                      colors={{ W: c.win, D: c.amber, L: c.danger }}
+                    />
+                  ) : null}
+                </View>
                 <View style={{ flex: 1, gap: 2, marginTop: 1 }}>
                   {q.scorers.map((name, n) => (
                     <View key={n} style={styles.scorer}>
@@ -243,7 +251,7 @@ const styles = StyleSheet.create({
   matchScore: { fontFamily: fonts.semi, fontSize: 20 },
   quarter: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   quarterLabel: { width: 32, fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
-  quarterScore: { width: 62, fontFamily: fonts.semi, fontSize: 17 },
+  quarterScore: { width: 46, fontFamily: fonts.semi, fontSize: 17 },
   scorer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   result: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingVertical: 24 },
   side: { width: 96, alignItems: 'center', gap: 10 },
