@@ -66,5 +66,20 @@ for (let i = 0; i < mono.data.length; i += 4) {
 }
 save('android-icon-monochrome.png', mono, true);
 
+// Splash screen: the icon as a rounded tile on a transparent background, the
+// same tile the in-app loader shows, so start-up runs splash -> loader -> app.
+const tile = render('tile', svg(pitch + board(RED, '#FFFFFF')));
+const radius = tile.width * 0.23;
+for (let y = 0; y < tile.height; y++) {
+  for (let x = 0; x < tile.width; x++) {
+    // Distance past the rounded corner, softened over one pixel.
+    const dx = Math.max(radius - x - 0.5, x + 0.5 - (tile.width - radius), 0);
+    const dy = Math.max(radius - y - 0.5, y + 0.5 - (tile.height - radius), 0);
+    const cover = Math.min(1, Math.max(0, radius - Math.hypot(dx, dy) + 0.5));
+    tile.data[(y * tile.width + x) * 4 + 3] = Math.round(cover * 255);
+  }
+}
+save('splash-icon.png', tile, true);
+
 writeFileSync(join(here, 'app-icon.svg'), svg(pitch + board(RED, '#FFFFFF')));
 console.log('icons written to', assets);
