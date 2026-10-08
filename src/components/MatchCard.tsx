@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { fmtDate, useData, type Game } from '../lib/data';
@@ -66,7 +67,105 @@ export function isPlayed(game: Game, today: string) {
 // one, and `played` shows the score per team (Blue and Red each play their
 // own match) with W / D / L in place of the kick-off time. `notched` cuts the
 // top-right and bottom-left corners off; otherwise all four keep the card radius.
-export function MatchCard({
+// A tournament has no single opponent, so it gets its own card: the host
+// club's logo in the header and, once played, one row per team with wins,
+// draws, losses and goals scored and conceded.
+function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' | 'upcoming' | 'played'; today: string }) {
+  const c = useColors();
+  const next = variant === 'next';
+  const fg = next ? '#fff' : c.ink;
+  const soft = next ? 'rgba(255,255,255,0.7)' : c.inkSoft;
+  const bg = next ? brand.navy : variant === 'upcoming' ? c.calGameBg : c.surface;
+  const chip = (label: string, color: string) => (
+    <View style={[styles.chip, { backgroundColor: color + '24' }]}>
+      <Text style={[styles.chipText, { color }]}>{label}</Text>
+    </View>
+  );
+  const goals = (n: number, color: string) => (
+    <View style={styles.goal}>
+      <View style={[styles.ball, { backgroundColor: color }]}>
+        <Ionicons name="football-outline" size={16} color="#fff" />
+      </View>
+      <Text style={[styles.goalText, { color: fg }]}>{n}</Text>
+    </View>
+  );
+
+  let body;
+  let tag = null;
+  if (game.cancelStatus) {
+    tag = { label: game.cancelStatus, bg: c.danger + '24', fg: c.danger };
+  } else if (variant !== 'played') {
+    tag = {
+      label: game.date ? countdown(game.date, today) : 'No date',
+      bg: next ? brand.red : c.surface,
+      fg: next ? '#fff' : c.inkSoft,
+    };
+    body = (
+      <View style={styles.statRow}>
+        <Text style={[styles.time, { color: fg }]}>{game.time ?? 'TBD'}</Text>
+        <View style={[styles.pill, { marginLeft: 'auto', backgroundColor: next ? 'rgba(255,255,255,0.16)' : c.surface }]}>
+          <Text style={[styles.pillText, { color: next ? '#fff' : c.inkSoft }]}>
+            {game.matches} {game.matches === 1 ? 'game' : 'games'}
+          </Text>
+        </View>
+      </View>
+    );
+  } else if (game.records.length === 0) {
+    tag = { label: 'No score', bg: c.surface2, fg: c.inkSoft };
+  } else {
+    const multi = game.records.length > 1;
+    body = game.records.map((r, i) => (
+      <View key={r.team} style={i > 0 && [styles.teamBlock, { borderTopColor: c.line }]}>
+        {multi ? (
+          <View style={styles.teamLine}>
+            <View style={[styles.teamDot, { backgroundColor: r.team === 'blue' ? c.teamBlue : c.teamRed }]} />
+            <Text style={{ color: fg, fontFamily: fonts.medium, fontSize: 13 }}>{r.team === 'blue' ? 'Blue' : 'Red'}</Text>
+          </View>
+        ) : null}
+        <View style={[styles.statRow, multi && { marginTop: 8 }]}>
+          {chip(`W ${r.won}`, c.win)}
+          {chip(`D ${r.drawn}`, c.amber)}
+          {chip(`L ${r.lost}`, c.danger)}
+          <View style={styles.goals}>
+            {goals(r.goalsFor, c.win)}
+            {goals(r.goalsAgainst, c.danger)}
+          </View>
+        </View>
+      </View>
+    ));
+  }
+
+  return (
+    <View style={[styles.card, { backgroundColor: bg }]}>
+      <View style={styles.tHead}>
+        <Crest url={game.opponentLogoUrl} name={game.opponent || 'TBD'} size={46} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: fg }]}>Tournament</Text>
+          <Text style={[styles.sub, { color: soft }]} numberOfLines={1}>
+            {[fmtDate(game.date), game.opponent].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+        {tag ? (
+          <View style={[styles.pill, { backgroundColor: tag.bg }]}>
+            <Text style={[styles.pillText, { color: tag.fg, textTransform: 'capitalize' }]}>{tag.label}</Text>
+          </View>
+        ) : null}
+      </View>
+      {body}
+    </View>
+  );
+}
+
+export function MatchCard(props: {
+  game: Game;
+  variant: 'next' | 'upcoming' | 'played';
+  today: string;
+  notched?: boolean;
+}) {
+  return props.game.competition === 'Tournament' ? <TournamentCard {...props} /> : <FixtureCard {...props} />;
+}
+
+function FixtureCard({
   game,
   variant,
   today,
@@ -166,6 +265,16 @@ const styles = StyleSheet.create({
   score: { fontFamily: fonts.semi, fontSize: 22 },
   scoreLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   teamDot: { width: 8, height: 8, borderRadius: 4 },
+  tHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+  teamBlock: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16, paddingTop: 16 },
+  teamLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chip: { minWidth: 42, alignItems: 'center', borderRadius: 999, paddingVertical: 3 },
+  chipText: { fontFamily: fonts.medium, fontSize: 13 },
+  goals: { marginLeft: 'auto', flexDirection: 'row', gap: 14 },
+  goal: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 48 },
+  ball: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  goalText: { fontFamily: fonts.semi, fontSize: 16 },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   pillText: { fontFamily: fonts.medium, fontSize: 11.5 },
 });
