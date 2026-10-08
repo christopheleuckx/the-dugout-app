@@ -124,11 +124,16 @@ export default function GameLineupEditScreen() {
     setSheet(null);
   }
 
-  // Periods on the pitch per player: two per quarter (start, after 10').
-  const periods = (id: string) => quarters.reduce((n, q) => n + (q.start[id] ? 1 : 0) + (afterOf(q)[id] ? 1 : 0), 0);
+  // Minutes on the pitch per player. Like the web app, a quarter is split at
+  // 10 minutes: the starting line-up plays the first part, the rest after it.
+  const firstPart = Math.min(10, game.quarterLength);
+  const totalMinutes = count * game.quarterLength;
+  const minutesOf = (id: string) =>
+    quarters.reduce((n, q) => n + (q.start[id] ? firstPart : 0) + (afterOf(q)[id] ? game.quarterLength - firstPart : 0), 0);
+  const shareOf = (id: string) => (totalMinutes ? Math.round((minutesOf(id) / totalMinutes) * 100) : 0);
 
   // Green above half of the playing time, orange at exactly half, red below.
-  const timeColor = (played: number) => (played * 2 > count * 2 ? c.win : played * 2 === count * 2 ? c.amber : c.danger);
+  const timeColor = (id: string) => (minutesOf(id) * 2 > totalMinutes ? c.win : minutesOf(id) * 2 === totalMinutes ? c.amber : c.danger);
 
   async function save() {
     if (saving) return;
@@ -348,15 +353,15 @@ export default function GameLineupEditScreen() {
                         {short(p)}
                       </Text>
                       <View style={[styles.track, { backgroundColor: c.surface2 }]}>
-                        <View style={{ width: `${(periods(p.id) / (count * 2)) * 100}%`, height: '100%', borderRadius: 3, backgroundColor: timeColor(periods(p.id)) }} />
+                        <View style={{ width: `${shareOf(p.id)}%`, height: '100%', borderRadius: 3, backgroundColor: timeColor(p.id) }} />
                       </View>
-                      <Text style={{ width: 34, textAlign: 'right', color: c.inkSoft, fontFamily: fonts.medium, fontSize: 13 }}>
-                        {periods(p.id)}/{count * 2}
+                      <Text style={{ width: 78, textAlign: 'right', color: c.inkSoft, fontFamily: fonts.medium, fontSize: 13 }}>
+                        {shareOf(p.id)}% · {minutesOf(p.id)}'
                       </Text>
                     </View>
                   ))}
                 </View>
-                <Text style={[styles.hint, { color: c.inkSoft }]}>Periods on the pitch: two per quarter, the start and after 10 minutes.</Text>
+                <Text style={[styles.hint, { color: c.inkSoft }]}>Share and minutes of the {totalMinutes} minutes in this game ({count} × {game.quarterLength}').</Text>
 
                 {i < count - 1 ? (
                   <Pressable
@@ -458,7 +463,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  track: { width: 90, height: 6, borderRadius: 3, overflow: 'hidden' },
+  track: { width: 70, height: 6, borderRadius: 3, overflow: 'hidden' },
   hint: { fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12 },
   group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 8 },
   setting: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingVertical: 8 },
