@@ -127,6 +127,9 @@ export default function GameLineupEditScreen() {
   // Periods on the pitch per player: two per quarter (start, after 10').
   const periods = (id: string) => quarters.reduce((n, q) => n + (q.start[id] ? 1 : 0) + (afterOf(q)[id] ? 1 : 0), 0);
 
+  // Green above half of the playing time, orange at exactly half, red below.
+  const timeColor = (played: number) => (played * 2 > count * 2 ? c.win : played * 2 === count * 2 ? c.amber : c.danger);
+
   async function save() {
     if (saving) return;
     setSaving(true);
@@ -345,7 +348,7 @@ export default function GameLineupEditScreen() {
                         {short(p)}
                       </Text>
                       <View style={[styles.track, { backgroundColor: c.surface2 }]}>
-                        <View style={{ width: `${(periods(p.id) / (count * 2)) * 100}%`, height: '100%', borderRadius: 3, backgroundColor: color }} />
+                        <View style={{ width: `${(periods(p.id) / (count * 2)) * 100}%`, height: '100%', borderRadius: 3, backgroundColor: timeColor(periods(p.id)) }} />
                       </View>
                       <Text style={{ width: 34, textAlign: 'right', color: c.inkSoft, fontFamily: fonts.medium, fontSize: 13 }}>
                         {periods(p.id)}/{count * 2}
