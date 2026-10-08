@@ -24,8 +24,8 @@ export type TeamRecord = {
   lost: number;
   goalsFor: number;
   goalsAgainst: number;
-  // Final ranking in the tournament, when it has been filled in.
-  place: number | null;
+  // Final ranking in the tournament as typed in the web app ("1st Place"), if any.
+  place: string | null;
 };
 
 export type Game = {
@@ -134,7 +134,7 @@ function teamScore(game: any, team: Team): Score | null {
 function teamRecord(game: any, team: Team): TeamRecord | null {
   const quarters = quarterScores(game, team);
   if (!Array.isArray(quarters)) return null;
-  const place = game.lineups?.[team]?.place ?? null;
+  const place = game.lineups?.[team]?.place ? String(game.lineups[team].place) : null;
   const r: TeamRecord = { team, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, place };
   for (const q of quarters) {
     if (q?.for == null || q?.against == null) continue;

@@ -90,16 +90,17 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
     </View>
   );
 
-  // 1 -> 1st, 2 -> 2nd, 11 -> 11th.
-  const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
-  // First place gets the gold chip, any other place a neutral one.
-  // and a dash while the place hasn't been filled in yet.
-  const place = (n: number | null) => (
-    <View style={[styles.place, { backgroundColor: n === 1 ? c.amber + '2E' : c.surface2 }]}>
-      <Ionicons name="trophy-outline" size={14} color={n === 1 ? c.amber : c.inkSoft} />
-      <Text style={[styles.pillText, { fontSize: 13, color: n === 1 ? c.amber : c.inkSoft }]}>{n ? ordinal(n) : '–'}</Text>
-    </View>
-  );
+  // First place gets the gold chip, any other place a neutral one, and a
+  // dash while the place hasn't been filled in yet.
+  const place = (text: string | null) => {
+    const first = !!text && /^(1|1st|first|winner)\b/i.test(text.trim());
+    return (
+      <View style={[styles.place, { backgroundColor: first ? c.amber + '2E' : c.surface2 }]}>
+        <Ionicons name="trophy-outline" size={14} color={first ? c.amber : c.inkSoft} />
+        <Text style={[styles.pillText, { fontSize: 13, color: first ? c.amber : c.inkSoft }]}>{text ?? '–'}</Text>
+      </View>
+    );
+  };
   const title = game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament';
 
   let body;
@@ -275,7 +276,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 18 },
   side: { width: 84, alignItems: 'center', gap: 8 },
   sideName: { fontFamily: fonts.regular, fontSize: 13, textAlign: 'center' },
-  centre: { alignItems: 'center', gap: 4 },
+  // As tall as a crest at least, so a single score sits level with the logos.
+  centre: { alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 54 },
   time: { fontFamily: fonts.semi, fontSize: 30 },
   score: { fontFamily: fonts.semi, fontSize: 22 },
   scoreLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
