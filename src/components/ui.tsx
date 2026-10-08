@@ -1,13 +1,23 @@
-import type { ReactNode } from 'react';
-import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { ReactNode, RefObject } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fmtDate, useData, type Game, type Training } from '../lib/data';
+import { fmtDate, useData, type Training } from '../lib/data';
 import { fonts, radius, useColors } from '../lib/theme';
 
 // Page frame shared by every tab: light centred title bar, pull-to-refresh, and the
 // loading / error states for the shared data load.
-export function Screen({ title, left, children }: { title: string; left?: ReactNode; children: ReactNode }) {
+export function Screen({
+  title,
+  left,
+  scrollRef,
+  children,
+}: {
+  title: string;
+  left?: ReactNode;
+  scrollRef?: RefObject<ScrollView | null>;
+  children: ReactNode;
+}) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { loading, error, refresh } = useData();
@@ -23,6 +33,7 @@ export function Screen({ title, left, children }: { title: string; left?: ReactN
         <ActivityIndicator style={{ marginTop: 48 }} color={c.pitch} />
       ) : (
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={c.pitch} />}
         >
@@ -53,51 +64,6 @@ function Badge({ label, color }: { label: string; color: string }) {
     <View style={[styles.badge, { borderColor: color }]}>
       <Text style={[styles.badgeText, { color }]}>{label}</Text>
     </View>
-  );
-}
-
-export function GameCard({ game }: { game: Game }) {
-  const c = useColors();
-  const resultColor = { W: c.win, D: c.amber, L: c.danger };
-  const multi = game.scores.length > 1;
-
-  return (
-    <Card>
-      <View style={styles.row}>
-        {game.opponentLogoUrl ? (
-          <Image source={{ uri: game.opponentLogoUrl }} style={styles.logo} resizeMode="contain" />
-        ) : (
-          <View style={[styles.logo, { backgroundColor: c.surface2, borderRadius: 18 }]} />
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-            {game.opponent || 'Opponent to be confirmed'}
-          </Text>
-          <Text style={{ color: c.inkSoft }}>
-            {fmtDate(game.date)}
-            {game.time ? ` · ${game.time}` : ''}
-          </Text>
-        </View>
-        <View style={{ alignItems: 'flex-end', gap: 2 }}>
-          {game.scores.map(({ team, score }) => (
-            <Text key={team} style={[styles.score, { color: resultColor[score.result] }]}>
-              {multi ? (team === 'blue' ? 'Blue ' : 'Red ') : ''}
-              {score.home}–{score.away}
-            </Text>
-          ))}
-        </View>
-      </View>
-      <View style={styles.badges}>
-        <Badge label={game.homeAway} color={c.pitch} />
-        <Badge label={game.competition} color={c.inkSoft} />
-        {game.cancelStatus ? <Badge label={game.cancelStatus} color={c.danger} /> : null}
-        {game.location ? (
-          <Text style={{ color: c.inkSoft, flexShrink: 1 }} numberOfLines={1}>
-            {game.location}
-          </Text>
-        ) : null}
-      </View>
-    </Card>
   );
 }
 
