@@ -131,7 +131,7 @@ export default function Dashboard() {
       {upcoming.length ? (
         <Swimlane cardWidth={upcoming.length > 1 ? Math.round(width * 0.78) : width - 32}>
           {upcoming.map((g, i) => (
-            <MatchCard key={g.id} game={g} variant={i === 0 ? 'next' : 'upcoming'} today={today} />
+            <MatchCard key={g.id} game={g} variant={i === 0 ? 'next' : 'upcoming'} today={today} notched />
           ))}
         </Swimlane>
       ) : (

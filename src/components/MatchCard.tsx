@@ -64,8 +64,19 @@ export function isPlayed(game: Game, today: string) {
 // One game as a card with both crests, home team on the left like the scoreline.
 // `next` is the filled card for the very next game, `upcoming` the light blue
 // one, and `played` shows the score per team (Blue and Red each play their
-// own match) with W / D / L in place of the kick-off time.
-export function MatchCard({ game, variant, today }: { game: Game; variant: 'next' | 'upcoming' | 'played'; today: string }) {
+// own match) with W / D / L in place of the kick-off time. `notched` cuts the
+// top-right and bottom-left corners off; otherwise those two are rounded wider.
+export function MatchCard({
+  game,
+  variant,
+  today,
+  notched = false,
+}: {
+  game: Game;
+  variant: 'next' | 'upcoming' | 'played';
+  today: string;
+  notched?: boolean;
+}) {
   const c = useColors();
   const { clubLogoUrl } = useData();
   const us = { name: CLUB, url: clubLogoUrl };
@@ -116,7 +127,7 @@ export function MatchCard({ game, variant, today }: { game: Game; variant: 'next
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: bg }]}>
+    <View style={[styles.card, !notched && styles.rounded, { backgroundColor: bg }]}>
       <Text style={[styles.title, { color: fg }]}>{game.competition}</Text>
       <Text style={[styles.sub, { color: soft }]}>
         {fmtDate(game.date)} · {game.homeAway}
@@ -136,7 +147,7 @@ export function MatchCard({ game, variant, today }: { game: Game; variant: 'next
           </Text>
         </View>
       </View>
-      <Notches color={c.chalk} />
+      {notched ? <Notches color={c.chalk} /> : null}
     </View>
   );
 }
@@ -145,6 +156,7 @@ const styles = StyleSheet.create({
   crest: { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   badge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   card: { flex: 1, borderRadius: 12, paddingVertical: 18, paddingHorizontal: 20, overflow: 'hidden' },
+  rounded: { borderTopRightRadius: 30, borderBottomLeftRadius: 30 },
   title: { fontFamily: fonts.medium, fontSize: 15 },
   sub: { fontFamily: fonts.regular, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 18 },
