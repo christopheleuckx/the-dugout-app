@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Crest } from '../../components/MatchCard';
 import { fmtDate, useData, type Game, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 
@@ -36,7 +37,7 @@ export default function GameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { games, me } = useData();
+  const { games, me, clubLogoUrl } = useData();
   const game = games.find((g) => g.id === id);
   const [picked, setPicked] = useState<Team | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -52,6 +53,21 @@ export default function GameScreen() {
   const team = picked ?? defaultTeam(game, me);
   const tournament = game.competition === 'Tournament';
   const score = game.scores.find((s) => s.team === team)?.score;
+  // Home team on the left, like the scoreline. With two teams our name says which one is open.
+  const us = {
+    name: game.teams.length > 1 ? `FCV Dender ${team === 'blue' ? 'Blue' : 'Red'}` : 'FCV Dender',
+    url: clubLogoUrl,
+  };
+  const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
+  const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
+  const teamSide = (side: { name: string; url: string | null }) => (
+    <View style={styles.side}>
+      <Crest url={side.url} name={side.name} size={72} />
+      <Text style={[styles.sideName, { color: c.ink }]} numberOfLines={2}>
+        {side.name}
+      </Text>
+    </View>
+  );
 
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
@@ -82,6 +98,18 @@ export default function GameScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {score && !tournament ? (
+          <View style={[styles.card, styles.result, { backgroundColor: c.surface }]}>
+            {teamSide(sides[0])}
+            <View style={styles.middle}>
+              <Text style={[styles.end, { color: c.inkSoft }]}>End</Text>
+              <Text style={[styles.final, { color: c.ink }]}>
+                {score.home} - {score.away}
+              </Text>
+            </View>
+            {teamSide(sides[1])}
+          </View>
+        ) : (
         <View style={[styles.card, { backgroundColor: c.surface }]}>
           <Text style={[styles.sub, { color: c.inkSoft }]}>
             {game.teams.length > 1 ? `Team ${team === 'blue' ? 'Blue' : 'Red'}` : game.competition}
@@ -91,6 +119,7 @@ export default function GameScreen() {
           </Text>
           {game.location ? <Text style={[styles.sub, { color: c.inkSoft }]}>{game.location}</Text> : null}
         </View>
+        )}
       </ScrollView>
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)}>
@@ -133,6 +162,12 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
   card: { borderRadius: 12, padding: 18, gap: 2 },
   big: { fontFamily: fonts.semi, fontSize: 30 },
+  result: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingVertical: 24 },
+  side: { width: 96, alignItems: 'center', gap: 10 },
+  sideName: { fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' },
+  middle: { height: 72, alignItems: 'center', justifyContent: 'center' },
+  end: { fontFamily: fonts.regular, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+  final: { fontFamily: fonts.semi, fontSize: 36 },
   backdrop: { flex: 1, backgroundColor: 'rgba(14,19,32,0.38)' },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 12, paddingTop: 8, gap: 4 },
   grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
