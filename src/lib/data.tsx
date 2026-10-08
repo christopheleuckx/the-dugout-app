@@ -36,6 +36,18 @@ export type Rating = { score: number | null; comment: string };
 // Where a player lined up in one quarter: at kick-off and after the 10-minute change.
 export type Stint = { label: string; starting: string; after10: string };
 
+// Same scale as TEAM_RATING_SCALE in the web app.
+export const TEAM_RATING_LABELS = ['Below IP3 level', 'No influence', 'IP3 level', 'Dominating', 'Elite'];
+
+// A team's post-match report, as filled in on the web app's Team report page.
+export type Report = {
+  score: number | null;
+  opponent: string;
+  quarterNotes: { label: string; note: string }[];
+  wentWell: string;
+  toImprove: string;
+};
+
 export type Game = {
   id: string;
   date: string | null;
@@ -55,6 +67,8 @@ export type Game = {
   // The teams playing this game, Blue first, each with its coaches' names
   // and the players selected for it.
   teams: { team: Team; coaches: string[]; players: Player[] }[];
+  // Per team: its report, when at least one field has been filled in.
+  reports: Partial<Record<Team, Report>>;
   // Per player id: their rating, and where they played in each confirmed quarter.
   ratings: Record<string, Rating>;
   stints: Record<string, Stint[]>;
@@ -146,6 +160,22 @@ function teamScore(game: any, team: Team): Score | null {
   if (!any) return null;
   const result = f > a ? 'W' : f < a ? 'L' : 'D';
   return game.home_away === 'Away' ? { home: a, away: f, result } : { home: f, away: a, result };
+}
+
+function teamReport(game: any, team: Team): Report | null {
+  const e = game.lineups?.[team]?.eval;
+  if (!e) return null;
+  const report: Report = {
+    score: e.score ?? null,
+    opponent: e.opponent ?? '',
+    quarterNotes: (e.quarterNotes ?? [])
+      .map((note: string, i: number) => ({ label: game.quarter_labels?.[i] || `Q${i + 1}`, note: note ?? '' }))
+      .filter((q: { note: string }) => q.note),
+    wentWell: e.wentWell ?? '',
+    toImprove: e.toImprove ?? '',
+  };
+  const filled = report.score || report.opponent || report.quarterNotes.length || report.wentWell || report.toImprove;
+  return filled ? report : null;
 }
 
 function teamRecord(game: any, team: Team): TeamRecord | null {
@@ -342,6 +372,11 @@ async function load(userId: string): Promise<Data> {
         (ratings.data ?? [])
           .filter((r) => r.game_id === g.id)
           .map((r) => [r.player_id, { score: r.score, comment: r.comment ?? '' }]),
+      ),
+      reports: Object.fromEntries(
+        playingTeams(g.id)
+          .map((team) => [team, teamReport(g, team)] as const)
+          .filter(([, report]) => report !== null),
       ),
       stints: gameStints(g),
       matches: g.quarters,
