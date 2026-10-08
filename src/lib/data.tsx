@@ -12,6 +12,8 @@ export type Player = {
   number: number | null;
   bestPosition: string;
   preferredFoot: string;
+  // The coach's 1 to 5 star rating, if set.
+  qualityRating: number | null;
 };
 
 export type Score = { home: number; away: number; result: 'W' | 'D' | 'L' };
@@ -68,6 +70,10 @@ export type Game = {
   squadCount: number;
   // One scoreline per team that played: a 2-team game is two separate matches.
   scores: { team: Team; score: Score }[];
+  // How many teams the game was set up for (1, or 2 for Blue and Red).
+  numTeams: number;
+  // Per player id: the team they are selected in, or why they are not selected.
+  selection: Record<string, { team: Team | null; reason: string | null }>;
   // The teams playing this game, Blue first, each with its coaches' names
   // and the players selected for it.
   teams: { team: Team; coaches: string[]; players: Player[] }[];
@@ -204,9 +210,9 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings] = await Promise.all([
-    supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot'),
+    supabase.from('players').select('id, first_name, last_name, number, best_position, preferred_foot, quality_rating'),
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
-    supabase.from('game_squad').select('game_id, player_id, team'),
+    supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar'),
     supabase.from('training_absences').select('training_id, reason'),
@@ -315,6 +321,7 @@ async function load(userId: string): Promise<Data> {
       number: r.number,
       bestPosition: r.best_position,
       preferredFoot: r.preferred_foot,
+      qualityRating: r.quality_rating,
     }))
     .sort((a, b) => a.firstName.localeCompare(b.firstName));
 
@@ -385,6 +392,12 @@ async function load(userId: string): Promise<Data> {
       scores: playingTeams(g.id)
         .map((team) => ({ team, score: teamScore(g, team) }))
         .filter((s): s is { team: Team; score: Score } => s.score !== null),
+      numTeams: g.num_teams === 1 ? 1 : 2,
+      selection: Object.fromEntries(
+        (squad.data ?? [])
+          .filter((r) => r.game_id === g.id && (r.team || r.not_selected_reason !== null))
+          .map((r) => [r.player_id, { team: r.team === 'blue' || r.team === 'red' ? (r.team as Team) : null, reason: r.not_selected_reason }]),
+      ),
       teams: gameTeams(g),
       ratings: Object.fromEntries(
         (ratings.data ?? [])

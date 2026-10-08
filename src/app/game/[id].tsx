@@ -251,7 +251,14 @@ export default function GameScreen() {
           </>
         ) : null}
 
-        <Text style={[styles.section, { color: c.ink }]}>Selection</Text>
+        <View style={styles.sectionHead}>
+          <Text style={[styles.section, { color: c.ink, marginTop: 0 }]}>Selection</Text>
+          {selection.length ? (
+            <Pressable onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })} hitSlop={8}>
+              <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Edit</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {selection.length ? (
           <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
             {/* The badge is the player's best position (7, 10, K), as the squad has no shirt numbers. */}
@@ -280,8 +287,10 @@ export default function GameScreen() {
         ) : (
           <View style={[styles.card, { backgroundColor: c.surface, alignItems: 'center', gap: 12 }]}>
             <Text style={[styles.sub, { color: c.inkSoft }]}>No players selected yet.</Text>
-            {/* Creating a selection in the app comes later; the button is a placeholder. */}
-            <Pressable style={[styles.cta, { backgroundColor: c.pitch }]}>
+            <Pressable
+              style={[styles.cta, { backgroundColor: c.pitch }]}
+              onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })}
+            >
               <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 15 }}>Create selection</Text>
             </Pressable>
           </View>
@@ -330,6 +339,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, padding: 18, gap: 2 },
   host: { fontFamily: fonts.semi, fontSize: 24 },
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 12 },
   player: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   number: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   playerName: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
