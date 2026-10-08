@@ -5,8 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 
 import { AuthProvider, useAuth } from '../lib/auth';
-import { DataProvider } from '../lib/data';
-import { Loader } from '../components/Loader';
+import { DataProvider, useData } from '../lib/data';
+import { Splash } from '../components/Splash';
 import { useColors } from '../lib/theme';
 
 function RootNavigator() {
@@ -20,15 +20,15 @@ function RootNavigator() {
     Outfit_600SemiBold,
   });
 
-  if (loading || !fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: c.chalk, alignItems: 'center', justifyContent: 'center' }}>
-        <Loader />
-      </View>
-    );
-  }
+  const data = useData();
+  const booted = !loading && fontsLoaded;
+  // The splash stays until the first screen has something to show: the
+  // sign-in screen, or the tabs with their data.
+  const ready = booted && (!session || !data.loading);
 
   return (
+    <View style={{ flex: 1, backgroundColor: c.chalk }}>
+      {booted ? (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(tabs)" />
@@ -45,6 +45,9 @@ function RootNavigator() {
         <Stack.Screen name="login" />
       </Stack.Protected>
     </Stack>
+      ) : null}
+      <Splash ready={ready} fontsLoaded={fontsLoaded} />
+    </View>
   );
 }
 
