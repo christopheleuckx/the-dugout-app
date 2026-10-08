@@ -93,17 +93,17 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
   // 1 -> 1st, 2 -> 2nd, 11 -> 11th.
   const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
   // First place gets the gold chip, any other place a neutral one.
-  const place = (n: number, small: boolean) => (
-    <View style={[styles.place, small && { paddingVertical: 2 }, { backgroundColor: n === 1 ? c.amber + '2E' : c.surface2 }]}>
-      <Ionicons name="trophy-outline" size={small ? 13 : 15} color={n === 1 ? c.amber : c.inkSoft} />
-      <Text style={[styles.pillText, { fontSize: small ? 12 : 13, color: n === 1 ? c.amber : c.inkSoft }]}>{ordinal(n)}</Text>
+  // and a dash while the place hasn't been filled in yet.
+  const place = (n: number | null) => (
+    <View style={[styles.place, { backgroundColor: n === 1 ? c.amber + '2E' : c.surface2 }]}>
+      <Ionicons name="trophy-outline" size={14} color={n === 1 ? c.amber : c.inkSoft} />
+      <Text style={[styles.pillText, { fontSize: 13, color: n === 1 ? c.amber : c.inkSoft }]}>{n ? ordinal(n) : '–'}</Text>
     </View>
   );
   const title = game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament';
 
   let body;
   let tag = null;
-  let headPlace = null;
   if (game.cancelStatus) {
     tag = { label: game.cancelStatus, bg: c.danger + '24', fg: c.danger };
   } else if (variant !== 'played') {
@@ -126,19 +126,18 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
     tag = { label: 'No score', bg: c.surface2, fg: c.inkSoft };
   } else {
     const multi = game.records.length > 1;
-    if (!multi && game.records[0].place) headPlace = place(game.records[0].place, false);
     body = game.records.map((r, i) => (
       <View key={r.team} style={i > 0 && [styles.teamBlock, { borderTopColor: c.line }]}>
-        {multi ? (
-          <View style={styles.teamLine}>
-            <View style={[styles.teamDot, { backgroundColor: r.team === 'blue' ? c.teamBlue : c.teamRed }]} />
-            <Text style={{ flex: 1, color: fg, fontFamily: fonts.medium, fontSize: 13 }}>
-              {r.team === 'blue' ? 'Blue' : 'Red'}
-            </Text>
-            {r.place ? place(r.place, true) : null}
-          </View>
-        ) : null}
-        <View style={[styles.statRow, multi && { marginTop: 8 }]}>
+        <View style={[styles.teamLine, i === 0 && { marginTop: 14 }]}>
+          {multi ? (
+            <>
+              <View style={[styles.teamDot, { backgroundColor: r.team === 'blue' ? c.teamBlue : c.teamRed }]} />
+              <Text style={{ color: fg, fontFamily: fonts.medium, fontSize: 13 }}>{r.team === 'blue' ? 'Blue' : 'Red'}</Text>
+            </>
+          ) : null}
+          {place(r.place)}
+        </View>
+        <View style={[styles.statRow, { marginTop: 10 }]}>
           {chip(`W ${r.won}`, c.win)}
           {chip(`D ${r.drawn}`, c.amber)}
           {chip(`L ${r.lost}`, c.danger)}
@@ -166,7 +165,6 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
             <Text style={[styles.pillText, { color: tag.fg, textTransform: 'capitalize' }]}>{tag.label}</Text>
           </View>
         ) : null}
-        {headPlace}
       </View>
       {body}
     </View>
@@ -217,7 +215,7 @@ function FixtureCard({
     centre = game.scores.map(({ team, score }) => (
       <View key={team} style={styles.scoreLine}>
         {multi ? <View style={[styles.teamDot, { backgroundColor: team === 'blue' ? c.teamBlue : c.teamRed }]} /> : null}
-        <Text style={[multi ? styles.score : styles.time, { color: fg }]}>
+        <Text style={[styles.score, { color: fg }]}>
           {score.home} : {score.away}
         </Text>
         <ResultBadge result={score.result} colors={resultColors} />
