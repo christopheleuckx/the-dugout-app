@@ -94,14 +94,18 @@ export default function Profile() {
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/account')}>
+          <Ionicons name="person-circle-outline" size={22} color={c.inkSoft} />
           <Text style={[styles.label, { color: c.ink }]}>Account details</Text>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
       </View>
 
-      <Pressable style={({ pressed }) => [styles.signOut, { borderColor: c.danger }, pressed && { opacity: 0.7 }]} onPress={signOut}>
-        <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Sign out</Text>
-      </Pressable>
+      <View style={[styles.card, { backgroundColor: c.surface }]}>
+        <Pressable style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]} onPress={signOut}>
+          <Ionicons name="log-out-outline" size={22} color={c.inkSoft} />
+          <Text style={[styles.label, { color: c.ink }]}>Sign out</Text>
+        </Pressable>
+      </View>
 
       <Text style={[styles.version, { color: c.inkSoft }]}>The Dugout {appVersion()}</Text>
 
@@ -131,9 +135,8 @@ const styles = StyleSheet.create({
   edit: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: fonts.medium, fontSize: 18 },
   sub: { fontFamily: fonts.regular, fontSize: 14 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingVertical: 9 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
-  signOut: { borderWidth: 1, borderRadius: 12, alignItems: 'center', paddingVertical: 14, marginTop: 6 },
   version: { fontFamily: fonts.regular, fontSize: 13, textAlign: 'center', marginTop: 10 },
   sheet: {
     borderTopLeftRadius: 20,
