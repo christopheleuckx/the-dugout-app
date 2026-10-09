@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,14 +31,42 @@ export default function Profile() {
     await refresh();
   }
 
-  async function pick() {
+  // iOS can't open the photo library while the sheet is still sliding away:
+  // the picker silently never appears. So choosing only closes the sheet, and
+  // the picker opens once the sheet is gone (onDismiss, with a timer as backup).
+  const pickPending = useRef(false);
+  function choosePicture() {
+    pickPending.current = true;
     setChoosing(false);
+    setTimeout(openPicker, 700);
+  }
+  function openPicker() {
+    if (!pickPending.current) return;
+    pickPending.current = false;
+    pick();
+  }
+
+  async function pick() {
     setError('');
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.6 });
+    let result;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+    } catch (e) {
+      setError(`Could not open your photos: ${(e as { message?: string })?.message ?? 'unknown error'}`);
+      return;
+    }
     if (result.canceled || !me) return;
     setBusy(true);
     try {
-      const bytes = await (await fetch(result.assets[0].uri)).arrayBuffer();
+      const base64 = result.assets[0].base64;
+      if (!base64) throw new Error('the photo could not be read');
+      const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0)).buffer;
       // Each user may only write inside their own folder.
       const path = `${me.id}/${Date.now()}.jpg`;
       const uploaded = await supabase.storage.from('avatars').upload(path, bytes, { contentType: 'image/jpeg' });
@@ -109,12 +137,12 @@ export default function Profile() {
         </Pressable>
       </View>
 
-      <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)}>
+      <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)} onDismiss={openPicker}>
         <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)} accessibilityLabel="Close" />
         <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 12 }]}>
           <View style={[styles.grabber, { backgroundColor: c.line }]} />
           <Text style={[styles.sheetTitle, { color: c.ink }]}>Profile picture</Text>
-          <Pressable style={styles.row} onPress={pick}>
+          <Pressable style={styles.row} onPress={choosePicture}>
             <Ionicons name="image-outline" size={20} color={c.ink} />
             <Text style={[styles.label, { color: c.ink }]}>Choose from library</Text>
           </Pressable>
