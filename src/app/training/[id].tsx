@@ -46,6 +46,10 @@ export default function TrainingScreen() {
 
   const time = [training.startTime, training.endTime].filter(Boolean).join(' – ');
   const absentCount = players.filter((p) => p.id in absent).length;
+  // Present players, split into keepers and field players.
+  const present = players.filter((p) => !(p.id in absent));
+  const keepersPresent = present.filter((p) => groupOf(p.bestPosition) === 0).length;
+  const fieldPresent = present.length - keepersPresent;
   const changed =
     Object.keys(absent).length !== Object.keys(training.absences).length ||
     Object.entries(absent).some(([playerId, reason]) => training.absences[playerId] !== reason);
@@ -134,9 +138,21 @@ export default function TrainingScreen() {
           </>
         ) : (
           <>
-            <Text style={[styles.sub, { color: c.inkSoft, textAlign: 'center' }]}>
-              Attendance: {players.length - absentCount}/{players.length}
-            </Text>
+            <View style={styles.tiles}>
+              {[
+                { label: 'In training', value: String(fieldPresent) },
+                { label: 'K in training', value: String(keepersPresent) },
+                { label: 'Absent', value: String(absentCount) },
+                { label: 'Attendance', value: `${players.length - absentCount}/${players.length}` },
+              ].map((tile) => (
+                <View key={tile.label} style={[styles.tile, { backgroundColor: c.surface }]}>
+                  <Text style={[styles.tileValue, { color: c.ink }]}>{tile.value}</Text>
+                  <Text style={[styles.tileLabel, { color: c.inkSoft }]} numberOfLines={1}>
+                    {tile.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
             {groups.map((g) => (
               <View key={g.label} style={{ gap: 8 }}>
                 <Text style={[styles.group, { color: c.inkSoft }]}>{g.label}</Text>
@@ -189,5 +205,9 @@ const styles = StyleSheet.create({
   group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 4 },
   badge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  tiles: { flexDirection: 'row', gap: 8 },
+  tile: { flex: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 6, alignItems: 'center', gap: 2 },
+  tileValue: { fontFamily: fonts.semi, fontSize: 22 },
+  tileLabel: { fontFamily: fonts.regular, fontSize: 12 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
 });
