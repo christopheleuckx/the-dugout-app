@@ -21,6 +21,9 @@ const REASONS = [
 ];
 const reasonLabel = (value: string) => REASONS.find((r) => r.value === value)?.label ?? (value || 'Absent');
 
+// The pitches the team trains on.
+const PITCHES = ['Walleke D', 'Gemeenteplein'];
+
 type ThemeKey = 'major' | 'minor' | 'basic';
 const THEME_LABELS: Record<ThemeKey, string> = { major: 'Major', minor: 'Minor', basic: 'Basics' };
 
@@ -50,6 +53,8 @@ export default function TrainingScreen() {
     basic: training?.basicId ?? null,
   });
   const [choosingTheme, setChoosingTheme] = useState<ThemeKey | null>(null);
+  const [pitch, setPitch] = useState(training?.location ?? '');
+  const [choosingPitch, setChoosingPitch] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -72,7 +77,8 @@ export default function TrainingScreen() {
     Object.entries(absent).some(([playerId, reason]) => training.absences[playerId] !== reason);
   const themesChanged =
     themes.major !== training.majorTacticId || themes.minor !== training.minorTacticId || themes.basic !== training.basicId;
-  const changed = attendanceChanged || themesChanged;
+  const pitchChanged = pitch !== training.location;
+  const changed = attendanceChanged || themesChanged || pitchChanged;
   const themeList = (key: ThemeKey) => (key === 'basic' ? basics : teamTactics);
   const themeName = (key: ThemeKey) => themeList(key).find((x) => x.id === themes[key])?.name ?? 'Choose';
 
@@ -99,10 +105,10 @@ export default function TrainingScreen() {
         ? await supabase.from('training_absences').delete().eq('training_id', training!.id).in('player_id', back)
         : null;
     const themed =
-      !upserted?.error && !removed?.error && themesChanged
+      !upserted?.error && !removed?.error && (themesChanged || pitchChanged)
         ? await supabase
             .from('trainings')
-            .update({ major_tactic_id: themes.major, minor_tactic_id: themes.minor, basic_id: themes.basic })
+            .update({ major_tactic_id: themes.major, minor_tactic_id: themes.minor, basic_id: themes.basic, location: pitch })
             .eq('id', training!.id)
         : null;
     const failed = upserted?.error ?? removed?.error ?? themed?.error;
@@ -126,20 +132,21 @@ export default function TrainingScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (choosingTheme ? setChoosingTheme(null) : player ? setChoosing(null) : router.back())}
-          accessibilityLabel={player || choosingTheme ? 'Back' : 'Close'}
+          onPress={() => (choosingPitch ? setChoosingPitch(false) : choosingTheme ? setChoosingTheme(null) : player ? setChoosing(null) : router.back())}
+          accessibilityLabel={player || choosingTheme || choosingPitch ? 'Back' : 'Close'}
           hitSlop={8}
         >
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-            {choosingTheme ? THEME_LABELS[choosingTheme] : player ? `${player.firstName} ${player.lastName}`.trim() : training.label}
+            {choosingPitch ? 'Pitch' : choosingTheme ? THEME_LABELS[choosingTheme] : player ? `${player.firstName} ${player.lastName}`.trim() : training.label}
           </Text>
-          {player || choosingTheme ? null : (
+          {player || choosingTheme || choosingPitch ? null : (
             <Text style={[styles.sub, { color: c.inkSoft }]} numberOfLines={1}>
               {fmtDate(training.date)}
               {time ? ` · ${time}` : ''}
+              {pitch ? ` · ${pitch}` : ''}
             </Text>
           )}
         </View>
@@ -147,7 +154,23 @@ export default function TrainingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {choosingTheme ? (
+        {choosingPitch ? (
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
+            {PITCHES.map((name, i) => (
+              <Pressable
+                key={name}
+                style={[styles.row, i > 0 && line]}
+                onPress={() => {
+                  setPitch(name);
+                  setChoosingPitch(false);
+                }}
+              >
+                <Text style={[styles.label, { color: c.ink }]}>{name}</Text>
+                {pitch === name ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : choosingTheme ? (
           <>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Pressable
@@ -216,6 +239,14 @@ export default function TrainingScreen() {
                 </View>
               ))}
             </View>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Pressable style={styles.row} onPress={() => setChoosingPitch(true)}>
+                <Text style={[styles.label, { color: c.ink }]}>Pitch</Text>
+                <Text style={{ color: pitch ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}>{pitch || 'Choose'}</Text>
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
+            </View>
+
             <Text style={[styles.section, { color: c.ink }]}>Training themes</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {(['major', 'minor', 'basic'] as ThemeKey[]).map((key, i) => (

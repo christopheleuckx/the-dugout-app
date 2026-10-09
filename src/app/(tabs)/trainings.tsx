@@ -2,11 +2,13 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Empty, Screen, TrainingCard } from '../../components/ui';
+import { Empty, Screen } from '../../components/ui';
 import { todayIso, useData, type Training } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 
 type Tab = 'upcoming' | 'completed';
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function Trainings() {
   const c = useColors();
@@ -54,11 +56,41 @@ export default function Trainings() {
       </View>
 
       {list.length === 0 ? <Empty>{tab === 'upcoming' ? 'No upcoming trainings.' : 'No completed trainings yet.'}</Empty> : null}
-      {list.map((t) => (
-        <Pressable key={t.id} onPress={() => router.push(`/training/${t.id}`)}>
-          <TrainingCard training={t} />
-        </Pressable>
-      ))}
+      {/* The same row as in the week list on Home: day, name, time and pitch. */}
+      {list.map((t) => {
+        const date = new Date(t.date + 'T00:00:00');
+        // Outside the current month the day needs its month; the weekday then moves to the second line.
+        const showMonth = tab === 'completed' || date.getMonth() !== new Date().getMonth();
+        return (
+          <Pressable key={t.id} style={[styles.row, { backgroundColor: c.surface }]} onPress={() => router.push(`/training/${t.id}`)}>
+            <View style={styles.rowDate}>
+              <Text style={[styles.rowDay, { color: t.date === today ? c.pitch : c.ink }]}>{date.getDate()}</Text>
+              <Text style={[styles.rowMeta, { color: c.inkSoft }]}>
+                {showMonth ? MONTHS[date.getMonth()] : WEEKDAYS[date.getDay()]}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowTitle, { color: c.ink }]} numberOfLines={1}>
+                {t.label}
+              </Text>
+              <Text style={[styles.rowMeta, { color: c.inkSoft }]} numberOfLines={1}>
+                {[showMonth ? WEEKDAYS[date.getDay()] : null, t.startTime, t.location].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+            {t.cancelStatus ? (
+              <View style={[styles.pill, { backgroundColor: c.danger + '24' }]}>
+                <Text style={[styles.pillText, { color: c.danger, textTransform: 'capitalize' }]}>{t.cancelStatus}</Text>
+              </View>
+            ) : (
+              <View style={[styles.pill, { backgroundColor: c.training + '24' }]}>
+                <Text style={[styles.pillText, { color: c.training }]}>
+                  {present(t)}/{players.length}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
     </Screen>
   );
 }
@@ -70,5 +102,12 @@ const styles = StyleSheet.create({
   tileValue: { fontFamily: fonts.semi, fontSize: 28 },
   tileNote: { fontFamily: fonts.regular, fontSize: 12.5 },
   toggle: { flexDirection: 'row', alignSelf: 'center', borderRadius: 10, padding: 3, marginVertical: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  rowDate: { width: 40, alignItems: 'center' },
+  rowDay: { fontFamily: fonts.semi, fontSize: 20, lineHeight: 23 },
+  rowTitle: { fontFamily: fonts.medium, fontSize: 15 },
+  rowMeta: { fontFamily: fonts.regular, fontSize: 12.5 },
+  pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  pillText: { fontFamily: fonts.medium, fontSize: 11.5 },
   toggleOption: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 18 },
 });

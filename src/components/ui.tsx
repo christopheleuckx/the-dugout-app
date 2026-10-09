@@ -2,8 +2,8 @@ import type { ReactNode, RefObject } from 'react';
 import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fmtDate, useData, type Training } from '../lib/data';
-import { fonts, radius, useColors } from '../lib/theme';
+import { useData } from '../lib/data';
+import { fonts, useColors } from '../lib/theme';
 import { Loader } from './Loader';
 
 // Page frame shared by every tab: title bar with the app logo, pull-to-refresh, and the
@@ -53,7 +53,7 @@ export function SectionTitle({ children }: { children: ReactNode }) {
 
 export function Card({ children }: { children: ReactNode }) {
   const c = useColors();
-  return <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }]}>{children}</View>;
+  return <View style={[styles.card, { backgroundColor: c.surface }]}>{children}</View>;
 }
 
 export function Empty({ children }: { children: ReactNode }) {
@@ -61,59 +61,11 @@ export function Empty({ children }: { children: ReactNode }) {
   return <Text style={{ color: c.inkSoft, paddingVertical: 8 }}>{children}</Text>;
 }
 
-function Badge({ label, color }: { label: string; color: string }) {
-  return (
-    <View style={[styles.badge, { borderColor: color }]}>
-      <Text style={[styles.badgeText, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
-export function TrainingCard({ training }: { training: Training }) {
-  const c = useColors();
-  const { players } = useData();
-  const time = [training.startTime, training.endTime].filter(Boolean).join(' – ');
-
-  return (
-    <Card>
-      <View style={styles.row}>
-        <View style={[styles.stripe, { backgroundColor: c.training }]} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-            {training.label}
-          </Text>
-          <Text style={{ color: c.inkSoft }}>
-            {fmtDate(training.date)}
-            {time ? ` · ${time}` : ''}
-          </Text>
-          {training.location ? <Text style={{ color: c.inkSoft }}>{training.location}</Text> : null}
-        </View>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          {training.cancelStatus ? <Badge label={training.cancelStatus} color={c.danger} /> : null}
-          {training.cancelStatus ? null : (
-            <Text style={{ color: c.inkSoft }}>
-              Attendance: {players.filter((p) => !(p.id in training.absences)).length}/{players.length}
-            </Text>
-          )}
-        </View>
-      </View>
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingBottom: 10, flexDirection: 'row', alignItems: 'center' },
   appLogo: { width: 40, height: 40, borderRadius: 10 },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 19 },
   content: { padding: 16, gap: 10, paddingBottom: 120 },
+  card: { borderRadius: 14, padding: 14, gap: 10 },
   sectionTitle: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
-  card: { borderRadius: radius, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 10 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { fontSize: 16, fontWeight: '600' },
-  score: { fontFamily: fonts.display, fontSize: 20 },
-  logo: { width: 36, height: 36 },
-  stripe: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
-  badges: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
-  badgeText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
 });
