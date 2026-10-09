@@ -189,7 +189,9 @@ export default function GameLineupEditScreen() {
     const value = {
       ...existing,
       quarters: quarters.map(entries),
-      confirmed: Array.from({ length: count }, (_, i) => existing.confirmed?.[i] ?? false),
+      // Saving confirms every quarter that has a line-up, so its playing
+      // minutes count straight away (no separate confirm step on the web).
+      confirmed: quarters.map((q) => Object.keys(q.start).length > 0),
     };
     const saved = fresh.error ? fresh : await supabase.rpc('patch_game_team_lineup', { p_game_id: game!.id, p_team: team, p_value: value });
     // Keep the per-quarter substitution setting the generator used, as the web app does.
