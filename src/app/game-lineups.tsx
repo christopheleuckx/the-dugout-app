@@ -84,9 +84,11 @@ export default function GameLineupsScreen() {
         >
           {lineups.map((lineup, i) => {
             const bench = lineup.players.filter((p) => !onPitch(p[moment]));
-            // Only real substitutions: players coming on or going off. Staying on
-            // the bench (in another bench slot) or switching position is not listed.
-            const changes = lineup.players.filter((p) => onPitch(p.starting) !== onPitch(p.after10));
+            // What the coach has to act on: players coming on, going off, or
+            // switching position. Staying on the bench (in another bench slot) is not listed.
+            const changes = lineup.players.filter(
+              (p) => p.starting !== p.after10 && (onPitch(p.starting) || onPitch(p.after10)),
+            );
             return (
               <ScrollView key={i} style={{ width }} contentContainerStyle={styles.content}>
                 <View style={styles.pitch}>
@@ -111,9 +113,9 @@ export default function GameLineupsScreen() {
                     <Text style={[styles.text, { color: c.inkSoft, paddingVertical: 10 }]}>No changes.</Text>
                   ) : null}
                   {changes.map((p, n) => {
-                    const kind = onPitch(p.after10) ? 'in' : 'out';
-                    const icon = { in: 'arrow-up', out: 'arrow-down' } as const;
-                    const tint = { in: c.win, out: c.danger };
+                    const kind = !onPitch(p.starting) ? 'in' : !onPitch(p.after10) ? 'out' : 'move';
+                    const icon = { in: 'arrow-up', out: 'arrow-down', move: 'swap-horizontal' } as const;
+                    const tint = { in: c.win, out: c.danger, move: c.inkSoft };
                     return (
                       <View key={p.id} style={[styles.change, n > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
                         <Ionicons name={icon[kind]} size={16} color={tint[kind]} />
