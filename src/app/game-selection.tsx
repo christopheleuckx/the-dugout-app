@@ -29,8 +29,10 @@ export default function GameSelectionScreen() {
   const [mixed, setMixed] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  // The selection as it was before "Reset selection", while it can still be undone.
-  const [undo, setUndo] = useState<Draft | null>(null);
+  // What "Reset selection" removed, while it can still be undone: the saved
+  // selection (to put back in the database) and what was on screen.
+  const [undo, setUndo] = useState<{ saved: Draft; draft: Draft } | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   if (!game) {
     return (
@@ -76,6 +78,42 @@ export default function GameSelectionScreen() {
     }
     await refresh();
     router.back();
+  }
+
+  // Reset removes the game's selection from the database straight away;
+  // Undo puts back what was saved and what was on screen.
+  async function resetSelection() {
+    if (resetting) return;
+    setResetting(true);
+    setError('');
+    const before = { saved: { ...game!.selection }, draft };
+    const removed = await supabase.from('game_squad').delete().eq('game_id', game!.id);
+    setResetting(false);
+    if (removed.error) {
+      setError(`Could not reset the selection: ${removed.error.message}`);
+      return;
+    }
+    setDraft({});
+    setUndo(before);
+    refresh();
+  }
+  async function undoReset() {
+    if (!undo) return;
+    const before = undo;
+    setUndo(null);
+    const rows = Object.entries(before.saved).map(([playerId, choice]) => ({
+      game_id: game!.id,
+      player_id: playerId,
+      team: choice.team,
+      not_selected_reason: choice.team ? null : choice.reason,
+    }));
+    const restored = rows.length ? await supabase.from('game_squad').upsert(rows, { onConflict: 'game_id,player_id' }) : null;
+    if (restored?.error) {
+      setError(`Could not undo the reset: ${restored.error.message}`);
+      return;
+    }
+    setDraft(before.draft);
+    refresh();
   }
 
   const choose = (playerId: string, choice: Draft[string]) => {
@@ -213,13 +251,10 @@ export default function GameSelectionScreen() {
         </Pressable>
         <Pressable
           style={styles.tertiary}
-          disabled={!Object.keys(draft).length}
-          onPress={() => {
-            setUndo(draft);
-            setDraft({});
-          }}
+          disabled={resetting || (!Object.keys(draft).length && !Object.keys(game.selection).length)}
+          onPress={resetSelection}
         >
-          <Text style={{ color: Object.keys(draft).length ? c.danger : c.inkSoft, fontFamily: fonts.medium, fontSize: 15 }}>Reset selection</Text>
+          <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 15 }}>{resetting ? 'Resetting…' : 'Reset selection'}</Text>
         </Pressable>
       </>
     );
@@ -256,10 +291,7 @@ export default function GameSelectionScreen() {
       {undo ? (
         <UndoToast
           message="The selection was reset."
-          onUndo={() => {
-            setDraft(undo);
-            setUndo(null);
-          }}
+          onUndo={undoReset}
           onDismiss={() => setUndo(null)}
         />
       ) : null}

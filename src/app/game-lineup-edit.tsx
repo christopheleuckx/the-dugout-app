@@ -80,8 +80,10 @@ export default function GameLineupEditScreen() {
   const [extra, setExtra] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  // The line-ups as they were before "Reset line-ups", while that can still be undone.
-  const [undo, setUndo] = useState<Quarter[] | null>(null);
+  // What "Reset line-ups" removed, while it can still be undone: the team's
+  // saved line-up (to put back in the database) and what was on screen.
+  const [undo, setUndo] = useState<{ saved: any; quarters: Quarter[] } | null>(null);
+  const [resetting, setResetting] = useState(false);
   const pager = useRef<ScrollView>(null);
 
   if (!game) {
@@ -137,6 +139,38 @@ export default function GameLineupEditScreen() {
 
   // Green above half of the playing time, orange at exactly half, red below.
   const timeColor = (id: string) => (minutesOf(id) * 2 > totalMinutes ? c.win : minutesOf(id) * 2 === totalMinutes ? c.amber : c.danger);
+
+  // Reset empties the team's line-ups in the database straight away (scores,
+  // report and place stay); Undo puts back what was saved and what was on screen.
+  async function resetLineups() {
+    if (resetting) return;
+    setResetting(true);
+    setError('');
+    const fresh = await supabase.from('games').select('lineups').eq('id', game!.id).single();
+    const saved = fresh.data?.lineups?.[team] ?? {};
+    const emptied = { ...saved, quarters: Array.from({ length: count }, () => ({})), confirmed: Array.from({ length: count }, () => false) };
+    const done = fresh.error ? fresh : await supabase.rpc('patch_game_team_lineup', { p_game_id: game!.id, p_team: team, p_value: emptied });
+    setResetting(false);
+    if (done.error) {
+      setError(`Could not reset the line-ups: ${done.error.message}`);
+      return;
+    }
+    setUndo({ saved, quarters });
+    setQuarters(quarters.map(() => ({ start: {}, after: null })));
+    refresh();
+  }
+  async function undoReset() {
+    if (!undo) return;
+    const before = undo;
+    setUndo(null);
+    const restored = await supabase.rpc('patch_game_team_lineup', { p_game_id: game!.id, p_team: team, p_value: before.saved });
+    if (restored.error) {
+      setError(`Could not undo the reset: ${restored.error.message}`);
+      return;
+    }
+    setQuarters(before.quarters);
+    refresh();
+  }
 
   async function save() {
     if (saving) return;
@@ -389,13 +423,10 @@ export default function GameLineupEditScreen() {
                 </Pressable>
                 <Pressable
                   style={styles.tertiary}
-                  disabled={!hasLineup}
-                  onPress={() => {
-                    setUndo(quarters);
-                    setQuarters(quarters.map(() => ({ start: {}, after: null })));
-                  }}
+                  disabled={resetting || (!hasLineup && !(game.lineups[team] ?? []).length)}
+                  onPress={resetLineups}
                 >
-                  <Text style={{ color: hasLineup ? c.danger : c.inkSoft, fontFamily: fonts.medium, fontSize: 15 }}>Reset line-ups</Text>
+                  <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 15 }}>{resetting ? 'Resetting…' : 'Reset line-ups'}</Text>
                 </Pressable>
               </ScrollView>
             );
@@ -408,10 +439,7 @@ export default function GameLineupEditScreen() {
       {undo ? (
         <UndoToast
           message="The line-ups were reset."
-          onUndo={() => {
-            setQuarters(undo);
-            setUndo(null);
-          }}
+          onUndo={undoReset}
           onDismiss={() => setUndo(null)}
         />
       ) : null}
