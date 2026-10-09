@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
-import { PixelRatio, StyleSheet, Text, View } from 'react-native';
+import { Image, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
 import { useData } from '../../lib/data';
@@ -30,15 +30,21 @@ export default function TabsLayout() {
   // be drawn in the same circle.
   const avatarRef = useRef<View>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const capture = () => captureRef(avatarRef, { format: 'png', result: 'tmpfile' }).then(setAvatarUri, () => setAvatarUri(null));
+  // With a profile picture the capture waits for the image to load (onLoad below).
   useEffect(() => {
-    if (!initials) return;
-    captureRef(avatarRef, { format: 'png', result: 'tmpfile' }).then(setAvatarUri, () => setAvatarUri(null));
-  }, [initials]);
+    if (initials && !me?.avatarUrl) capture();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initials, me?.avatarUrl]);
 
   return (
     <>
       <View ref={avatarRef} collapsable={false} style={styles.avatar}>
-        <Text style={styles.avatarText}>{initials}</Text>
+        {me?.avatarUrl ? (
+          <Image source={{ uri: me.avatarUrl }} style={styles.avatarImage} onLoad={capture} />
+        ) : (
+          <Text style={styles.avatarText}>{initials}</Text>
+        )}
       </View>
       <NativeTabs iconColor={{ default: c.ink, selected: c.pitch }} tintColor={c.pitch} minimizeBehavior="onScrollDown">
         {TABS.map((tab) => (
@@ -76,6 +82,8 @@ const styles = StyleSheet.create({
     backgroundColor: brand.navy,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarImage: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2 },
   avatarText: { color: '#fff', fontFamily: fonts.semi, fontSize: 12 },
 });

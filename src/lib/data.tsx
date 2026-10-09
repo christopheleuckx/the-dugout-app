@@ -133,6 +133,11 @@ export type Profile = {
   lastName: string;
   isAdmin: boolean;
   preferredTeam: Team | null;
+  // The coach's own age group (U12, U15), if chosen.
+  ageGroup: string | null;
+  // Where the profile picture is stored, and its public address; null means initials.
+  avatarPath: string | null;
+  avatarUrl: string | null;
 };
 
 type Data = {
@@ -451,6 +456,9 @@ async function load(userId: string): Promise<Data> {
           lastName: p.last_name,
           isAdmin: p.is_admin,
           preferredTeam: p.preferred_team ?? null,
+          ageGroup: p.age_group ?? null,
+          avatarPath: p.avatar_path ?? null,
+          avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         }
       : null,
     clubLogoUrl: logoUrl(club.data?.logo_path),
