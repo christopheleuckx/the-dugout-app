@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { UndoToast } from '../components/UndoToast';
 import { useData, type Team } from '../lib/data';
 import { generateSelection, groupOf, NOT_SELECTED_REASONS, POSITION_GROUPS, type Draft } from '../lib/selection';
 import { supabase } from '../lib/supabase';
@@ -28,6 +29,8 @@ export default function GameSelectionScreen() {
   const [mixed, setMixed] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // The selection as it was before "Reset selection", while it can still be undone.
+  const [undo, setUndo] = useState<Draft | null>(null);
 
   if (!game) {
     return (
@@ -51,7 +54,15 @@ export default function GameSelectionScreen() {
       team: choice.team,
       not_selected_reason: choice.team ? null : choice.reason,
     }));
-    const saved = await supabase.from('game_squad').upsert(rows, { onConflict: 'game_id,player_id' });
+    // Players who had a choice before and have none now (after a reset) lose their row.
+    const cleared = Object.keys(game!.selection).filter((playerId) => !draft[playerId]);
+    const removed = cleared.length
+      ? await supabase.from('game_squad').delete().eq('game_id', game!.id).in('player_id', cleared)
+      : null;
+    const saved =
+      removed?.error || !rows.length
+        ? { error: removed?.error ?? null }
+        : await supabase.from('game_squad').upsert(rows, { onConflict: 'game_id,player_id' });
     // Keep the game's own number of teams in step with the selection.
     const updated =
       !saved.error && numTeams !== game!.numTeams
@@ -200,6 +211,16 @@ export default function GameSelectionScreen() {
         <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={save}>
           {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save selection</Text>}
         </Pressable>
+        <Pressable
+          style={styles.tertiary}
+          disabled={!Object.keys(draft).length}
+          onPress={() => {
+            setUndo(draft);
+            setDraft({});
+          }}
+        >
+          <Text style={{ color: Object.keys(draft).length ? c.danger : c.inkSoft, fontFamily: fonts.medium, fontSize: 15 }}>Reset selection</Text>
+        </Pressable>
       </>
     );
   }
@@ -232,6 +253,16 @@ export default function GameSelectionScreen() {
         )}
       </View>
       <ScrollView contentContainerStyle={styles.content}>{body}</ScrollView>
+      {undo ? (
+        <UndoToast
+          message="The selection was reset."
+          onUndo={() => {
+            setDraft(undo);
+            setUndo(null);
+          }}
+          onDismiss={() => setUndo(null)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -250,6 +281,7 @@ const styles = StyleSheet.create({
   badge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   dot: { width: 10, height: 10, borderRadius: 5 },
+  tertiary: { alignItems: 'center', paddingVertical: 10 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   step: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

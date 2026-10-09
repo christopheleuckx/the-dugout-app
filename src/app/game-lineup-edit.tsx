@@ -5,6 +5,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Te
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FIELD_POSITIONS, onPitch, Pitch } from '../components/Pitch';
+import { UndoToast } from '../components/UndoToast';
 import { useData, type Player, type Team } from '../lib/data';
 import { generateLineups } from '../lib/lineup';
 import { groupOf } from '../lib/selection';
@@ -79,6 +80,8 @@ export default function GameLineupEditScreen() {
   const [extra, setExtra] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // The line-ups as they were before "Reset line-ups", while that can still be undone.
+  const [undo, setUndo] = useState<Quarter[] | null>(null);
   const pager = useRef<ScrollView>(null);
 
   if (!game) {
@@ -170,6 +173,7 @@ export default function GameLineupEditScreen() {
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
+  const hasLineup = quarters.some((q) => Object.keys(q.start).length > 0);
   // A settings row whose whole width toggles the switch.
   const toggleRow = (key: string, text: string, value: boolean, set: (v: boolean) => void, first = false, disabled = false) => (
     <Pressable
@@ -383,6 +387,16 @@ export default function GameLineupEditScreen() {
                 <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={save}>
                   {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save line-ups</Text>}
                 </Pressable>
+                <Pressable
+                  style={styles.tertiary}
+                  disabled={!hasLineup}
+                  onPress={() => {
+                    setUndo(quarters);
+                    setQuarters(quarters.map(() => ({ start: {}, after: null })));
+                  }}
+                >
+                  <Text style={{ color: hasLineup ? c.danger : c.inkSoft, fontFamily: fonts.medium, fontSize: 15 }}>Reset line-ups</Text>
+                </Pressable>
               </ScrollView>
             );
           })}
@@ -390,6 +404,17 @@ export default function GameLineupEditScreen() {
       )}
         </>
       )}
+
+      {undo ? (
+        <UndoToast
+          message="The line-ups were reset."
+          onUndo={() => {
+            setQuarters(undo);
+            setUndo(null);
+          }}
+          onDismiss={() => setUndo(null)}
+        />
+      ) : null}
 
       <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
         <Pressable style={{ flex: 1 }} onPress={() => setSheet(null)} accessibilityLabel="Close" />
@@ -467,6 +492,7 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12 },
   group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 8 },
   setting: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingVertical: 8 },
+  tertiary: { alignItems: 'center', paddingVertical: 10 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, marginTop: 4 },
   sheet: {
     borderTopLeftRadius: 20,
