@@ -60,6 +60,12 @@
         "projectId": "62a2bc1c-26a5-41f6-816e-1cadf7b14381"
       }
     },
-    "owner": "christophel"
+    "owner": "christophel",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/62a2bc1c-26a5-41f6-816e-1cadf7b14381"
+    }
   }
 }

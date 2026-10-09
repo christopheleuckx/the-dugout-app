@@ -1,12 +1,19 @@
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 
 // "1.0.0 (5)" in an installed build. Inside Expo Go the native numbers are
 // Expo Go's own, so only the app's version from the config is shown.
 export function appVersion() {
   const inExpoGo = Constants.executionEnvironment === 'storeClient';
   if (inExpoGo) return `${Constants.expoConfig?.version ?? ''} (development)`;
-  return `${Application.nativeApplicationVersion ?? ''} (${Application.nativeBuildVersion ?? ''})`;
+  const build = `${Application.nativeApplicationVersion ?? ''} (${Application.nativeBuildVersion ?? ''})`;
+  // After an over-the-air update the build number stays the same, so the
+  // update's date tells which one is running.
+  if (!Updates.isEmbeddedLaunch && Updates.createdAt) {
+    return `${build} · updated ${Updates.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+  }
+  return build;
 }
 
 // What's new, written for coaches. Newest release first; add a block at the
