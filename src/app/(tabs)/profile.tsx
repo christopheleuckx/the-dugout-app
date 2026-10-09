@@ -1,6 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Application from 'expo-application';
-import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -11,16 +9,9 @@ import { Avatar } from '../../components/Avatar';
 import { Screen } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
 import { useData } from '../../lib/data';
+import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
-
-// "1.0.0 (5)" in an installed build. Inside Expo Go the native numbers are
-// Expo Go's own, so only the app's version from the config is shown.
-function appVersion() {
-  const inExpoGo = Constants.executionEnvironment === 'storeClient';
-  if (inExpoGo) return `${Constants.expoConfig?.version ?? ''} (development)`;
-  return `${Application.nativeApplicationVersion ?? ''} (${Application.nativeBuildVersion ?? ''})`;
-}
 
 export default function Profile() {
   const c = useColors();
@@ -101,13 +92,22 @@ export default function Profile() {
       </View>
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
+        <Pressable style={styles.row} onPress={() => router.push('/about')}>
+          <Ionicons name="information-circle-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>About this version</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>The Dugout {appVersion()}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+        </Pressable>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]} onPress={signOut}>
           <Ionicons name="log-out-outline" size={22} color={c.inkSoft} />
           <Text style={[styles.label, { color: c.ink }]}>Sign out</Text>
         </Pressable>
       </View>
-
-      <Text style={[styles.version, { color: c.inkSoft }]}>The Dugout {appVersion()}</Text>
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)}>
         <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)} accessibilityLabel="Close" />
@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.regular, fontSize: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
-  version: { fontFamily: fonts.regular, fontSize: 13, textAlign: 'center', marginTop: 10 },
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
