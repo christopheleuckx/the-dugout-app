@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fmtDate, useData } from '../../lib/data';
+import { fmtDate, useData, type Theme } from '../../lib/data';
 import { groupOf, POSITION_GROUPS } from '../../lib/selection';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
@@ -21,18 +21,35 @@ const REASONS = [
 ];
 const reasonLabel = (value: string) => REASONS.find((r) => r.value === value)?.label ?? (value || 'Absent');
 
-// A training's attendance: everyone is present unless marked absent with a
-// reason. Nothing is written until "Save attendance".
+type ThemeKey = 'major' | 'minor' | 'basic';
+const THEME_LABELS: Record<ThemeKey, string> = { major: 'Major', minor: 'Minor', basic: 'Basics' };
+
+// Themes under their category, both in the order the web app lists them.
+function groupByCategory(items: Theme[]) {
+  const groups = new Map<string, Theme[]>();
+  for (const item of items) groups.set(item.category, [...(groups.get(item.category) ?? []), item]);
+  return [...groups];
+}
+
+// A training: its themes and its attendance, where everyone is present unless
+// marked absent with a reason. Nothing is written until "Save".
 export default function TrainingScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trainings, players, refresh } = useData();
+  const { trainings, players, teamTactics, basics, refresh } = useData();
   const training = trainings.find((t) => t.id === id);
 
   // Player id -> reason, for absent players only.
   const [absent, setAbsent] = useState<Record<string, string>>(() => ({ ...(training?.absences ?? {}) }));
   const [choosing, setChoosing] = useState<string | null>(null);
+  // The three themes, and which one is being chosen.
+  const [themes, setThemes] = useState({
+    major: training?.majorTacticId ?? null,
+    minor: training?.minorTacticId ?? null,
+    basic: training?.basicId ?? null,
+  });
+  const [choosingTheme, setChoosingTheme] = useState<ThemeKey | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,9 +67,14 @@ export default function TrainingScreen() {
   const present = players.filter((p) => !(p.id in absent));
   const keepersPresent = present.filter((p) => groupOf(p.bestPosition) === 0).length;
   const fieldPresent = present.length - keepersPresent;
-  const changed =
+  const attendanceChanged =
     Object.keys(absent).length !== Object.keys(training.absences).length ||
     Object.entries(absent).some(([playerId, reason]) => training.absences[playerId] !== reason);
+  const themesChanged =
+    themes.major !== training.majorTacticId || themes.minor !== training.minorTacticId || themes.basic !== training.basicId;
+  const changed = attendanceChanged || themesChanged;
+  const themeList = (key: ThemeKey) => (key === 'basic' ? basics : teamTactics);
+  const themeName = (key: ThemeKey) => themeList(key).find((x) => x.id === themes[key])?.name ?? 'Choose';
 
   function choose(playerId: string, reason: string | null) {
     const next = { ...absent };
@@ -76,9 +98,16 @@ export default function TrainingScreen() {
       !upserted?.error && back.length
         ? await supabase.from('training_absences').delete().eq('training_id', training!.id).in('player_id', back)
         : null;
-    const failed = upserted?.error ?? removed?.error;
+    const themed =
+      !upserted?.error && !removed?.error && themesChanged
+        ? await supabase
+            .from('trainings')
+            .update({ major_tactic_id: themes.major, minor_tactic_id: themes.minor, basic_id: themes.basic })
+            .eq('id', training!.id)
+        : null;
+    const failed = upserted?.error ?? removed?.error ?? themed?.error;
     if (failed) {
-      setError(`Could not save the attendance: ${failed.message}`);
+      setError(`Could not save the training: ${failed.message}`);
       setSaving(false);
       return;
     }
@@ -97,17 +126,17 @@ export default function TrainingScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (player ? setChoosing(null) : router.back())}
-          accessibilityLabel={player ? 'Back' : 'Close'}
+          onPress={() => (choosingTheme ? setChoosingTheme(null) : player ? setChoosing(null) : router.back())}
+          accessibilityLabel={player || choosingTheme ? 'Back' : 'Close'}
           hitSlop={8}
         >
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-            {player ? `${player.firstName} ${player.lastName}`.trim() : training.label}
+            {choosingTheme ? THEME_LABELS[choosingTheme] : player ? `${player.firstName} ${player.lastName}`.trim() : training.label}
           </Text>
-          {player ? null : (
+          {player || choosingTheme ? null : (
             <Text style={[styles.sub, { color: c.inkSoft }]} numberOfLines={1}>
               {fmtDate(training.date)}
               {time ? ` · ${time}` : ''}
@@ -118,7 +147,42 @@ export default function TrainingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {player ? (
+        {choosingTheme ? (
+          <>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Pressable
+                style={styles.row}
+                onPress={() => {
+                  setThemes({ ...themes, [choosingTheme]: null });
+                  setChoosingTheme(null);
+                }}
+              >
+                <Text style={[styles.label, { color: c.ink }]}>None</Text>
+                {themes[choosingTheme] === null ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+              </Pressable>
+            </View>
+            {groupByCategory(themeList(choosingTheme)).map(([category, items]) => (
+              <View key={category} style={{ gap: 8 }}>
+                <Text style={[styles.group, { color: c.inkSoft }]}>{category || 'Other'}</Text>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
+                  {items.map((item, i) => (
+                    <Pressable
+                      key={item.id}
+                      style={[styles.row, i > 0 && line]}
+                      onPress={() => {
+                        setThemes({ ...themes, [choosingTheme]: item.id });
+                        setChoosingTheme(null);
+                      }}
+                    >
+                      <Text style={[styles.label, { color: c.ink }]}>{item.name}</Text>
+                      {themes[choosingTheme] === item.id ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </>
+        ) : player ? (
           <>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Pressable style={styles.row} onPress={() => choose(player.id, null)}>
@@ -152,6 +216,23 @@ export default function TrainingScreen() {
                 </View>
               ))}
             </View>
+            <Text style={[styles.section, { color: c.ink }]}>Training themes</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              {(['major', 'minor', 'basic'] as ThemeKey[]).map((key, i) => (
+                <Pressable key={key} style={[styles.row, i > 0 && line]} onPress={() => setChoosingTheme(key)}>
+                  <Text style={{ width: 56, color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>{THEME_LABELS[key]}</Text>
+                  <Text
+                    style={{ flex: 1, textAlign: 'right', color: themes[key] ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}
+                    numberOfLines={2}
+                  >
+                    {themeName(key)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.section, { color: c.ink }]}>Attendance</Text>
             {groups.map((g) => (
               <View key={g.label} style={{ gap: 8 }}>
                 <Text style={[styles.group, { color: c.inkSoft }]}>{g.label}</Text>
@@ -181,7 +262,7 @@ export default function TrainingScreen() {
             {error ? <Text style={[styles.sub, { color: c.danger, marginHorizontal: 12 }]}>{error}</Text> : null}
             {changed ? (
               <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={save}>
-                {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save attendance</Text>}
+                {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save</Text>}
               </Pressable>
             ) : null}
           </>
@@ -201,6 +282,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 14, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
+  section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 6 },
   group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 4 },
   badge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
