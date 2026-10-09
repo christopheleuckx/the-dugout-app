@@ -140,10 +140,9 @@ export default function TrainingScreen() {
           <>
             <View style={styles.tiles}>
               {[
-                { label: 'In training', value: String(fieldPresent) },
-                { label: 'K in training', value: String(keepersPresent) },
+                { label: 'Players', value: String(fieldPresent) },
+                { label: 'Goalkeepers', value: String(keepersPresent) },
                 { label: 'Absent', value: String(absentCount) },
-                { label: 'Attendance', value: `${players.length - absentCount}/${players.length}` },
               ].map((tile) => (
                 <View key={tile.label} style={[styles.tile, { backgroundColor: c.surface }]}>
                   <Text style={[styles.tileValue, { color: c.ink }]}>{tile.value}</Text>
