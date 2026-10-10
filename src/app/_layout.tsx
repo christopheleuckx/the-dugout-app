@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { DataProvider, useData } from '../lib/data';
 import { Splash } from '../components/Splash';
 import { useColors } from '../lib/theme';
+import { UndoHost } from '../lib/undo';
 
 function RootNavigator() {
   const c = useColors();
@@ -53,6 +54,7 @@ function RootNavigator() {
       </Stack.Protected>
     </Stack>
       ) : null}
+      <UndoHost />
       <Splash ready={ready} fontsLoaded={fontsLoaded} />
     </View>
   );

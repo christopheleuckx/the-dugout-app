@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -19,6 +19,7 @@ import { fmtDate, toIso, useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
+import { showUndo } from '../lib/undo';
 
 // Same choices as the web app's new-game form.
 const VENUES = ['Home', 'Away'];
@@ -140,6 +141,41 @@ export default function NewGameScreen() {
       goBack();
     } catch (e) {
       setError(`Could not save the game: ${e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'unknown error'}`);
+      setSaving(false);
+    }
+  }
+
+  // Removing deletes the game at once, with everything attached to it
+  // (selection, coaches, goals, ratings, videos). A copy is kept for the few
+  // seconds the undo message is on screen, to put it all back.
+  async function remove() {
+    if (saving || !id) return;
+    setSaving(true);
+    setError('');
+    try {
+      const attached = ['game_squad', 'game_coaches', 'goals', 'player_ratings', 'videos'];
+      const [game, ...rows] = await Promise.all([
+        supabase.from('games').select('*').eq('id', id).single(),
+        ...attached.map((table) => supabase.from(table).select('*').eq('game_id', id)),
+      ]);
+      const unread = [game, ...rows].find((r) => r.error);
+      if (unread?.error) throw unread.error;
+      const gone = await supabase.from('games').delete().eq('id', id);
+      if (gone.error) throw gone.error;
+      await refresh();
+      router.dismissTo('/games');
+      showUndo('Game removed', async () => {
+        const back = await supabase.from('games').insert(game.data);
+        if (!back.error) {
+          for (let i = 0; i < attached.length; i++) {
+            const list = rows[i].data ?? [];
+            if (list.length) await supabase.from(attached[i]).insert(list);
+          }
+        }
+        await refresh();
+      });
+    } catch (e) {
+      setError(`Could not remove the game: ${e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'unknown error'}`);
       setSaving(false);
     }
   }
@@ -341,6 +377,11 @@ export default function NewGameScreen() {
         <Pressable style={[styles.save, { backgroundColor: c.pitch }]} onPress={save}>
           {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save game</Text>}
         </Pressable>
+        {id ? (
+          <Pressable style={[styles.save, { marginTop: 0 }]} onPress={remove}>
+            <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Remove game</Text>
+          </Pressable>
+        ) : null}
       </>
     );
   }
