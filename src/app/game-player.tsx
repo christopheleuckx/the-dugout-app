@@ -9,8 +9,8 @@ import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
 
-// Same scale as RATING_SCALE in the web app.
-const RATING_LABELS = ['Below IP3 level', 'No influence', 'IP3 level', 'Gamechanger', 'Elite'];
+// The five player ratings, from 1 to 5.
+const RATING_LABELS = ['Performed Below IP3 Level', 'Limited Match Impact', 'Performed at IP3 Level', 'Actively Involved', 'Game Changer'];
 const BENCH_SLOTS = ['S1', 'S2', 'S3', 'S4', 'S5'];
 const spot = (position: string) => (!position ? '–' : BENCH_SLOTS.includes(position) ? 'Bench' : position);
 
