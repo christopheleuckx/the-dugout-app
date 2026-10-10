@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -31,11 +31,13 @@ const TEAMS = [
 
 type Page = null | 'opponent' | 'date' | 'time' | 'venue' | 'competition' | 'level' | 'teams' | 'quarters';
 
-// New game: a settings-style form. Each row opens a page to choose its value;
-// Save writes the game to the shared database, for the web app and every coach.
+// New game, or the details of an existing one when opened with its id: a
+// settings-style form. Each row opens a page to choose its value; Save writes
+// the game to the shared database, for the web app and every coach.
 export default function NewGameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const { competitors, refresh } = useData();
 
   const [page, setPage] = useState<Page>(null);
@@ -54,6 +56,43 @@ export default function NewGameScreen() {
   const [remarks, setRemarks] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Editing starts from the game as it is stored; the scores already filled in
+  // are kept to carry them over when the number of quarters changes.
+  const [loaded, setLoaded] = useState(!id);
+  const [scores, setScores] = useState<unknown[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    supabase
+      .from('games')
+      .select('date, time, opponent, type, competition, home_away, location, remarks, quarters, quarter_length, num_teams, quarter_scores, quarter_labels')
+      .eq('id', id)
+      .single()
+      .then(({ data: g, error: failed }) => {
+        if (failed || !g) {
+          setError('Could not load the game.');
+          return;
+        }
+        setOpponent(g.opponent ?? '');
+        setDate(g.date ? new Date(`${g.date}T00:00:00`) : null);
+        if (g.time) {
+          const t = new Date();
+          t.setHours(Number(g.time.slice(0, 2)), Number(g.time.slice(3, 5)), 0, 0);
+          setTime(t);
+        }
+        setVenue(g.home_away ?? 'Home');
+        setCompetition(g.competition ?? 'Competition');
+        setLevel(g.type ?? 'IP3');
+        setTeams(g.num_teams === 1 ? 1 : 2);
+        setQuarters(g.quarters ?? 4);
+        setMinutes(g.quarter_length ?? 20);
+        setNames(Array.isArray(g.quarter_labels) ? g.quarter_labels : []);
+        setLocation(g.location ?? '');
+        setRemarks(g.remarks ?? '');
+        setScores(Array.isArray(g.quarter_scores) ? g.quarter_scores : []);
+        setLoaded(true);
+      });
+  }, [id]);
 
   const tournament = competition === 'Tournament';
   const hhmm = time ? `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}` : null;
@@ -75,7 +114,7 @@ export default function NewGameScreen() {
         if (created.error) throw created.error;
         competitorId = created.data.id;
       }
-      const { error: failed } = await supabase.from('games').insert({
+      const details = {
         date: toIso(date),
         time: hhmm,
         opponent: name,
@@ -88,10 +127,14 @@ export default function NewGameScreen() {
         num_teams: teams,
         location: location.trim(),
         remarks,
-        quarter_scores: Array.from({ length: quarters }, () => ({ for: null, against: null })),
+        quarter_scores: Array.from({ length: quarters }, (_, i) => scores[i] ?? { for: null, against: null }),
         quarter_labels: Array.from({ length: quarters }, (_, i) => names[i]?.trim() ?? ''),
-        team_eval: { score: null, opponent: '', quarterNotes: [], wentWell: '', toImprove: '' },
-      });
+      };
+      const { error: failed } = id
+        ? await supabase.from('games').update(details).eq('id', id)
+        : await supabase
+            .from('games')
+            .insert({ ...details, team_eval: { score: null, opponent: '', quarterNotes: [], wentWell: '', toImprove: '' } });
       if (failed) throw failed;
       await refresh();
       goBack();
@@ -155,7 +198,9 @@ export default function NewGameScreen() {
   };
 
   let body: ReactNode;
-  if (page === 'opponent') {
+  if (!loaded) {
+    body = error ? <Text style={[styles.hint, { color: c.danger, marginTop: 8 }]}>{error}</Text> : <ActivityIndicator color={c.pitch} style={{ marginTop: 24 }} />;
+  } else if (page === 'opponent') {
     const q = opponent.trim().toLowerCase();
     const matches = competitors.filter((x) => x.name.toLowerCase().includes(q));
     const isNew = q && !competitors.some((x) => x.name.toLowerCase() === q);
@@ -311,7 +356,7 @@ export default function NewGameScreen() {
         >
           <Ionicons name={page ? 'chevron-back' : 'close'} size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{page ? titles[page] : 'New game'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{page ? titles[page] : id ? 'Edit game' : 'New game'}</Text>
         <View style={{ width: 36 }} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

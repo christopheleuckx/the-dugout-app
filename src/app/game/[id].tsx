@@ -98,14 +98,17 @@ export default function GameScreen() {
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable
-          style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => goBack()}
-          accessibilityLabel="Close"
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-back" size={20} color={c.ink} />
-        </Pressable>
+        {/* As wide as the buttons on the right, so the title stays centred. */}
+        <View style={{ width: game.teams.length > 1 ? 82 : 36 }}>
+          <Pressable
+            style={[styles.round, { backgroundColor: c.surface }]}
+            onPress={() => goBack()}
+            accessibilityLabel="Close"
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={20} color={c.ink} />
+          </Pressable>
+        </View>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
             {tournament ? game.opponent || 'Tournament' : `vs ${game.opponent || 'TBD'}`}
@@ -114,13 +117,21 @@ export default function GameScreen() {
             {fmtDate(game.date)} · {game.homeAway}
           </Text>
         </View>
-        {game.teams.length > 1 ? (
-          <Pressable onPress={() => setChoosing(true)} accessibilityLabel="Choose team" hitSlop={8}>
-            <Jersey team={team} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable
+            style={[styles.round, { backgroundColor: c.surface }]}
+            onPress={() => router.push({ pathname: '/game-new', params: { id: game.id } })}
+            accessibilityLabel="Edit game"
+            hitSlop={6}
+          >
+            <Ionicons name="create-outline" size={18} color={c.ink} />
           </Pressable>
-        ) : (
-          <View style={{ width: 36 }} />
-        )}
+          {game.teams.length > 1 ? (
+            <Pressable onPress={() => setChoosing(true)} accessibilityLabel="Choose team" hitSlop={6}>
+              <Jersey team={team} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
