@@ -23,6 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
+      { title: 'Videos', text: 'Add videos to a game or a training, from the club\'s video storage or with a YouTube link, and watch them with your fellow coaches.' },
       { title: 'Training at a glance', text: 'Open a training to see how many players and goalkeepers are coming, and who is absent.' },
       { title: 'Training themes', text: 'Set the major and minor theme and the basics for each training.' },
       { title: 'Pitch', text: 'Every training shows where you train, Walleken D or Gemeenteplein, next to the hour.' },
