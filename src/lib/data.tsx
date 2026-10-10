@@ -112,6 +112,20 @@ export type U15Fixture = {
 
 export type Theme = { id: string; name: string; category: string };
 
+// A video on a game (per team) or a training: a file in the club's private
+// video storage (storageKey) or a link to another site such as YouTube (url).
+export type Video = {
+  id: string;
+  gameId: string | null;
+  team: Team | null;
+  trainingId: string | null;
+  title: string;
+  storageKey: string | null;
+  url: string | null;
+  sizeBytes: number | null;
+  createdAt: string;
+};
+
 export type Training = {
   id: string;
   date: string;
@@ -158,6 +172,7 @@ type Data = {
   basics: Theme[];
   // Known opponent clubs, by name.
   competitors: { id: string; name: string; logoUrl: string | null }[];
+  videos: Video[];
 };
 
 type DataValue = Data & {
@@ -166,7 +181,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, competitors: [], teamTactics: [], basics: [] };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, competitors: [], teamTactics: [], basics: [], videos: [] };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -230,7 +245,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 }
 
 async function load(userId: string): Promise<Data> {
-  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics] = await Promise.all([
+  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating'),
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
@@ -250,9 +265,10 @@ async function load(userId: string): Promise<Data> {
     supabase.from('player_ratings').select('game_id, player_id, score, comment'),
     supabase.from('team_tactics').select('id, name, category').order('created_at'),
     supabase.from('basics').select('id, name, category').order('created_at'),
+    supabase.from('videos').select('id, game_id, team, training_id, title, storage_key, url, size_bytes, created_at').order('created_at'),
   ]);
 
-  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics].find((r) => r.error);
+  const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos].find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
 
   const logoByCompetitor = new Map((competitors.data ?? []).map((c) => [c.id, logoUrl(c.logo_path)]));
@@ -481,6 +497,17 @@ async function load(userId: string): Promise<Data> {
     competitors: (competitors.data ?? [])
       .map((c) => ({ id: c.id, name: c.name, logoUrl: logoUrl(c.logo_path) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
+    videos: (videos.data ?? []).map((v) => ({
+      id: v.id,
+      gameId: v.game_id,
+      team: v.team,
+      trainingId: v.training_id,
+      title: v.title,
+      storageKey: v.storage_key,
+      url: v.url,
+      sizeBytes: v.size_bytes,
+      createdAt: v.created_at,
+    })),
   };
 }
 
