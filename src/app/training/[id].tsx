@@ -24,6 +24,14 @@ const reasonLabel = (value: string) => REASONS.find((r) => r.value === value)?.l
 // The pitches the team trains on.
 const PITCHES = ['Walleken D', 'Gemeenteplein'];
 
+// The attendance list can be narrowed to who comes or who doesn't.
+type Filter = 'all' | 'attending' | 'absent';
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'attending', label: 'Attending' },
+  { key: 'absent', label: 'Absent' },
+];
+
 type ThemeKey = 'major' | 'minor' | 'basic';
 const THEME_LABELS: Record<ThemeKey, string> = { major: 'Major', minor: 'Minor', basic: 'Basics' };
 
@@ -55,6 +63,7 @@ export default function TrainingScreen() {
   const [choosingTheme, setChoosingTheme] = useState<ThemeKey | null>(null);
   const [pitch, setPitch] = useState(training?.location ?? '');
   const [choosingPitch, setChoosingPitch] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -124,7 +133,12 @@ export default function TrainingScreen() {
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
   const player = choosing ? players.find((p) => p.id === choosing) : null;
   const groups = [...POSITION_GROUPS.map((g) => g.label), 'Other']
-    .map((label, i) => ({ label, players: players.filter((p) => groupOf(p.bestPosition) === i) }))
+    .map((label, i) => ({
+      label,
+      players: players.filter(
+        (p) => groupOf(p.bestPosition) === i && (filter === 'all' || (filter === 'absent') === p.id in absent),
+      ),
+    }))
     .filter((g) => g.players.length);
 
   return (
@@ -264,6 +278,20 @@ export default function TrainingScreen() {
             </View>
 
             <Text style={[styles.section, { color: c.ink }]}>Attendance</Text>
+            <View style={[styles.toggle, { backgroundColor: c.surface2 }]}>
+              {FILTERS.map((f) => (
+                <Pressable key={f.key} style={[styles.toggleOption, f.key === filter && { backgroundColor: c.surface }]} onPress={() => setFilter(f.key)}>
+                  <Text style={{ color: f.key === filter ? c.ink : c.inkSoft, fontFamily: fonts.medium, fontSize: 14 }}>
+                    {f.label} {f.key === 'all' ? players.length : f.key === 'absent' ? absentCount : players.length - absentCount}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {groups.length === 0 ? (
+              <Text style={[styles.sub, { color: c.inkSoft, textAlign: 'center', paddingVertical: 12 }]}>
+                {filter === 'absent' ? 'No one is absent.' : 'No one is attending.'}
+              </Text>
+            ) : null}
             {groups.map((g) => (
               <View key={g.label} style={{ gap: 8 }}>
                 <Text style={[styles.group, { color: c.inkSoft }]}>{g.label}</Text>
@@ -313,6 +341,8 @@ const styles = StyleSheet.create({
   card: { borderRadius: 14, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
+  toggle: { flexDirection: 'row', alignSelf: 'center', borderRadius: 10, padding: 3 },
+  toggleOption: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 6 },
   group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 4 },
   badge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
