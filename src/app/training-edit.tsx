@@ -29,25 +29,26 @@ function timeOf(hhmm: string | null, fallbackHour: number, fallbackMinute = 0) {
 }
 const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-// Edit one training: its name, date, start and end time, and its status.
+// Edit one training, or add a new one when opened without an id: its name,
+// date, start and end time, and its status.
 export default function TrainingEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { trainings } = useData();
   const training = trainings.find((t) => t.id === id);
   // The form starts from the training's values, so it waits for them.
-  return training ? <Form training={training} /> : null;
+  return training || !id ? <Form training={training ?? null} /> : null;
 }
 
-function Form({ training }: { training: Training }) {
+function Form({ training }: { training: Training | null }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { refresh } = useData();
 
-  const [name, setName] = useState(training.label);
-  const [date, setDate] = useState(() => new Date(`${training.date}T00:00:00`));
-  const [start, setStart] = useState(() => timeOf(training.startTime, 17, 30));
-  const [end, setEnd] = useState(() => timeOf(training.endTime, 19));
-  const [status, setStatus] = useState<string | null>(training.cancelStatus);
+  const [name, setName] = useState(training?.label ?? '');
+  const [date, setDate] = useState<Date | null>(() => (training ? new Date(`${training.date}T00:00:00`) : null));
+  const [start, setStart] = useState(() => timeOf(training?.startTime ?? null, 17, 30));
+  const [end, setEnd] = useState(() => timeOf(training?.endTime ?? null, 19));
+  const [status, setStatus] = useState<string | null>(training?.cancelStatus ?? null);
   const [page, setPage] = useState<Page | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -56,13 +57,15 @@ function Form({ training }: { training: Training }) {
   async function save(as: string | null = status) {
     if (saving) return;
     if (!name.trim()) return setError('Give the training a name.');
+    if (!date) return setError('Choose a date.');
     if (hhmm(end) <= hhmm(start)) return setError('The end time has to be after the start time.');
     setSaving(true);
     setError('');
-    const saved = await supabase
-      .from('trainings')
-      .update({ label: name.trim(), date: toIso(date), start_time: hhmm(start), end_time: hhmm(end), cancel_status: as })
-      .eq('id', training.id);
+    const values = { label: name.trim(), date: toIso(date), start_time: hhmm(start), end_time: hhmm(end), cancel_status: as };
+    // A new training has no absences, so everyone starts as present.
+    const saved = training
+      ? await supabase.from('trainings').update(values).eq('id', training.id)
+      : await supabase.from('trainings').insert(values);
     if (saved.error) {
       setError(`Could not save the training: ${saved.error.message}`);
       setSaving(false);
@@ -92,14 +95,14 @@ function Form({ training }: { training: Training }) {
         >
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{page ? PAGE_TITLES[page] : 'Edit training'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{page ? PAGE_TITLES[page] : training ? 'Edit training' : 'New training'}</Text>
         <View style={{ width: 36 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {page === 'date' ? (
           <View style={[styles.card, { backgroundColor: c.surface, padding: 8 }]}>
-            <DateTimePicker mode="date" display="inline" value={date} accentColor={c.pitch} onChange={(_, d) => d && setDate(d)} />
+            <DateTimePicker mode="date" display="inline" value={date ?? new Date()} accentColor={c.pitch} onChange={(_, d) => d && setDate(d)} />
           </View>
         ) : page === 'status' ? (
           <View style={[styles.card, { backgroundColor: c.surface }]}>
@@ -136,12 +139,12 @@ function Form({ training }: { training: Training }) {
                   style={[styles.input, { color: c.ink }]}
                   value={name}
                   onChangeText={setName}
-                  placeholder="Tactical Training"
+                  placeholder="Name of the training"
                   placeholderTextColor={c.inkSoft}
                   returnKeyType="done"
                 />
               </View>
-              {row('Date', fmtDate(toIso(date)), 'date')}
+              {row('Date', date ? fmtDate(toIso(date)) : 'Choose', 'date')}
               {row('Start time', hhmm(start), 'start')}
               {row('End time', hhmm(end), 'end')}
               {row('Status', STATUSES.find((x) => x.value === status)?.label ?? 'Scheduled', 'status')}
@@ -150,7 +153,7 @@ function Form({ training }: { training: Training }) {
             <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={() => save()}>
               {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save</Text>}
             </Pressable>
-            {status !== 'cancelled' ? (
+            {training && status !== 'cancelled' ? (
               <Pressable style={styles.button} onPress={() => save('cancelled')}>
                 <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Cancel training</Text>
               </Pressable>

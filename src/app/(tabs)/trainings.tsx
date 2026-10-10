@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -28,6 +29,7 @@ export default function Trainings() {
   const list = tab === 'upcoming' ? upcoming : completed;
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen title="Trainings">
       <View style={styles.tiles}>
         <View style={[styles.tile, { backgroundColor: c.surface }]}>
@@ -92,6 +94,14 @@ export default function Trainings() {
         );
       })}
     </Screen>
+      <Pressable
+        style={[styles.add, { backgroundColor: c.pitch }]}
+        onPress={() => router.push('/training-edit')}
+        accessibilityLabel="New training"
+      >
+        <Ionicons name="add" size={28} color={c.onPitch} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -110,4 +120,19 @@ const styles = StyleSheet.create({
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   pillText: { fontFamily: fonts.medium, fontSize: 11.5 },
   toggleOption: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 18 },
+  add: {
+    position: 'absolute',
+    right: 18,
+    bottom: 104,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0E1320',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });
