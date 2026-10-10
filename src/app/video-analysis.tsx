@@ -9,6 +9,7 @@ import { fmtDate, useData, type Video } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { fmtDay, fmtSize, playVideo, siteOf } from '../lib/videos';
+import { goBack } from '../lib/nav';
 
 // The videos of one game (for the open team) or one training.
 export default function VideoAnalysisScreen() {
@@ -85,7 +86,7 @@ export default function VideoAnalysisScreen() {
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => router.back()} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => goBack()} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>

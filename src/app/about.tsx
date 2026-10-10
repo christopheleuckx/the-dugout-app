@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { appVersion, RELEASE_NOTES } from '../lib/releaseNotes';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 // What's new in this version, in plain words.
 export default function AboutScreen() {
@@ -14,7 +15,7 @@ export default function AboutScreen() {
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => router.back()} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => goBack()} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
         <Text style={[styles.title, { color: c.ink }]}>About this version</Text>

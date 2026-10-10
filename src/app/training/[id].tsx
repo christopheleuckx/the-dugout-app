@@ -8,6 +8,7 @@ import { fmtDate, useData, type Theme } from '../../lib/data';
 import { groupOf, POSITION_GROUPS } from '../../lib/selection';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
+import { goBack } from '../../lib/nav';
 
 // Shown label -> the value the web app stores (its ABSENCE_REASONS), so both
 // apps and the attendance percentage read the same reasons.
@@ -127,7 +128,7 @@ export default function TrainingScreen() {
       return;
     }
     await refresh();
-    router.back();
+    goBack();
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
@@ -146,7 +147,7 @@ export default function TrainingScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (choosingPitch ? setChoosingPitch(false) : choosingTheme ? setChoosingTheme(null) : player ? setChoosing(null) : router.back())}
+          onPress={() => (choosingPitch ? setChoosingPitch(false) : choosingTheme ? setChoosingTheme(null) : player ? setChoosing(null) : goBack())}
           accessibilityLabel={player || choosingTheme || choosingPitch ? 'Back' : 'Close'}
           hitSlop={8}
         >

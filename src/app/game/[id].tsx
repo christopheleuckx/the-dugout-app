@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { countdown, Crest, ResultBadge } from '../../components/MatchCard';
 import { fmtDate, TEAM_RATING_LABELS, todayIso, useData, type Game, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
+import { goBack } from '../../lib/nav';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -99,7 +100,7 @@ export default function GameScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           accessibilityLabel="Close"
           hitSlop={8}
         >

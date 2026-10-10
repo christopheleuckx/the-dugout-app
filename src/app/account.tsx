@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 // The club's age groups this app covers.
 const AGE_GROUPS = ['U12', 'U15'];
@@ -45,7 +46,7 @@ export default function AccountScreen() {
       return;
     }
     await refresh();
-    router.back();
+    goBack();
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
@@ -55,7 +56,7 @@ export default function AccountScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (choosing ? setChoosing(false) : router.back())}
+          onPress={() => (choosing ? setChoosing(false) : goBack())}
           accessibilityLabel="Back"
           hitSlop={8}
         >

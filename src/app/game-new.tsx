@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fmtDate, toIso, useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 // Same choices as the web app's new-game form.
 const VENUES = ['Home', 'Away'];
@@ -93,7 +94,7 @@ export default function NewGameScreen() {
       });
       if (failed) throw failed;
       await refresh();
-      router.back();
+      goBack();
     } catch (e) {
       setError(`Could not save the game: ${e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'unknown error'}`);
       setSaving(false);
@@ -304,7 +305,7 @@ export default function NewGameScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (page ? setPage(null) : router.back())}
+          onPress={() => (page ? setPage(null) : goBack())}
           accessibilityLabel={page ? 'Back' : 'Close'}
           hitSlop={8}
         >

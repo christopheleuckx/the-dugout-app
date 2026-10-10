@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fmtDate, TEAM_RATING_LABELS, useData, type Team } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 // One team's post-match report: rating, the opponent, notes per quarter,
 // what went well and what to improve.
@@ -36,7 +37,7 @@ export default function GameReportScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           accessibilityLabel="Close"
           hitSlop={8}
         >

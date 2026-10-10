@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fmtDate, useData } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 // Same scale as RATING_SCALE in the web app.
 const RATING_LABELS = ['Below IP3 level', 'No influence', 'IP3 level', 'Gamechanger', 'Elite'];
@@ -36,7 +37,7 @@ export default function GamePlayerScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           accessibilityLabel="Close"
           hitSlop={8}
         >

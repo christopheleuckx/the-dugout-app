@@ -11,6 +11,7 @@ import { generateLineups } from '../lib/lineup';
 import { groupOf } from '../lib/selection';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 type Moment = 'starting' | 'after10';
 // Who stands where (player id -> field position); everyone else is on the bench.
@@ -205,7 +206,7 @@ export default function GameLineupEditScreen() {
       return;
     }
     await refresh();
-    router.back();
+    goBack();
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
@@ -254,7 +255,7 @@ export default function GameLineupEditScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (generating ? setGenerating(false) : router.back())}
+          onPress={() => (generating ? setGenerating(false) : goBack())}
           accessibilityLabel={generating ? 'Back' : 'Close'}
           hitSlop={8}
         >

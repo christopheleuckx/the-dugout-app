@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { onPitch, Pitch } from '../components/Pitch';
 import { useData, type Player, type Team } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 const spot = (position: string) => (onPitch(position) ? position : 'Bench');
 
@@ -35,7 +36,7 @@ export default function GameLineupsScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           accessibilityLabel="Close"
           hitSlop={8}
         >

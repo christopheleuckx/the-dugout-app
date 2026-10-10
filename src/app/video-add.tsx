@@ -8,6 +8,7 @@ import { useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { fileName, fmtDay, fmtSize, folderName, listStoredVideos, type StoredVideo } from '../lib/videos';
+import { goBack } from '../lib/nav';
 
 // Add a video to a game or training: a title, and either a file picked from
 // the club's video storage or a pasted link. With "edit" it renames a video.
@@ -71,7 +72,7 @@ export default function VideoAddScreen() {
       return;
     }
     await refresh();
-    router.back();
+    goBack();
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
@@ -79,7 +80,7 @@ export default function VideoAddScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => router.back()} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => goBack()} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
         <Text style={[styles.title, { color: c.ink }]}>{editing ? 'Rename video' : 'Add video'}</Text>

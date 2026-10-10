@@ -9,6 +9,7 @@ import { useData, type Team } from '../lib/data';
 import { generateSelection, groupOf, NOT_SELECTED_REASONS, POSITION_GROUPS, type Draft } from '../lib/selection';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { goBack } from '../lib/nav';
 
 type Page = null | 'generate' | { player: string };
 
@@ -77,7 +78,7 @@ export default function GameSelectionScreen() {
       return;
     }
     await refresh();
-    router.back();
+    goBack();
   }
 
   // Reset removes the game's selection from the database straight away;
@@ -265,7 +266,7 @@ export default function GameSelectionScreen() {
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (page ? setPage(null) : router.back())}
+          onPress={() => (page ? setPage(null) : goBack())}
           accessibilityLabel={page ? 'Back' : 'Close'}
           hitSlop={8}
         >
