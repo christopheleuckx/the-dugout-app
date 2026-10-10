@@ -11,7 +11,7 @@ export function appVersion() {
   // After an over-the-air update the build number stays the same, so the
   // update's date tells which one is running.
   if (!Updates.isEmbeddedLaunch && Updates.createdAt) {
-    return `${build} · updated ${Updates.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    return `${build} - updated ${Updates.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
   }
   return build;
 }
@@ -23,7 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
-      { title: 'Add and edit trainings', text: 'Add an extra training with the plus button in Trainings. Change the name, date and hours of a training, postpone it or cancel it, with Edit at the top right.' },
+      { title: 'Add and edit trainings', text: 'Add an extra training with the plus button in Trainings. Change the name, date and hours of a training, postpone it or cancel it, with the edit button at the top right.' },
       { title: 'Videos', text: 'Add videos to a game or a training, from the club\'s video storage or with a YouTube link, and watch them with your fellow coaches.' },
       { title: 'Training at a glance', text: 'Open a training to see how many players and goalkeepers are coming, and who is absent.' },
       { title: 'Training themes', text: 'Set the major and minor theme and the basics for each training.' },
@@ -36,7 +36,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
   },
   {
     version: '1.0.0',
-    title: 'The first version of The Dugout on your phone',
+    title: 'The first version of the app',
     items: [
       { title: 'Home', text: 'Your next games, this week at a glance and the latest results, with a result per team.' },
       { title: 'Games', text: 'The whole season in one list, opening on the next game. Add a new game straight from your phone.' },

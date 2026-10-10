@@ -23,7 +23,10 @@ export default function AboutScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.version, { color: c.inkSoft }]}>The Dugout {appVersion()}</Text>
+        <View style={{ gap: 2, marginBottom: 6 }}>
+          <Text style={[styles.app, { color: c.ink }]}>The Dugout</Text>
+          <Text style={[styles.version, { color: c.inkSoft }]}>Version {appVersion()}</Text>
+        </View>
         {RELEASE_NOTES.map((release) => (
           <View key={release.version} style={{ gap: 10 }}>
             <Text style={[styles.heading, { color: c.ink }]}>{release.title}</Text>
@@ -48,6 +51,7 @@ const styles = StyleSheet.create({
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 17 },
   content: { padding: 16, gap: 14, paddingBottom: 48 },
+  app: { fontFamily: fonts.semi, fontSize: 28, lineHeight: 33 },
   version: { fontFamily: fonts.regular, fontSize: 14 },
   heading: { fontFamily: fonts.medium, fontSize: 22, lineHeight: 27 },
   card: { borderRadius: 14, paddingHorizontal: 16 },
