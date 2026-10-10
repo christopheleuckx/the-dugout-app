@@ -42,7 +42,7 @@ function ResultCard({ game }: { game: Game }) {
             <View style={[styles.teamDot, { backgroundColor: team === 'blue' ? '#5CA8F2' : '#F0626E' }]} />
             <Text style={styles.teamTag}>{team === 'blue' ? 'Blue' : 'Red'}</Text>
             <Text style={styles.score}>
-              {score.home} : {score.away}
+              {score.home} - {score.away}
             </Text>
             <ResultBadge result={score.result} colors={resultColor} />
           </View>

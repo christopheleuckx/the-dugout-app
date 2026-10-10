@@ -220,7 +220,7 @@ function FixtureCard({
       <View key={team} style={styles.scoreLine}>
         {multi ? <View style={[styles.teamDot, { backgroundColor: team === 'blue' ? c.teamBlue : c.teamRed }]} /> : null}
         <Text style={[styles.score, { color: fg }]}>
-          {score.home} : {score.away}
+          {score.home} - {score.away}
         </Text>
         <ResultBadge result={score.result} colors={resultColors} />
       </View>
