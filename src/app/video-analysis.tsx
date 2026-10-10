@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UndoToast } from '../components/UndoToast';
 import { fmtDate, useData, type Video } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
-import { fmtDay, fmtSize, playVideo, siteOf } from '../lib/videos';
+import { fmtDay, fmtSize, siteOf } from '../lib/videos';
 import { goBack } from '../lib/nav';
 
 // The videos of one game (for the open team) or one training.
@@ -22,7 +22,6 @@ export default function VideoAnalysisScreen() {
 
   const [adding, setAdding] = useState(false);
   const [menu, setMenu] = useState<Video | null>(null);
-  const [opening, setOpening] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Video | null>(null);
   const [error, setError] = useState('');
 
@@ -30,16 +29,18 @@ export default function VideoAnalysisScreen() {
   const sub = game ? `${game.opponent || 'TBD'} · ${fmtDate(game.date)}` : training ? `${training.label} · ${fmtDate(training.date)}` : '';
   const owner = game ? { game: game.id, team: params.team ?? '' } : { training: training?.id ?? '' };
 
+  // A stored file plays inside the app; a pasted link opens where it lives.
   async function play(video: Video) {
-    if (opening) return;
-    setOpening(video.id);
     setError('');
-    try {
-      await playVideo(video);
-    } catch (e) {
-      setError(`Could not open the video: ${(e as Error).message}`);
+    if (video.storageKey) {
+      router.push({ pathname: '/video-player', params: { id: video.id } });
+      return;
     }
-    setOpening(null);
+    try {
+      await Linking.openURL(video.url ?? '');
+    } catch {
+      setError('Could not open this link.');
+    }
   }
 
   // Removing only takes the video off this page, at once; the file stays in
@@ -114,11 +115,7 @@ export default function VideoAnalysisScreen() {
             {list.map((v, i) => (
               <Pressable key={v.id} style={[styles.row, i > 0 && line]} onPress={() => play(v)}>
                 <View style={[styles.thumb, { backgroundColor: v.storageKey ? c.pitchStrong : c.surface2 }]}>
-                  {opening === v.id ? (
-                    <ActivityIndicator size="small" color={v.storageKey ? c.onPitch : c.ink} />
-                  ) : (
-                    <Ionicons name={v.storageKey ? 'play' : 'link-outline'} size={17} color={v.storageKey ? c.onPitch : c.ink} />
-                  )}
+                  <Ionicons name={v.storageKey ? 'play' : 'link-outline'} size={17} color={v.storageKey ? c.onPitch : c.ink} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>

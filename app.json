@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Dugout",
     "slug": "the-dugout",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -51,7 +51,8 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-video"
     ],
     "scheme": "thedugout",
     "extra": {

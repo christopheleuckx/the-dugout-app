@@ -1,6 +1,3 @@
-import { Linking } from 'react-native';
-
-import type { Video } from './data';
 import { supabase } from './supabase';
 
 // A file in the club's private video storage, as the server lists it.
@@ -20,12 +17,9 @@ export async function listStoredVideos(): Promise<StoredVideo[]> {
   return videos.sort((a, b) => b.modified.localeCompare(a.modified));
 }
 
-// Opens the video: a stored file through a fresh temporary link, a pasted
-// link as it is.
-export async function playVideo(video: Video) {
-  const url = video.storageKey ? (await ask<{ url: string }>({ action: 'link', key: video.storageKey })).url : video.url;
-  if (!url) throw new Error('This video has no link.');
-  await Linking.openURL(url);
+// A fresh temporary link to a file in the storage.
+export async function storedVideoUrl(key: string) {
+  return (await ask<{ url: string }>({ action: 'link', key })).url;
 }
 
 export const fileName = (key: string) => key.split('/').pop() ?? key;
