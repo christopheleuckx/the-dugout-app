@@ -127,7 +127,7 @@ function TournamentCard({ game, variant, today }: { game: Game; variant: 'next' 
   } else if (game.records.length === 0) {
     tag = { label: 'No score', bg: c.surface2, fg: c.inkSoft };
   } else {
-    const multi = game.records.length > 1;
+    const multi = game.numTeams > 1 || game.records.length > 1;
     body = game.records.map((r, i) => (
       <View key={r.team} style={i > 0 && [styles.teamBlock, { borderTopColor: c.line }]}>
         <View style={[styles.teamLine, i === 0 && { marginTop: 14 }]}>
@@ -215,7 +215,9 @@ function FixtureCard({
       </View>
     );
   } else if (variant === 'played' && game.scores.length) {
-    const multi = game.scores.length > 1;
+    // A two-team game always says which team a score belongs to, also while
+    // only one of the two scores has been filled in.
+    const multi = game.numTeams > 1 || game.scores.length > 1;
     centre = game.scores.map(({ team, score }) => (
       <View key={team} style={styles.scoreLine}>
         {multi ? <View style={[styles.teamDot, { backgroundColor: team === 'blue' ? c.teamBlue : c.teamRed }]} /> : null}
