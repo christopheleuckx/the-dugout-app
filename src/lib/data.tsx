@@ -218,13 +218,12 @@ function teamReport(game: any, team: Team): Report | null {
   const report: Report = {
     score: e.score ?? null,
     opponent: e.opponent ?? '',
-    quarterNotes: (e.quarterNotes ?? [])
-      .map((note: string, i: number) => ({ label: game.quarter_labels?.[i] || `Q${i + 1}`, note: note ?? '' }))
-      .filter((q: { note: string }) => q.note),
+    // One entry per quarter, in order; an empty note means nothing written yet.
+    quarterNotes: (e.quarterNotes ?? []).map((note: string, i: number) => ({ label: game.quarter_labels?.[i] || `Q${i + 1}`, note: note ?? '' })),
     wentWell: e.wentWell ?? '',
     toImprove: e.toImprove ?? '',
   };
-  const filled = report.score || report.opponent || report.quarterNotes.length || report.wentWell || report.toImprove;
+  const filled = report.score || report.opponent || report.quarterNotes.some((q) => q.note) || report.wentWell || report.toImprove;
   return filled ? report : null;
 }
 

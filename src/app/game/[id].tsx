@@ -230,25 +230,22 @@ export default function GameScreen() {
 
         <Text style={[styles.section, { color: c.ink }]}>Game report</Text>
         <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 4 }]}>
-          {report ? (
-            <Pressable
-              style={styles.player}
-              onPress={() => router.push({ pathname: '/game-report', params: { game: game.id, team } })}
-            >
-              <View style={[styles.rating, { backgroundColor: report.score ? c.rating[report.score - 1] : c.surface2 }]}>
-                <Text style={{ color: report.score ? '#fff' : c.inkSoft, fontFamily: fonts.semi, fontSize: 13 }}>
-                  {report.score ?? '–'}
-                </Text>
-              </View>
-              <Text style={[styles.playerName, { color: c.ink }]}>
-                {report.score ? TEAM_RATING_LABELS[report.score - 1] : 'Not rated yet'}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-          ) : null}
+          <Pressable style={styles.player} onPress={() => router.push({ pathname: '/game-report', params: { game: game.id, team } })}>
+            <View style={[styles.rating, { backgroundColor: report?.score ? c.rating[report.score - 1] : c.surface2 }]}>
+              {report ? (
+                <Text style={{ color: report.score ? '#fff' : c.inkSoft, fontFamily: fonts.semi, fontSize: 13 }}>{report.score ?? '–'}</Text>
+              ) : (
+                <Ionicons name="document-text-outline" size={16} color={c.ink} />
+              )}
+            </View>
+            <Text style={[styles.playerName, { color: c.ink }]}>
+              {!report ? 'Write game report' : report.score ? TEAM_RATING_LABELS[report.score - 1] : 'Not rated yet'}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+          </Pressable>
           {lineups.length || selection.length ? (
             <Pressable
-              style={[styles.player, report && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+              style={[styles.player, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
               onPress={() =>
                 // Without a line-up yet, go straight to building one.
                 router.push({ pathname: lineups.length ? '/game-lineups' : '/game-lineup-edit', params: { game: game.id, team } })
@@ -262,7 +259,7 @@ export default function GameScreen() {
             </Pressable>
           ) : null}
           <Pressable
-            style={[styles.player, !!(report || lineups.length || selection.length) && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+            style={[styles.player, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
             onPress={() => router.push({ pathname: '/video-analysis', params: { game: game.id, team } })}
           >
             <View style={[styles.rating, { backgroundColor: c.surface2 }]}>
