@@ -22,7 +22,7 @@ const REASONS = [
 const reasonLabel = (value: string) => REASONS.find((r) => r.value === value)?.label ?? (value || 'Absent');
 
 // The pitches the team trains on.
-const PITCHES = ['Walleke D', 'Gemeenteplein'];
+const PITCHES = ['Walleken D', 'Gemeenteplein'];
 
 type ThemeKey = 'major' | 'minor' | 'basic';
 const THEME_LABELS: Record<ThemeKey, string> = { major: 'Major', minor: 'Minor', basic: 'Basics' };

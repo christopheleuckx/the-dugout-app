@@ -25,7 +25,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     items: [
       { title: 'Training at a glance', text: 'Open a training to see how many players and goalkeepers are coming, and who is absent.' },
       { title: 'Training themes', text: 'Set the major and minor theme and the basics for each training.' },
-      { title: 'Pitch', text: 'Every training shows where you train, Walleke D or Gemeenteplein, next to the hour.' },
+      { title: 'Pitch', text: 'Every training shows where you train, Walleken D or Gemeenteplein, next to the hour.' },
       { title: 'A clearer Trainings tab', text: 'Trainings now look like the week list on Home, with the attendance on the right.' },
       { title: 'Reset with undo', text: 'Start a selection or line-up again with one tap. Changed your mind? Undo within five seconds.' },
       { title: 'Changes after 10 minutes', text: 'The list shows only what you have to act on: who comes on, who goes off and who switches position.' },
