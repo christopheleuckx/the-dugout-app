@@ -267,8 +267,13 @@ export default function GameScreen() {
         <View style={styles.sectionHead}>
           <Text style={[styles.section, { color: c.ink, marginTop: 0 }]}>Selection</Text>
           {selection.length ? (
-            <Pressable onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })} hitSlop={8}>
-              <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Edit</Text>
+            <Pressable
+              style={[styles.round, { backgroundColor: c.surface }]}
+              onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })}
+              accessibilityLabel="Edit selection"
+              hitSlop={8}
+            >
+              <Ionicons name="create-outline" size={18} color={c.ink} />
             </Pressable>
           ) : null}
         </View>
@@ -352,7 +357,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, padding: 18, gap: 2 },
   host: { fontFamily: fonts.semi, fontSize: 24 },
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
-  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 12 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   player: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   number: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   playerName: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },

@@ -168,8 +168,13 @@ export default function TrainingScreen() {
         {player || choosingTheme || choosingPitch ? (
           <View style={{ width: 36 }} />
         ) : (
-          <Pressable style={{ minWidth: 36, alignItems: 'flex-end' }} onPress={() => router.push({ pathname: '/training-edit', params: { id: training.id } })} hitSlop={8}>
-            <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Edit</Text>
+          <Pressable
+            style={[styles.round, { backgroundColor: c.surface }]}
+            onPress={() => router.push({ pathname: '/training-edit', params: { id: training.id } })}
+            accessibilityLabel="Edit training"
+            hitSlop={8}
+          >
+            <Ionicons name="create-outline" size={18} color={c.ink} />
           </Pressable>
         )}
       </View>
