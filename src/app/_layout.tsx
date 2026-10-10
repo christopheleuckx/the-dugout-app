@@ -41,6 +41,7 @@ function RootNavigator() {
         <Stack.Screen name="game-selection" />
         <Stack.Screen name="game-lineup-edit" />
         <Stack.Screen name="training/[id]" />
+        <Stack.Screen name="training-edit" />
         <Stack.Screen name="video-analysis" />
         <Stack.Screen name="video-add" />
         <Stack.Screen name="video-player" options={{ animation: 'fade' }} />

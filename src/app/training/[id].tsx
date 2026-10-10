@@ -165,7 +165,13 @@ export default function TrainingScreen() {
             </Text>
           )}
         </View>
-        <View style={{ width: 36 }} />
+        {player || choosingTheme || choosingPitch ? (
+          <View style={{ width: 36 }} />
+        ) : (
+          <Pressable style={{ minWidth: 36, alignItems: 'flex-end' }} onPress={() => router.push({ pathname: '/training-edit', params: { id: training.id } })} hitSlop={8}>
+            <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Edit</Text>
+          </Pressable>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
