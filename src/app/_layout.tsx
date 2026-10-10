@@ -1,6 +1,7 @@
 import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold, useFonts } from '@expo-google-fonts/barlow-condensed';
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from '@expo-google-fonts/outfit';
 import { Stack } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 
@@ -55,6 +56,9 @@ function RootNavigator() {
     </View>
   );
 }
+
+// The app is upright everywhere; only the video player lets the phone turn.
+ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
 
 export default function RootLayout() {
   return (

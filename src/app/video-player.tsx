@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
@@ -29,6 +30,15 @@ export default function VideoPlayerScreen() {
       .catch((e) => setError((e as Error).message));
   }, [key]);
 
+  // Turning the phone sideways shows the video in landscape; leaving the
+  // player puts the app upright again.
+  useEffect(() => {
+    ScreenOrientation.unlockAsync().catch(() => {});
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    };
+  }, []);
+
   const player = useVideoPlayer(url, (p) => p.play());
 
   return (
@@ -45,7 +55,7 @@ export default function VideoPlayerScreen() {
           )}
         </View>
       )}
-      <View style={[styles.bar, { paddingTop: insets.top + 6 }]} pointerEvents="box-none">
+      <View style={[styles.bar, { paddingTop: insets.top + 6, paddingLeft: insets.left + 16, paddingRight: insets.right + 16 }]} pointerEvents="box-none">
         <Pressable style={styles.round} onPress={goBack} accessibilityLabel="Close" hitSlop={8}>
           <Ionicons name="close" size={20} color="#fff" />
         </Pressable>
