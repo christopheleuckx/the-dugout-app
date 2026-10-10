@@ -23,6 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
+      { title: 'Rate your players', text: 'Open a player in a game to give a rating from 1 to 5 and to write or change your feedback.' },
       { title: 'Edit a game', text: 'Change the opponent, date, kick-off and the other details of a game with the edit button at the top of the game.' },
       { title: 'Add and edit trainings', text: 'Add an extra training with the plus button in Trainings. Change the name, date and hours of a training, postpone it or cancel it, with the edit button at the top right.' },
       { title: 'Videos', text: 'Add videos to a game or a training, from the club\'s video storage or with a YouTube link, and watch them with your fellow coaches.' },
