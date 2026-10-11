@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Dugout",
     "slug": "the-dugout",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -47,12 +47,20 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The Dugout uses your photos so you can choose a profile picture.",
+          "photosPermission": "The Dugout uses your photos so you can choose a profile picture or a video to upload.",
           "cameraPermission": false,
           "microphonePermission": false
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "The Dugout uses your photos so you can choose a profile picture or a video to upload.",
+          "savePhotosPermission": "The Dugout saves the videos you choose to your photo library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ]
     ],
     "scheme": "thedugout",
     "extra": {

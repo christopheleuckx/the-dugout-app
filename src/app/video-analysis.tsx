@@ -8,7 +8,7 @@ import { UndoToast } from '../components/UndoToast';
 import { fmtDate, useData, type Video } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
-import { fmtDay, fmtSize, siteOf } from '../lib/videos';
+import { fmtDay, fmtSize, saveVideoToPhone, siteOf } from '../lib/videos';
 import { goBack } from '../lib/nav';
 
 // The videos of one game (for the open team) or one training.
@@ -16,7 +16,7 @@ export default function VideoAnalysisScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ game?: string; team?: string; training?: string }>();
-  const { games, trainings, videos, refresh } = useData();
+  const { games, trainings, videos, me, refresh } = useData();
   const game = games.find((g) => g.id === params.game);
   const training = trainings.find((t) => t.id === params.training);
 
@@ -24,6 +24,9 @@ export default function VideoAnalysisScreen() {
   const [menu, setMenu] = useState<Video | null>(null);
   const [removed, setRemoved] = useState<Video | null>(null);
   const [error, setError] = useState('');
+  // The video being saved to this phone, how far it is (0 to 1), and the last one saved.
+  const [saving, setSaving] = useState<{ id: string; progress: number } | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   const list = videos.filter((v) => (game ? v.gameId === game.id && v.team === params.team : v.trainingId === training?.id));
   const sub = game ? `${game.opponent || 'TBD'} · ${fmtDate(game.date)}` : training ? `${training.label} · ${fmtDate(training.date)}` : '';
@@ -41,6 +44,21 @@ export default function VideoAnalysisScreen() {
     } catch {
       setError('Could not open this link.');
     }
+  }
+
+  async function saveToPhone(video: Video) {
+    setMenu(null);
+    if (saving || !video.storageKey) return;
+    setError('');
+    setSavedId(null);
+    setSaving({ id: video.id, progress: 0 });
+    try {
+      await saveVideoToPhone({ id: video.id, storageKey: video.storageKey }, (progress) => setSaving({ id: video.id, progress }));
+      setSavedId(video.id);
+    } catch (e) {
+      setError(`Could not save the video: ${(e as Error).message}`);
+    }
+    setSaving(null);
   }
 
   // Removing only takes the video off this page, at once; the file stays in
@@ -122,7 +140,11 @@ export default function VideoAnalysisScreen() {
                     {v.title}
                   </Text>
                   <Text style={[styles.sub, { color: c.inkSoft }]} numberOfLines={1}>
-                    {[v.storageKey ? fmtSize(v.sizeBytes) : siteOf(v.url ?? ''), `added ${fmtDay(v.createdAt)}`].filter(Boolean).join(' · ')}
+                    {saving?.id === v.id
+                      ? `Saving to your phone ${Math.round(saving.progress * 100)}%`
+                      : savedId === v.id
+                        ? 'Saved to your photos'
+                        : [v.storageKey ? fmtSize(v.sizeBytes) : siteOf(v.url ?? ''), `added ${fmtDay(v.createdAt)}`].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
                 <Pressable onPress={() => setMenu(v)} hitSlop={10} accessibilityLabel={`More for ${v.title}`}>
@@ -180,6 +202,12 @@ export default function VideoAnalysisScreen() {
             <Ionicons name="pencil-outline" size={20} color={c.ink} />
             <Text style={[styles.sheetLabel, { color: c.ink }]}>Rename</Text>
           </Pressable>
+          {me?.canSaveVideos && menu?.storageKey ? (
+            <Pressable style={[styles.sheetRow, line]} onPress={() => saveToPhone(menu!)}>
+              <Ionicons name="download-outline" size={20} color={c.ink} />
+              <Text style={[styles.sheetLabel, { color: c.ink }]}>Save to my phone</Text>
+            </Pressable>
+          ) : null}
           <Pressable style={[styles.sheetRow, line]} onPress={() => remove(menu!)}>
             <Ionicons name="trash-outline" size={20} color={c.danger} />
             <Text style={[styles.sheetLabel, { color: c.danger }]}>Remove from this {game ? 'game' : 'training'}</Text>

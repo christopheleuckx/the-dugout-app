@@ -1,4 +1,5 @@
-import { File } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library/legacy';
 
 import { supabase } from './supabase';
 
@@ -76,6 +77,27 @@ export async function deleteStoredVideo(key: string) {
   await ask<{ deleted: boolean }>({ action: 'delete', key });
   const unlinked = await supabase.from('videos').delete().eq('storage_key', key);
   if (unlinked.error) throw new Error(unlinked.error.message);
+}
+
+// Saves a stored video to the photo library of this phone: it is fetched
+// once into the app's temporary space, handed to Photos, and removed again.
+export async function saveVideoToPhone(video: { id: string; storageKey: string }, onProgress: (fraction: number) => void) {
+  const permission = await MediaLibrary.requestPermissionsAsync(true);
+  if (!permission.granted) throw new Error('Allow The Dugout to add to your photos in the iPhone settings first.');
+  const url = await storedVideoUrl(video.storageKey);
+  const type = video.storageKey.match(/\.([a-z0-9]{2,4})$/i)?.[1]?.toLowerCase() ?? 'mov';
+  const target = new File(Paths.cache, `${video.id}.${type}`);
+  if (target.exists) target.delete();
+  try {
+    const file = await File.createDownloadTask(url, target, {
+      sessionType: 'foreground',
+      onProgress: ({ bytesWritten, totalBytes }) => onProgress(totalBytes > 0 ? bytesWritten / totalBytes : 0),
+    }).downloadAsync();
+    if (!file) throw new Error('The download was stopped.');
+    await MediaLibrary.saveToLibraryAsync(file.uri);
+  } finally {
+    if (target.exists) target.delete();
+  }
 }
 
 // Counts one more view of a video; a failed count never blocks watching.
