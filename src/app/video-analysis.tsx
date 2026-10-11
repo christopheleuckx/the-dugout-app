@@ -76,7 +76,7 @@ export default function VideoAnalysisScreen() {
     await refresh();
   }
 
-  function add(mode: 'file' | 'link') {
+  function add(mode: 'upload' | 'file' | 'link') {
     setAdding(false);
     router.push({ pathname: '/video-add', params: { ...owner, mode } });
   }
@@ -147,7 +147,11 @@ export default function VideoAnalysisScreen() {
         <View style={sheet}>
           <View style={[styles.grabber, { backgroundColor: c.line }]} />
           <Text style={[styles.sheetTitle, { color: c.ink }]}>Add video</Text>
-          <Pressable style={styles.sheetRow} onPress={() => add('file')}>
+          <Pressable style={styles.sheetRow} onPress={() => add('upload')}>
+            <Ionicons name="cloud-upload-outline" size={20} color={c.ink} />
+            <Text style={[styles.sheetLabel, { color: c.ink }]}>Upload from this phone</Text>
+          </Pressable>
+          <Pressable style={[styles.sheetRow, line]} onPress={() => add('file')}>
             <Ionicons name="film-outline" size={20} color={c.ink} />
             <Text style={[styles.sheetLabel, { color: c.ink }]}>Choose from your videos</Text>
           </Pressable>

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,11 +8,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
-import { fileName, fmtDay, fmtSize, folderName, listStoredVideos, type StoredVideo } from '../lib/videos';
+import {
+  fileName,
+  fmtDay,
+  fmtSize,
+  folderName,
+  GAMES_FOLDER,
+  listStoredVideos,
+  TRAININGS_FOLDER,
+  uploadVideo,
+  type StoredVideo,
+} from '../lib/videos';
 import { goBack } from '../lib/nav';
 
 // Add a video to a game or training: a title, and either a file picked from
-// the club's video storage or a pasted link. With "edit" it renames a video.
+// the club's video storage, a video uploaded from this phone, or a pasted
+// link. With "edit" it renames a video.
 export default function VideoAddScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
@@ -19,6 +31,7 @@ export default function VideoAddScreen() {
   const { videos, refresh } = useData();
   const editing = videos.find((v) => v.id === params.edit);
   const linkMode = params.mode === 'link';
+  const uploadMode = params.mode === 'upload';
 
   const [title, setTitle] = useState(editing?.title ?? '');
   const [link, setLink] = useState('');
@@ -26,8 +39,11 @@ export default function VideoAddScreen() {
   const [picked, setPicked] = useState<StoredVideo | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // The video chosen on this phone, and how far its upload is (0 to 1).
+  const [chosen, setChosen] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
 
-  const listing = !editing && !linkMode;
+  const listing = !editing && !linkMode && !uploadMode;
   useEffect(() => {
     if (!listing) return;
     listStoredVideos()
@@ -46,15 +62,45 @@ export default function VideoAddScreen() {
   );
   const offered = (files ?? []).filter((f) => !used.has(f.key));
 
+  async function choose() {
+    setError('');
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'] });
+      if (!result.canceled) setChosen(result.assets[0]);
+    } catch (e) {
+      setError(`Could not open your videos: ${(e as { message?: string })?.message ?? 'unknown error'}`);
+    }
+  }
+
   async function save() {
     if (saving) return;
     const name = title.trim();
     const url = link.trim();
     if (!name) return setError('Give the video a title.');
     if (listing && !picked) return setError('Choose a video.');
+    if (uploadMode && !editing && !chosen) return setError('Choose a video.');
     if (linkMode && !editing && !/^https?:\/\/\S+\.\S+/i.test(url)) return setError('Paste the full link, starting with https://');
     setSaving(true);
     setError('');
+    // An upload goes to the storage first; only then is the video attached.
+    let uploaded: { key: string; size: number | null } | null = null;
+    if (uploadMode && !editing && chosen) {
+      try {
+        setProgress(0);
+        const type = (chosen.fileName ?? chosen.uri).match(/\.([a-z0-9]{2,4})$/i)?.[1]?.toLowerCase() ?? 'mov';
+        const key = await uploadVideo(
+          { uri: chosen.uri, name: `${name}.${type}`, mimeType: chosen.mimeType },
+          params.game ? GAMES_FOLDER : TRAININGS_FOLDER,
+          setProgress,
+        );
+        uploaded = { key, size: chosen.fileSize ?? null };
+      } catch (e) {
+        setError(`Could not upload the video: ${(e as Error).message}`);
+        setProgress(null);
+        setSaving(false);
+        return;
+      }
+    }
     const saved = editing
       ? await supabase.from('videos').update({ title: name }).eq('id', editing.id)
       : await supabase.from('videos').insert({
@@ -62,12 +108,13 @@ export default function VideoAddScreen() {
           team: params.game ? (params.team ?? null) : null,
           training_id: params.training ?? null,
           title: name,
-          storage_key: picked?.key ?? null,
-          url: picked ? null : url,
-          size_bytes: picked?.size ?? null,
+          storage_key: uploaded?.key ?? picked?.key ?? null,
+          url: uploaded || picked ? null : url,
+          size_bytes: uploaded?.size ?? picked?.size ?? null,
         });
     if (saved.error) {
       setError(`Could not save the video: ${saved.error.message}`);
+      setProgress(null);
       setSaving(false);
       return;
     }
@@ -96,7 +143,7 @@ export default function VideoAddScreen() {
             onChangeText={setTitle}
             placeholder="Name this video"
             placeholderTextColor={c.inkSoft}
-            autoFocus={!!editing || linkMode}
+            autoFocus={!!editing || linkMode || uploadMode}
             returnKeyType="done"
           />
         </View>
@@ -118,6 +165,44 @@ export default function VideoAddScreen() {
               />
             </View>
             <Text style={[styles.note, { color: c.inkSoft }]}>Opens in YouTube or the browser.</Text>
+          </>
+        ) : null}
+
+        {uploadMode && !editing ? (
+          <>
+            <Text style={[styles.caption, { color: c.inkSoft }]}>Video</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Pressable style={styles.row} onPress={choose} disabled={saving}>
+                <View style={[styles.thumb, { backgroundColor: chosen ? c.pitchStrong : c.surface2 }]}>
+                  <Ionicons name={chosen ? 'film-outline' : 'add'} size={chosen ? 17 : 22} color={chosen ? c.onPitch : c.ink} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
+                    {chosen ? (chosen.fileName ?? 'Video from this phone') : 'Choose a video'}
+                  </Text>
+                  <Text style={[styles.sub, { color: c.inkSoft }]} numberOfLines={1}>
+                    {chosen
+                      ? [chosen.duration ? fmtDuration(chosen.duration) : '', fmtSize(chosen.fileSize ?? null)].filter(Boolean).join(' · ')
+                      : 'From your photo library'}
+                  </Text>
+                </View>
+                {chosen && !saving ? <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Change</Text> : null}
+              </Pressable>
+            </View>
+            {progress !== null ? (
+              <View style={{ gap: 6, marginHorizontal: 12, marginTop: 6 }}>
+                <View style={[styles.track, { backgroundColor: c.surface2 }]}>
+                  <View style={[styles.fill, { backgroundColor: c.pitch, width: `${Math.round(progress * 100)}%` }]} />
+                </View>
+                <Text style={[styles.sub, { color: c.inkSoft }]}>
+                  {progress < 1 ? `Uploading ${Math.round(progress * 100)}%. Keep this screen open.` : 'Finishing…'}
+                </Text>
+              </View>
+            ) : (
+              <Text style={[styles.note, { color: c.inkSoft }]}>
+                Stored in the club's video storage, in the folder {params.game ? GAMES_FOLDER : TRAININGS_FOLDER}. Use Wi-Fi for long videos.
+              </Text>
+            )}
           </>
         ) : null}
 
@@ -168,12 +253,18 @@ export default function VideoAddScreen() {
           {saving ? (
             <ActivityIndicator color={c.onPitch} />
           ) : (
-            <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>{editing ? 'Save' : 'Add video'}</Text>
+            <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>{editing ? 'Save' : uploadMode ? 'Upload video' : 'Add video'}</Text>
           )}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
+}
+
+// "1:42" from a length in milliseconds.
+function fmtDuration(ms: number) {
+  const seconds = Math.round(ms / 1000);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 const styles = StyleSheet.create({
@@ -189,5 +280,7 @@ const styles = StyleSheet.create({
   input: { fontFamily: fonts.regular, fontSize: 16, minHeight: 50, paddingVertical: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingVertical: 10 },
   thumb: { width: 54, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
 });

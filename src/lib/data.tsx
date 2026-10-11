@@ -164,6 +164,8 @@ export type Video = {
   storageKey: string | null;
   url: string | null;
   sizeBytes: number | null;
+  // How often it was opened in the app.
+  views: number;
   createdAt: string;
 };
 
@@ -308,7 +310,7 @@ async function load(userId: string): Promise<Data> {
     supabase.from('player_ratings').select('game_id, player_id, score, comment'),
     supabase.from('team_tactics').select('id, name, category').order('created_at'),
     supabase.from('basics').select('id, name, category').order('created_at'),
-    supabase.from('videos').select('id, game_id, team, training_id, title, storage_key, url, size_bytes, created_at').order('created_at'),
+    supabase.from('videos').select('id, game_id, team, training_id, title, storage_key, url, size_bytes, views, created_at').order('created_at'),
   ]);
 
   const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos].find((r) => r.error);
@@ -549,6 +551,7 @@ async function load(userId: string): Promise<Data> {
       storageKey: v.storage_key,
       url: v.url,
       sizeBytes: v.size_bytes,
+      views: v.views ?? 0,
       createdAt: v.created_at,
     })),
   };

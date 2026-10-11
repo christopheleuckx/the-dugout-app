@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { goBack } from '../lib/nav';
 import { fonts } from '../lib/theme';
-import { storedVideoUrl } from '../lib/videos';
+import { countView, storedVideoUrl } from '../lib/videos';
 
 // Plays a video from the club's video storage inside the app, on a black
 // page with the phone's own controls.
@@ -26,7 +26,10 @@ export default function VideoPlayerScreen() {
   useEffect(() => {
     if (!key) return;
     storedVideoUrl(key)
-      .then(setUrl)
+      .then((link) => {
+        setUrl(link);
+        if (id) countView(id);
+      })
       .catch((e) => setError((e as Error).message));
   }, [key]);
 

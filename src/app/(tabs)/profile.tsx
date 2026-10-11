@@ -119,6 +119,19 @@ export default function Profile() {
         </Pressable>
       </View>
 
+      {me?.isAdmin ? (
+        <View style={[styles.card, { backgroundColor: c.surface }]}>
+          <Pressable style={styles.row} onPress={() => router.push('/cloudflare')}>
+            <Ionicons name="cloud-outline" size={22} color={c.inkSoft} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Cloudflare</Text>
+              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Video storage and usage</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/about')}>
           <Ionicons name="information-circle-outline" size={22} color={c.inkSoft} />

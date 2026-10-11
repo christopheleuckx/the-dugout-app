@@ -46,6 +46,7 @@ function RootNavigator() {
         <Stack.Screen name="video-analysis" />
         <Stack.Screen name="video-add" />
         <Stack.Screen name="video-player" options={{ animation: 'fade' }} />
+        <Stack.Screen name="cloudflare" />
         <Stack.Screen name="account" />
         <Stack.Screen name="about" />
       </Stack.Protected>

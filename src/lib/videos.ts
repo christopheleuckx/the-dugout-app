@@ -1,3 +1,5 @@
+import { File } from 'expo-file-system';
+
 import { supabase } from './supabase';
 
 // A file in the club's private video storage, as the server lists it.
@@ -12,9 +14,44 @@ async function ask<T>(body: Record<string, string>): Promise<T> {
   return data as T;
 }
 
+// Everything in the storage, newest first, and the name of the bucket.
+export async function listStorage(): Promise<{ bucket: string; videos: StoredVideo[] }> {
+  const { videos, bucket } = await ask<{ videos: StoredVideo[]; bucket?: string }>({ action: 'list', prefix: '' });
+  return { bucket: bucket ?? '', videos: videos.sort((a, b) => b.modified.localeCompare(a.modified)) };
+}
+
 export async function listStoredVideos(): Promise<StoredVideo[]> {
-  const { videos } = await ask<{ videos: StoredVideo[] }>({ action: 'list', prefix: '' });
-  return videos.sort((a, b) => b.modified.localeCompare(a.modified));
+  return (await listStorage()).videos;
+}
+
+// The storage folder for a game's or a training's videos.
+export const GAMES_FOLDER = 'Games-U12';
+export const TRAININGS_FOLDER = 'Training';
+
+// Sends a video from this phone straight to the storage, through a temporary
+// upload link from the server. Returns where it was stored.
+export async function uploadVideo(
+  video: { uri: string; name: string; mimeType?: string },
+  folder: string,
+  onProgress: (fraction: number) => void,
+): Promise<string> {
+  const { url, key } = await ask<{ url: string; key: string }>({ action: 'upload', folder, name: video.name });
+  const result = await new File(video.uri)
+    .createUploadTask(url, {
+      httpMethod: 'PUT',
+      headers: video.mimeType ? { 'Content-Type': video.mimeType } : undefined,
+      // The upload has to finish while this screen is open, to attach the video afterwards.
+      sessionType: 'foreground',
+      onProgress: ({ bytesSent, totalBytes }) => onProgress(totalBytes > 0 ? bytesSent / totalBytes : 0),
+    })
+    .uploadAsync();
+  if (result.status < 200 || result.status >= 300) throw new Error(`The storage refused the upload (${result.status}).`);
+  return key;
+}
+
+// Counts one more view of a video; a failed count never blocks watching.
+export function countView(videoId: string) {
+  supabase.rpc('count_video_view', { p_video: videoId }).then(() => {});
 }
 
 // A fresh temporary link to a file in the storage.
