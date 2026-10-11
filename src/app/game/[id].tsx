@@ -166,7 +166,11 @@ export default function GameScreen() {
               // Each quarter of a tournament is a match of its own: our goals first.
               const [us, opp] = game.homeAway === 'Away' ? [q.away, q.home] : [q.home, q.away];
               return (
-                <View key={i} style={[styles.card, { backgroundColor: c.surface, gap: 8 }]}>
+                <Pressable
+                  key={i}
+                  style={[styles.card, { backgroundColor: c.surface, gap: 8 }]}
+                  onPress={() => router.push({ pathname: '/game-scores', params: { game: game.id, team, quarter: String(i) } })}
+                >
                   <View style={styles.matchHead}>
                     <Text style={[styles.matchName, { color: c.ink }]} numberOfLines={2}>
                       {q.label}
@@ -191,7 +195,7 @@ export default function GameScreen() {
                       </Text>
                     </View>
                   ))}
-                </View>
+                </Pressable>
               );
             })}
           </>
@@ -209,7 +213,11 @@ export default function GameScreen() {
         )}
 
         {!tournament && quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
-          <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
+          <Pressable
+            style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}
+            onPress={() => router.push({ pathname: '/game-scores', params: { game: game.id, team } })}
+            accessibilityLabel="Change goals and scores"
+          >
             {quarters.map((q, i) => (
               <View key={i} style={[styles.quarter, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
                 <Text style={[styles.quarterLabel, { color: c.inkSoft }]} numberOfLines={1}>
@@ -238,7 +246,16 @@ export default function GameScreen() {
                 </View>
               </View>
             ))}
-          </View>
+          </Pressable>
+        ) : quarters.length && !!game.date && game.date <= today && !game.cancelStatus && !quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
+          // Played, or being played today, and nothing filled in yet.
+          <Pressable
+            style={[styles.card, styles.addScores, { backgroundColor: c.surface }]}
+            onPress={() => router.push({ pathname: '/game-scores', params: { game: game.id, team } })}
+          >
+            <Ionicons name="football-outline" size={18} color={c.pitch} />
+            <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Add goals and scores</Text>
+          </Pressable>
         ) : null}
 
         <Text style={[styles.section, { color: c.ink }]}>Game report</Text>
@@ -392,6 +409,7 @@ const styles = StyleSheet.create({
   quarterLabel: { width: 32, fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
   quarterScore: { width: 46, fontFamily: fonts.semi, fontSize: 17 },
   scorer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  addScores: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
   result: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingVertical: 24 },
   side: { width: 96, alignItems: 'center', gap: 10 },
   sideName: { fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' },

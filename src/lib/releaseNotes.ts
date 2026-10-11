@@ -23,6 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
+      { title: 'Goals and scores', text: 'Fill in the score and the goal scorers per quarter, straight from the game. Tap the scores later to change them.' },
       { title: 'Save a video to your phone', text: 'Coaches who are allowed to can save a video to their photo library, from the three dots next to a video.' },
       { title: 'PIN code', text: 'Set a six-digit PIN in your account details. It confirms sensitive actions, such as raising the limits of the video storage.' },
       { title: 'Manage coaches', text: 'Admins can add a coach, link them to an age group and decide what they may do, under Manage in the profile.' },

@@ -37,6 +37,7 @@ function RootNavigator() {
         <Stack.Screen name="game/[id]" />
         <Stack.Screen name="game-player" />
         <Stack.Screen name="game-report" />
+        <Stack.Screen name="game-scores" />
         <Stack.Screen name="game-lineups" />
         <Stack.Screen name="game-new" />
         <Stack.Screen name="game-selection" />
