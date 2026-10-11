@@ -7,11 +7,25 @@ export type StoredVideo = { key: string; size: number; modified: string };
 
 // The storage is private: the "video-link" server function checks that a
 // coach is signed in, then lists the files or hands out a temporary link.
-async function ask<T>(body: Record<string, string>): Promise<T> {
+async function ask<T>(body: Record<string, string | number>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('video-link', { body });
+  // A refusal still carries the server's own explanation, such as the free
+  // plan being used up for this month.
+  const refusal = data?.error ? data : await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+  if (refusal?.error) throw new StorageRefusal(refusal.error, refusal.limit ?? null);
   if (error) throw new Error('The video storage could not be reached.');
-  if (data?.error) throw new Error(data.error);
   return data as T;
+}
+
+// The storage said no. "limit" is set when the club's free plan is the reason:
+// reads (playing), writes (uploading) or storage (full).
+export class StorageRefusal extends Error {
+  constructor(
+    message: string,
+    public limit: 'reads' | 'writes' | 'storage' | null,
+  ) {
+    super(message);
+  }
 }
 
 // Everything in the storage, newest first, and the name of the bucket.
@@ -31,11 +45,11 @@ export const TRAININGS_FOLDER = 'Training';
 // Sends a video from this phone straight to the storage, through a temporary
 // upload link from the server. Returns where it was stored.
 export async function uploadVideo(
-  video: { uri: string; name: string; mimeType?: string },
+  video: { uri: string; name: string; mimeType?: string; size?: number },
   folder: string,
   onProgress: (fraction: number) => void,
 ): Promise<string> {
-  const { url, key } = await ask<{ url: string; key: string }>({ action: 'upload', folder, name: video.name });
+  const { url, key } = await ask<{ url: string; key: string }>({ action: 'upload', folder, name: video.name, size: video.size ?? 0 });
   const result = await new File(video.uri)
     .createUploadTask(url, {
       httpMethod: 'PUT',
