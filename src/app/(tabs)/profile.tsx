@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { useData } from '../../lib/data';
 import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
+import { STORAGE_WARNING, storageFill } from '../../lib/videos';
 
 export default function Profile() {
   const c = useColors();
@@ -21,6 +22,13 @@ export default function Profile() {
   const [choosing, setChoosing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // For the admin: how full the free video storage is, to warn in time.
+  const [fill, setFill] = useState<number | null>(null);
+  const isAdmin = !!me?.isAdmin;
+  useEffect(() => {
+    if (isAdmin) storageFill().then(setFill);
+  }, [isAdmin]);
+  const nearlyFull = fill !== null && fill >= STORAGE_WARNING;
 
   // Stores the new picture (or none, for initials) and removes the old file.
   async function setPicture(path: string | null) {
@@ -133,7 +141,9 @@ export default function Profile() {
             <Ionicons name="cloud-outline" size={22} color={c.inkSoft} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Cloudflare</Text>
-              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Video storage and usage</Text>
+              <Text style={{ color: nearlyFull ? c.amber : c.inkSoft, fontFamily: nearlyFull ? fonts.medium : fonts.regular, fontSize: 13 }}>
+                {nearlyFull ? `Video storage ${Math.min(100, Math.round(fill! * 100))}% full` : 'Video storage and usage'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
           </Pressable>

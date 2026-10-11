@@ -39,6 +39,23 @@ export async function listStoredVideos(): Promise<StoredVideo[]> {
   return (await listStorage()).videos;
 }
 
+// The free storage at Cloudflare, and from which share of it the admin is warned.
+export const FREE_STORAGE_BYTES = 10e9;
+export const STORAGE_WARNING = 0.8;
+
+// How full the free storage is (1 = full), asked once per app session for
+// the warning on the admin's profile. Null when it could not be read.
+let fill: Promise<number | null> | null = null;
+export function storageFill(fresh = false): Promise<number | null> {
+  if (!fill || fresh) {
+    fill = listStorage().then(
+      (storage) => storage.videos.reduce((sum, f) => sum + f.size, 0) / FREE_STORAGE_BYTES,
+      () => null,
+    );
+  }
+  return fill;
+}
+
 // The storage folder for a game's or a training's videos.
 export const GAMES_FOLDER = 'Games-U12';
 export const TRAININGS_FOLDER = 'Training';
