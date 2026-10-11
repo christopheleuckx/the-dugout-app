@@ -195,6 +195,8 @@ export type Profile = {
   firstName: string;
   lastName: string;
   isAdmin: boolean;
+  // The lead admin is the one who may change what coaches are allowed to do.
+  isLeadAdmin: boolean;
   preferredTeam: Team | null;
   // The coach's own age group (U12, U15), if chosen.
   ageGroup: string | null;
@@ -532,6 +534,7 @@ async function load(userId: string): Promise<Data> {
           firstName: p.first_name,
           lastName: p.last_name,
           isAdmin: p.is_admin,
+          isLeadAdmin: !!p.is_lead_admin,
           preferredTeam: p.preferred_team ?? null,
           ageGroup: p.age_group ?? null,
           avatarPath: p.avatar_path ?? null,

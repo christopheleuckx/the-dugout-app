@@ -39,17 +39,31 @@ export async function listStoredVideos(): Promise<StoredVideo[]> {
   return (await listStorage()).videos;
 }
 
-// The free storage at Cloudflare, and from which share of it the admin is warned.
-export const FREE_STORAGE_BYTES = 10e9;
+// How far the storage may go each month: stored GB, and millions of read
+// (playing) and write (uploading) requests.
+export type VideoLimits = { storageGb: number; readMillions: number; writeMillions: number };
+
+// Cloudflare R2's free plan and its prices beyond it, per month in US
+// dollars. These are Cloudflare's published figures, kept here for estimates.
+export const FREE_PLAN: VideoLimits = { storageGb: 10, readMillions: 10, writeMillions: 1 };
+export const PRICES = { storageGb: 0.015, readMillion: 0.36, writeMillion: 4.5 };
+
+// The limits the admin set; the free plan when none could be read.
+export async function loadVideoLimits(): Promise<VideoLimits> {
+  const { data } = await supabase.from('video_limits').select('storage_gb, read_millions, write_millions').maybeSingle();
+  return data ? { storageGb: data.storage_gb, readMillions: data.read_millions, writeMillions: data.write_millions } : FREE_PLAN;
+}
+
+// From which share of the storage limit the admin is warned.
 export const STORAGE_WARNING = 0.8;
 
-// How full the free storage is (1 = full), asked once per app session for
+// How full the storage is against its limit (1 = full), asked once per app session for
 // the warning on the admin's profile. Null when it could not be read.
 let fill: Promise<number | null> | null = null;
 export function storageFill(fresh = false): Promise<number | null> {
   if (!fill || fresh) {
-    fill = listStorage().then(
-      (storage) => storage.videos.reduce((sum, f) => sum + f.size, 0) / FREE_STORAGE_BYTES,
+    fill = Promise.all([listStorage(), loadVideoLimits()]).then(
+      ([storage, limits]) => storage.videos.reduce((sum, f) => sum + f.size, 0) / (limits.storageGb * 1e9),
       () => null,
     );
   }
