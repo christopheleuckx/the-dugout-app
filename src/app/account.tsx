@@ -106,6 +106,12 @@ export default function AccountScreen() {
                 <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
               </Pressable>
             </View>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Pressable style={styles.row} onPress={() => router.push('/pin')}>
+                <Text style={[styles.label, { color: c.ink }]}>PIN code</Text>
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
+            </View>
             {error ? <Text style={{ color: c.danger, fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12 }}>{error}</Text> : null}
             {changed ? (
               <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={save}>

@@ -47,7 +47,7 @@ export default function ManageScreen() {
   const load = useCallback(async () => {
     const { data, error: failed } = await supabase
       .from('profiles')
-      .select('id, username, first_name, last_name, is_admin, preferred_team, age_group, avatar_path, feature_flags')
+      .select('id, username, first_name, last_name, is_admin, is_lead_admin, preferred_team, age_group, avatar_path, feature_flags')
       .order('first_name');
     if (failed) {
       setError(`Could not load the coaches: ${failed.message}`);
@@ -61,6 +61,7 @@ export default function ManageScreen() {
         firstName: p.first_name,
         lastName: p.last_name,
         isAdmin: p.is_admin,
+        isLeadAdmin: !!p.is_lead_admin,
         preferredTeam: p.preferred_team ?? null,
         ageGroup: p.age_group ?? null,
         avatarPath: p.avatar_path ?? null,
@@ -104,10 +105,13 @@ export default function ManageScreen() {
         if (reason || made.error || !made.data?.id) throw new Error(reason ?? 'The account could not be created.');
         id = made.data.id;
       }
-      const flags = { ...(open === 'new' ? {} : open.flags), saveVideos };
+      // Permissions are only sent when they change: the database lets only
+      // the lead admin change them.
+      const before = open === 'new' ? false : !!open.flags.saveVideos;
+      const flags = saveVideos !== before ? { feature_flags: { ...(open === 'new' ? {} : open.flags), saveVideos } } : {};
       const saved = await supabase
         .from('profiles')
-        .update({ first_name: firstName.trim(), last_name: lastName.trim(), age_group: ageGroup, feature_flags: flags })
+        .update({ first_name: firstName.trim(), last_name: lastName.trim(), age_group: ageGroup, ...flags })
         .eq('id', id);
       if (saved.error) throw new Error(saved.error.message);
       await load();
@@ -179,14 +183,16 @@ export default function ManageScreen() {
 
             <Text style={[styles.caption, { color: c.inkSoft }]}>Videos</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
-              <Pressable style={styles.row} onPress={() => !admin && setSaveVideos(!saveVideos)} accessibilityRole="switch" accessibilityState={{ checked: saveVideos }}>
+              <Pressable style={styles.row} onPress={() => !admin && me?.isLeadAdmin && setSaveVideos(!saveVideos)} accessibilityRole="switch" accessibilityState={{ checked: saveVideos }}>
                 <Text style={[styles.label, { color: c.ink }]}>May save videos to their phone</Text>
-                <Switch value={saveVideos} onValueChange={setSaveVideos} disabled={admin} trackColor={{ true: c.pitch }} />
+                <Switch value={saveVideos} onValueChange={setSaveVideos} disabled={admin || !me?.isLeadAdmin} trackColor={{ true: c.pitch }} />
               </Pressable>
             </View>
             <Text style={[styles.note, { color: c.inkSoft }]}>
               {admin
                 ? 'Admins can always save videos.'
+                : !me?.isLeadAdmin
+                  ? 'Only the lead admin can change this.'
                 : 'A saved video is a copy on the coach\'s own phone. It stays there when you remove the video or the coach later.'}
             </Text>
 

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,23 +14,27 @@ import {
   fmtDay,
   fmtSize,
   folderName,
+  FREE_PLAN,
   listStorage,
+  loadVideoLimits,
+  PRICES,
   STORAGE_WARNING,
   storageFill,
   storageUsage,
   type StorageUsage,
   type StoredVideo,
+  type VideoLimits,
 } from '../lib/videos';
 
 // Cloudflare R2's free plan and its price beyond it, per month. These are
 // Cloudflare's published figures, kept here to estimate the cost.
-const FREE_GB = 10;
-const DOLLARS_PER_EXTRA_GB = 0.015;
+const FREE_GB = FREE_PLAN.storageGb;
+const DOLLARS_PER_EXTRA_GB = PRICES.storageGb;
 // Requests: writing and listing (class A) and reading (class B).
-const FREE_WRITES = 1_000_000;
-const FREE_READS = 10_000_000;
-const DOLLARS_PER_MILLION_WRITES = 4.5;
-const DOLLARS_PER_MILLION_READS = 0.36;
+const FREE_WRITES = FREE_PLAN.writeMillions * 1e6;
+const FREE_READS = FREE_PLAN.readMillions * 1e6;
+const DOLLARS_PER_MILLION_WRITES = PRICES.writeMillion;
+const DOLLARS_PER_MILLION_READS = PRICES.readMillion;
 const DASHBOARD = 'https://dash.cloudflare.com/?to=/:account/r2/overview';
 
 // For the admin: what is in the club's video storage at Cloudflare, how much
@@ -49,6 +54,13 @@ export default function CloudflareScreen() {
   // Cloudflare's own figures for this month, or why they could not be read.
   const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [usageError, setUsageError] = useState('');
+  // The limits the admin set; read again when coming back from the Limits page.
+  const [limits, setLimits] = useState<VideoLimits>(FREE_PLAN);
+  useFocusEffect(
+    useCallback(() => {
+      loadVideoLimits().then(setLimits);
+    }, []),
+  );
 
   useEffect(() => {
     listStorage()
@@ -103,16 +115,17 @@ export default function CloudflareScreen() {
   const month = new Date().toLocaleDateString('en-GB', { month: 'long' });
   const number = (n: number) => n.toLocaleString('en-GB');
   // A request allowance: how many were used of the free number, with a bar.
-  const allowance = (label: string, used: number, free: number, first = false) => (
+  const allowance = (label: string, used: number, free: number, limit: number, first = false) => (
     <View style={[{ paddingVertical: 12, gap: 6 }, !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
         <Text style={[styles.name, { color: c.ink, fontFamily: fonts.regular }]}>{label}</Text>
         <Text style={[styles.sub, { color: c.inkSoft }]}>
-          <Text style={{ color: c.ink, fontFamily: fonts.medium }}>{number(used)}</Text> of {number(free)} free
+          <Text style={{ color: c.ink, fontFamily: fonts.medium }}>{number(used)}</Text> of {number(limit)}
+          {limit > free ? '' : ' free'}
         </Text>
       </View>
       <View style={[styles.track, { backgroundColor: c.surface2, height: 6 }]}>
-        <View style={[styles.fill, { height: 6, backgroundColor: used > free ? c.danger : c.pitch, width: `${Math.min(100, Math.max(1, (used / free) * 100))}%` }]} />
+        <View style={[styles.fill, { height: 6, backgroundColor: used >= limit ? c.danger : used > free ? c.amber : c.pitch, width: `${Math.min(100, Math.max(1, (used / limit) * 100))}%` }]} />
       </View>
     </View>
   );
@@ -127,7 +140,8 @@ export default function CloudflareScreen() {
   const inFolder = (folder === null ? [] : all.filter((f) => folderName(f.key) === folder)).sort((a, b) =>
     order === 'largest' ? b.size - a.size : order === 'oldest' ? a.modified.localeCompare(b.modified) : b.modified.localeCompare(a.modified),
   );
-  const share = gb / FREE_GB;
+  const share = gb / limits.storageGb;
+  const raised = limits.storageGb > FREE_GB || limits.readMillions > FREE_PLAN.readMillions || limits.writeMillions > FREE_PLAN.writeMillions;
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
   const tile = (label: string, value: string, note?: string) => (
@@ -212,8 +226,8 @@ export default function CloudflareScreen() {
                 <Ionicons name="warning-outline" size={20} color={share >= 1 ? c.danger : c.amber} />
                 <Text style={[styles.note, { flex: 1, marginHorizontal: 0, color: c.ink }]}>
                   {share >= 1
-                    ? 'The free storage is full. New videos cannot be uploaded until you delete some.'
-                    : `The free storage is ${Math.round(share * 100)}% full. Delete videos you no longer need: open a folder and order by largest or oldest.`}
+                    ? 'The storage is full. New videos cannot be uploaded until you delete some or raise the limit.'
+                    : `The storage is ${Math.round(share * 100)}% full. Delete videos you no longer need (open a folder and order by largest or oldest), or raise the limit.`}
                 </Text>
               </View>
             ) : null}
@@ -221,10 +235,12 @@ export default function CloudflareScreen() {
               <Text style={[styles.tileLabel, { color: c.inkSoft }]}>Storage used</Text>
               <Text style={[styles.tileValue, { color: c.ink }]}>
                 {gb < 0.1 ? fmtSize(bytes) || '0 MB' : `${gb.toFixed(1)} GB`}
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}> of {FREE_GB} GB free</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}>
+                  {' '}of {limits.storageGb} GB{limits.storageGb > FREE_GB ? ` (${FREE_GB} GB free)` : ' free'}
+                </Text>
               </Text>
               <View style={[styles.track, { backgroundColor: c.surface2 }]}>
-                <View style={[styles.fill, { backgroundColor: share >= 1 ? c.danger : share >= STORAGE_WARNING ? c.amber : c.pitch, width: `${Math.min(100, Math.max(1, (gb / FREE_GB) * 100))}%` }]} />
+                <View style={[styles.fill, { backgroundColor: share >= 1 ? c.danger : share >= STORAGE_WARNING ? c.amber : c.pitch, width: `${Math.min(100, Math.max(1, share * 100))}%` }]} />
               </View>
             </View>
             <View style={styles.tiles}>
@@ -236,6 +252,17 @@ export default function CloudflareScreen() {
               Sending video data out is free at Cloudflare. You pay for storage above {FREE_GB} GB, about ${DOLLARS_PER_EXTRA_GB.toFixed(3)} per extra GB a month, and for requests above the free numbers below.
             </Text>
 
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Pressable style={styles.row} onPress={() => router.push('/video-limits')}>
+                <Ionicons name="options-outline" size={20} color={c.ink} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.name, { color: c.ink, fontFamily: fonts.regular, fontSize: 16 }]}>Limits</Text>
+                  <Text style={[styles.sub, { color: c.inkSoft }]}>{raised ? 'Raised above the free plan' : 'The free plan: the app stops there'}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
+            </View>
+
             <Text style={[styles.section, { color: c.ink }]}>{month} at Cloudflare</Text>
             {usage ? (
               <>
@@ -245,8 +272,8 @@ export default function CloudflareScreen() {
                   {tile('Data sent', fmtSize(usage.bytesOut) || '0 MB')}
                 </View>
                 <View style={[styles.card, { backgroundColor: c.surface }]}>
-                  {allowance('Write requests', usage.classA, FREE_WRITES, true)}
-                  {allowance('Read requests', usage.classB, FREE_READS)}
+                  {allowance('Write requests', usage.classA, FREE_WRITES, limits.writeMillions * 1e6, true)}
+                  {allowance('Read requests', usage.classB, FREE_READS, limits.readMillions * 1e6)}
                 </View>
                 <Text style={[styles.note, { color: c.inkSoft }]}>
                   Counted by Cloudflare since 1 {month}; its figures can run a little behind. One play of a video is several downloads, because it is fetched in pieces.
