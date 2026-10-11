@@ -23,6 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
+      { title: 'Manage coaches', text: 'Admins can add a coach, link them to an age group and decide what they may do, under Manage in the profile.' },
       { title: 'Upload videos from your phone', text: 'Add a video straight from your photo library to a game or a training. It is stored in the club\'s video storage and every coach can watch it.' },
       { title: 'A more detailed game report', text: 'Rate the team on five topics, from build-up to decision-making, rate how strong the opponent was, and write a match report with a game summary and notes per quarter.' },
       { title: 'Write the game report', text: 'Rate the team performance and write about the opponent, each quarter, what went well and what to improve, straight from the game.' },

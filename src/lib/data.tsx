@@ -201,6 +201,8 @@ export type Profile = {
   // Where the profile picture is stored, and its public address; null means initials.
   avatarPath: string | null;
   avatarUrl: string | null;
+  // Whether this coach may save videos to their own phone (admins always may).
+  canSaveVideos: boolean;
 };
 
 type Data = {
@@ -533,6 +535,7 @@ async function load(userId: string): Promise<Data> {
           preferredTeam: p.preferred_team ?? null,
           ageGroup: p.age_group ?? null,
           avatarPath: p.avatar_path ?? null,
+          canSaveVideos: p.is_admin || !!p.feature_flags?.saveVideos,
           avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         }
       : null,

@@ -121,7 +121,15 @@ export default function Profile() {
 
       {me?.isAdmin ? (
         <View style={[styles.card, { backgroundColor: c.surface }]}>
-          <Pressable style={styles.row} onPress={() => router.push('/cloudflare')}>
+          <Pressable style={styles.row} onPress={() => router.push('/manage')}>
+            <Ionicons name="people-outline" size={22} color={c.inkSoft} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Manage</Text>
+              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Coaches and what they may do</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+          </Pressable>
+          <Pressable style={[styles.row, line]} onPress={() => router.push('/cloudflare')}>
             <Ionicons name="cloud-outline" size={22} color={c.inkSoft} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Cloudflare</Text>
