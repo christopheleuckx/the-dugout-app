@@ -23,6 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
+      { title: 'A more detailed game report', text: 'Rate the team on five topics, from build-up to decision-making, rate how strong the opponent was, and write a match report with a game summary and notes per quarter.' },
       { title: 'Write the game report', text: 'Rate the team performance and write about the opponent, each quarter, what went well and what to improve, straight from the game.' },
       { title: 'Rate your players', text: 'Open a player in a game to give a rating from 1 to 5 and to write or change your feedback.' },
       { title: 'Edit a game', text: 'Change the opponent, date, kick-off and the other details of a game with the edit button at the top of the game.' },
