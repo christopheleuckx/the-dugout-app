@@ -51,10 +51,43 @@ export const TEAM_RATING_GUIDES = [
   'Outstanding collective performance. Executed our playing principles consistently, controlled the game and performed at a level above IP3 expectations, even against stronger opposition.',
 ];
 
+// The topics the team performance is rated on in detail, each from 1 to 5.
+export const TEAM_CRITERIA = [
+  { key: 'buildUp', title: 'Build-up and Possession', about: 'Creating passing options, finding the free player and maintaining possession.' },
+  { key: 'pressing', title: 'Pressing and Defending', about: 'Collective pressure, compactness, covering and defensive organisation.' },
+  { key: 'transitions', title: 'Transitions', about: 'Reactions after winning or losing possession.' },
+  { key: 'positioning', title: 'Positioning and Team Structure', about: 'Width, depth, distances between players and creating numerical advantages.' },
+  { key: 'decisions', title: 'Decision-Making and Execution', about: 'Recognising situations, playing tempo and making effective choices.' },
+];
+export const CRITERION_LABELS = ['Poor', 'Below Expectations', 'At Expected Level', 'Strong', 'Exceptional'];
+export const CRITERION_GUIDES = [
+  'Rarely executed our principles successfully, with significant collective difficulties.',
+  'Showed some positive moments but struggled to execute our principles consistently.',
+  'Applied our principles adequately, with occasional mistakes or inconsistencies.',
+  'Consistently executed our principles effectively, with only minor shortcomings.',
+  'Outstanding execution throughout the game, even under significant opposition pressure.',
+];
+
+// How strong the opponent was.
+export const OPPONENT_LABELS = ['Development Level', 'Below IP3 Level', 'IP3 Level', 'Elite Level', 'High Elite Level'];
+export const OPPONENT_GUIDES = [
+  'Opponent significantly below IP3 standards, still developing fundamental technical and tactical skills.',
+  'Opponent struggling to consistently meet IP3 standards in technical execution, decision-making or tactical organisation.',
+  'Competitive opponent performing at the expected IP3 standard.',
+  'Strong opponent demonstrating advanced technical abilities, tactical organisation and high playing intensity.',
+  'Exceptional opponent with outstanding technical, tactical and physical qualities. Performs at the highest youth competition standards.',
+];
+
 // A team's post-match report, as filled in on the web app's Team report page.
 export type Report = {
   score: number | null;
+  // Score per team performance criterion (see TEAM_CRITERIA), when rated.
+  criteria: Record<string, number | null>;
+  // How strong the opponent was, 1 to 5, and the notes about them.
+  opponentScore: number | null;
   opponent: string;
+  // The general summary of the match, above the notes per quarter.
+  summary: string;
   quarterNotes: { label: string; note: string }[];
   wentWell: string;
   toImprove: string;
@@ -225,13 +258,16 @@ function teamReport(game: any, team: Team): Report | null {
   if (!e) return null;
   const report: Report = {
     score: e.score ?? null,
+    criteria: e.criteria ?? {},
+    opponentScore: e.opponentScore ?? null,
     opponent: e.opponent ?? '',
+    summary: e.summary ?? '',
     // One entry per quarter, in order; an empty note means nothing written yet.
     quarterNotes: (e.quarterNotes ?? []).map((note: string, i: number) => ({ label: game.quarter_labels?.[i] || `Q${i + 1}`, note: note ?? '' })),
     wentWell: e.wentWell ?? '',
     toImprove: e.toImprove ?? '',
   };
-  const filled = report.score || report.opponent || report.quarterNotes.some((q) => q.note) || report.wentWell || report.toImprove;
+  const filled = report.score || report.opponentScore || report.summary || Object.values(report.criteria).some(Boolean) || report.opponent || report.quarterNotes.some((q) => q.note) || report.wentWell || report.toImprove;
   return filled ? report : null;
 }
 
