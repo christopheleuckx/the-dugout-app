@@ -7,12 +7,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { goBack } from '../lib/nav';
 import { fonts, useColors } from '../lib/theme';
-import { deleteStoredVideo, fileName, fmtDay, fmtSize, folderName, listStorage, type StoredVideo } from '../lib/videos';
+import {
+  deleteStoredVideo,
+  fileName,
+  fmtDay,
+  fmtSize,
+  folderName,
+  listStorage,
+  storageUsage,
+  type StorageUsage,
+  type StoredVideo,
+} from '../lib/videos';
 
 // Cloudflare R2's free plan and its price beyond it, per month. These are
 // Cloudflare's published figures, kept here to estimate the cost.
 const FREE_GB = 10;
 const DOLLARS_PER_EXTRA_GB = 0.015;
+// Requests: writing and listing (class A) and reading (class B).
+const FREE_WRITES = 1_000_000;
+const FREE_READS = 10_000_000;
+const DOLLARS_PER_MILLION_WRITES = 4.5;
+const DOLLARS_PER_MILLION_READS = 0.36;
 const DASHBOARD = 'https://dash.cloudflare.com/?to=/:account/r2/overview';
 
 // For the admin: what is in the club's video storage at Cloudflare, how much
@@ -27,6 +42,9 @@ export default function CloudflareScreen() {
   const [folder, setFolder] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Cloudflare's own figures for this month, or why they could not be read.
+  const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [usageError, setUsageError] = useState('');
 
   useEffect(() => {
     listStorage()
@@ -38,6 +56,9 @@ export default function CloudflareScreen() {
         setFiles([]);
         setError(`Could not load the storage: ${(e as Error).message}`);
       });
+    storageUsage()
+      .then(setUsage)
+      .catch((e) => setUsageError((e as Error).message));
   }, []);
 
   // Deleting from the storage cannot be undone, so it asks first.
@@ -70,7 +91,26 @@ export default function CloudflareScreen() {
   const all = files ?? [];
   const bytes = all.reduce((sum, f) => sum + f.size, 0);
   const gb = bytes / 1e9;
-  const cost = Math.max(0, gb - FREE_GB) * DOLLARS_PER_EXTRA_GB;
+  const cost =
+    Math.max(0, gb - FREE_GB) * DOLLARS_PER_EXTRA_GB +
+    (Math.max(0, (usage?.classA ?? 0) - FREE_WRITES) / 1e6) * DOLLARS_PER_MILLION_WRITES +
+    (Math.max(0, (usage?.classB ?? 0) - FREE_READS) / 1e6) * DOLLARS_PER_MILLION_READS;
+  const month = new Date().toLocaleDateString('en-GB', { month: 'long' });
+  const number = (n: number) => n.toLocaleString('en-GB');
+  // A request allowance: how many were used of the free number, with a bar.
+  const allowance = (label: string, used: number, free: number, first = false) => (
+    <View style={[{ paddingVertical: 12, gap: 6 }, !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+        <Text style={[styles.name, { color: c.ink, fontFamily: fonts.regular }]}>{label}</Text>
+        <Text style={[styles.sub, { color: c.inkSoft }]}>
+          <Text style={{ color: c.ink, fontFamily: fonts.medium }}>{number(used)}</Text> of {number(free)} free
+        </Text>
+      </View>
+      <View style={[styles.track, { backgroundColor: c.surface2, height: 6 }]}>
+        <View style={[styles.fill, { height: 6, backgroundColor: used > free ? c.danger : c.pitch, width: `${Math.min(100, Math.max(1, (used / free) * 100))}%` }]} />
+      </View>
+    </View>
+  );
   const views = videos.reduce((sum, v) => sum + (v.storageKey ? v.views : 0), 0);
   // Per file: the videos in the app that use it, for its title and views.
   const attached = (key: string) => videos.filter((v) => v.storageKey === key);
@@ -166,8 +206,28 @@ export default function CloudflareScreen() {
               {tile('Cost', `$${cost.toFixed(2)}`, cost ? 'this month, estimate' : 'within the free plan')}
             </View>
             <Text style={[styles.note, { color: c.inkSoft }]}>
-              Watching videos is free at Cloudflare. You only pay for storage above {FREE_GB} GB, about ${DOLLARS_PER_EXTRA_GB.toFixed(3)} per extra GB a month.
+              Sending video data out is free at Cloudflare. You pay for storage above {FREE_GB} GB, about ${DOLLARS_PER_EXTRA_GB.toFixed(3)} per extra GB a month, and for requests above the free numbers below.
             </Text>
+
+            <Text style={[styles.section, { color: c.ink }]}>{month} at Cloudflare</Text>
+            {usage ? (
+              <>
+                <View style={styles.tiles}>
+                  {tile('Uploads', number(usage.uploads))}
+                  {tile('Downloads', number(usage.downloads))}
+                  {tile('Data sent', fmtSize(usage.bytesOut) || '0 MB')}
+                </View>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
+                  {allowance('Write requests', usage.classA, FREE_WRITES, true)}
+                  {allowance('Read requests', usage.classB, FREE_READS)}
+                </View>
+                <Text style={[styles.note, { color: c.inkSoft }]}>
+                  Counted by Cloudflare since 1 {month}; its figures can run a little behind. One play of a video is several downloads, because it is fetched in pieces.
+                </Text>
+              </>
+            ) : (
+              <Text style={[styles.note, { color: usageError ? c.danger : c.inkSoft }]}>{usageError || 'Loading Cloudflare\'s figures…'}</Text>
+            )}
 
             <Text style={[styles.section, { color: c.ink }]}>Folders</Text>
             {folders.length ? (

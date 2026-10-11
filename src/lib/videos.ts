@@ -49,6 +49,27 @@ export async function uploadVideo(
   return key;
 }
 
+// What Cloudflare itself counted for the storage this month (admins only).
+export type StorageUsage = {
+  since: string;
+  // Requests in Cloudflare's two billing classes: writing and listing (A), reading (B).
+  classA: number;
+  classB: number;
+  uploads: number;
+  downloads: number;
+  bytesOut: number;
+  storageBytes: number | null;
+};
+
+export async function storageUsage(): Promise<StorageUsage> {
+  const { data, error } = await supabase.functions.invoke('storage-usage', { body: {} });
+  // A refusal still carries Cloudflare's or the server's own explanation.
+  const reason = data?.error ?? (await (error as { context?: Response } | null)?.context?.json?.().catch(() => null))?.error;
+  if (reason) throw new Error(reason);
+  if (error) throw new Error('The statistics could not be reached.');
+  return data as StorageUsage;
+}
+
 // Removes a file from the storage for good (admins only), together with the
 // videos on games and trainings that used it.
 export async function deleteStoredVideo(key: string) {
