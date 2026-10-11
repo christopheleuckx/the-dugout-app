@@ -145,6 +145,14 @@ export default function Profile() {
               </View>
               <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
             </Pressable>
+            <Pressable style={[styles.row, line]} onPress={() => router.push('/supabase-usage')}>
+              <Ionicons name="server-outline" size={22} color={c.inkSoft} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Supabase</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Database and pictures</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+            </Pressable>
           </>
         ) : null}
       </View>
