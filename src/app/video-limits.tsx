@@ -61,6 +61,7 @@ export default function VideoLimitsScreen() {
 
   const block = (
     title: string,
+    about: string,
     value: string,
     free: string,
     cost: number,
@@ -71,6 +72,7 @@ export default function VideoLimitsScreen() {
         <Text style={[styles.name, { color: c.ink }]}>{title}</Text>
         <Text style={[styles.value, { color: c.ink }]}>{value}</Text>
       </View>
+      <Text style={[styles.sub, { color: c.inkSoft, lineHeight: 18, marginTop: 2 }]}>{about}</Text>
       <Slider {...slider} />
       <View style={styles.head}>
         <Text style={[styles.sub, { color: c.inkSoft }]}>{free} free</Text>
@@ -97,21 +99,21 @@ export default function VideoLimitsScreen() {
             <Text style={[styles.note, { color: c.inkSoft }]}>
               The app stops uploads or plays when a limit is reached. Slide a limit past the free amount to keep going; Cloudflare then charges for what is actually used above free.
             </Text>
-            {block('Storage', `${limits.storageGb} GB`, `${FREE_PLAN.storageGb} GB`, extra.storage, {
+            {block('Storage', 'All videos together. A goals clip is about 30 MB, a full match is 2 GB or more.', `${limits.storageGb} GB`, `${FREE_PLAN.storageGb} GB`, extra.storage, {
               value: limits.storageGb,
               min: FREE_PLAN.storageGb,
               max: 200,
               step: 5,
               onChange: (n) => setLimits({ ...limits, storageGb: n }),
             })}
-            {block('Plays a month', `${limits.readMillions} million requests`, `${FREE_PLAN.readMillions} million`, extra.reads, {
+            {block('Plays a month', 'A request is one fetch from Cloudflare. Playing a video takes about 10 to 20 of them, because it is fetched in pieces.', `${limits.readMillions} million requests`, `${FREE_PLAN.readMillions} million`, extra.reads, {
               value: limits.readMillions,
               min: FREE_PLAN.readMillions,
               max: 100,
               step: 10,
               onChange: (n) => setLimits({ ...limits, readMillions: n }),
             })}
-            {block('Uploads a month', `${limits.writeMillions} million requests`, `${FREE_PLAN.writeMillions} million`, extra.writes, {
+            {block('Uploads a month', 'Uploading a video takes 2 to 3 requests. Opening the list of stored videos takes 1.', `${limits.writeMillions} million requests`, `${FREE_PLAN.writeMillions} million`, extra.writes, {
               value: limits.writeMillions,
               min: FREE_PLAN.writeMillions,
               max: 20,
