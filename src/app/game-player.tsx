@@ -10,7 +10,15 @@ import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
 
 // The five player ratings, from 1 to 5.
-const RATING_LABELS = ['Performed Below IP3 Level', 'Limited Match Impact', 'Performed at IP3 Level', 'Actively Involved', 'Game Changer'];
+const RATING_LABELS = ['Below IP3 Level', 'Low-Impact Performance', 'Performed at IP3 Level', 'Dominant Performance', 'Next-Level Performance'];
+// What each rating means, shown under it when choosing.
+const RATING_GUIDES = [
+  'Struggled to meet the technical, tactical or physical demands of IP3 level.',
+  'Had limited influence on the game and contributed less than expected.',
+  'Met the expected IP3 standard and contributed effectively to the team within the team principles.',
+  'Made a significant impact on the game, dominating their direct opponent and excelling in their position.',
+  'With this performance the player demonstrated the ability to compete and stand out against higher-level opposition.',
+];
 const BENCH_SLOTS = ['S1', 'S2', 'S3', 'S4', 'S5'];
 const spot = (position: string) => (!position ? '–' : BENCH_SLOTS.includes(position) ? 'Bench' : position);
 
@@ -86,12 +94,15 @@ export default function GamePlayerScreen() {
         {page === 'rating' ? (
           <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 4 }]}>
             {[5, 4, 3, 2, 1].map((score, i) => (
-              <Pressable key={score} style={[styles.option, i > 0 && line]} onPress={() => save({ score })}>
+              <Pressable key={score} style={[styles.option, { alignItems: 'flex-start', paddingVertical: 13 }, i > 0 && line]} onPress={() => save({ score })}>
                 <View style={[styles.badge, { backgroundColor: c.rating[score - 1] }]}>
                   <Text style={{ color: '#fff', fontFamily: fonts.semi, fontSize: 15 }}>{score}</Text>
                 </View>
-                <Text style={[styles.label, { color: c.ink, flex: 1 }]}>{RATING_LABELS[score - 1]}</Text>
-                {rating?.score === score ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.label, { color: c.ink }]}>{RATING_LABELS[score - 1]}</Text>
+                  <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 }}>{RATING_GUIDES[score - 1]}</Text>
+                </View>
+                {rating?.score === score ? <Ionicons name="checkmark" size={20} color={c.pitch} style={{ marginTop: 6 }} /> : null}
               </Pressable>
             ))}
             <Pressable style={[styles.option, line]} onPress={() => save({ score: null })}>
