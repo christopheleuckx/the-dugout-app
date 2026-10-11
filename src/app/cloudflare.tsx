@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useData } from '../lib/data';
 import { goBack } from '../lib/nav';
 import { fonts, useColors } from '../lib/theme';
-import { fileName, fmtDay, fmtSize, folderName, listStorage, type StoredVideo } from '../lib/videos';
+import { deleteStoredVideo, fileName, fmtDay, fmtSize, folderName, listStorage, type StoredVideo } from '../lib/videos';
 
 // Cloudflare R2's free plan and its price beyond it, per month. These are
 // Cloudflare's published figures, kept here to estimate the cost.
@@ -17,15 +17,16 @@ const DASHBOARD = 'https://dash.cloudflare.com/?to=/:account/r2/overview';
 
 // For the admin: what is in the club's video storage at Cloudflare, how much
 // of the free plan it uses, and how often the videos are watched. Tapping a
-// folder shows its videos.
+// folder shows its videos, which can be deleted from the storage there.
 export default function CloudflareScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { videos } = useData();
+  const { videos, refresh } = useData();
   const [bucket, setBucket] = useState('');
   const [files, setFiles] = useState<StoredVideo[] | null>(null);
   const [folder, setFolder] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     listStorage()
@@ -38,6 +39,33 @@ export default function CloudflareScreen() {
         setError(`Could not load the storage: ${(e as Error).message}`);
       });
   }, []);
+
+  // Deleting from the storage cannot be undone, so it asks first.
+  function confirmDelete(file: StoredVideo, name: string, uses: number) {
+    Alert.alert(
+      'Delete this video?',
+      `"${name}" is removed from Cloudflare for good${uses ? `, and from the ${uses === 1 ? 'game or training' : `${uses} games or trainings`} it is on` : ''}. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(file.key);
+            setError('');
+            try {
+              await deleteStoredVideo(file.key);
+              setFiles((list) => (list ?? []).filter((f) => f.key !== file.key));
+              await refresh();
+            } catch (e) {
+              setError(`Could not delete the video: ${(e as Error).message}`);
+            }
+            setDeleting(null);
+          },
+        },
+      ],
+    );
+  }
 
   const all = files ?? [];
   const bytes = all.reduce((sum, f) => sum + f.size, 0);
@@ -109,6 +137,13 @@ export default function CloudflareScreen() {
                       {[fmtDay(f.modified), fmtSize(f.size), used.length ? `${seen} ${seen === 1 ? 'view' : 'views'}` : 'Not on a game or training'].join(' · ')}
                     </Text>
                   </View>
+                  {deleting === f.key ? (
+                    <ActivityIndicator size="small" color={c.danger} />
+                  ) : (
+                    <Pressable onPress={() => confirmDelete(f, used[0]?.title ?? fileName(f.key), used.length)} hitSlop={10} accessibilityLabel="Delete video">
+                      <Ionicons name="trash-outline" size={20} color={c.danger} />
+                    </Pressable>
+                  )}
                 </Pressable>
               );
             })}

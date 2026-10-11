@@ -49,6 +49,14 @@ export async function uploadVideo(
   return key;
 }
 
+// Removes a file from the storage for good (admins only), together with the
+// videos on games and trainings that used it.
+export async function deleteStoredVideo(key: string) {
+  await ask<{ deleted: boolean }>({ action: 'delete', key });
+  const unlinked = await supabase.from('videos').delete().eq('storage_key', key);
+  if (unlinked.error) throw new Error(unlinked.error.message);
+}
+
 // Counts one more view of a video; a failed count never blocks watching.
 export function countView(videoId: string) {
   supabase.rpc('count_video_view', { p_video: videoId }).then(() => {});
