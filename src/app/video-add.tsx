@@ -15,6 +15,7 @@ import {
   folderName,
   GAMES_FOLDER,
   listStoredVideos,
+  StorageRefusal,
   TRAININGS_FOLDER,
   uploadVideo,
   type StoredVideo,
@@ -50,7 +51,7 @@ export default function VideoAddScreen() {
       .then(setFiles)
       .catch((e) => {
         setFiles([]);
-        setError(`Could not load your videos: ${(e as Error).message}`);
+        setError(e instanceof StorageRefusal && e.limit ? e.message : `Could not load your videos: ${(e as Error).message}`);
       });
   }, [listing]);
 
@@ -89,13 +90,14 @@ export default function VideoAddScreen() {
         setProgress(0);
         const type = (chosen.fileName ?? chosen.uri).match(/\.([a-z0-9]{2,4})$/i)?.[1]?.toLowerCase() ?? 'mov';
         const key = await uploadVideo(
-          { uri: chosen.uri, name: `${name}.${type}`, mimeType: chosen.mimeType },
+          { uri: chosen.uri, name: `${name}.${type}`, mimeType: chosen.mimeType, size: chosen.fileSize },
           params.game ? GAMES_FOLDER : TRAININGS_FOLDER,
           setProgress,
         );
         uploaded = { key, size: chosen.fileSize ?? null };
       } catch (e) {
-        setError(`Could not upload the video: ${(e as Error).message}`);
+        // When the free plan is the reason, the server's explanation says it all.
+        setError(e instanceof StorageRefusal && e.limit ? e.message : `Could not upload the video: ${(e as Error).message}`);
         setProgress(null);
         setSaving(false);
         return;

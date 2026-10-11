@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { goBack } from '../lib/nav';
 import { fonts } from '../lib/theme';
-import { countView, storedVideoUrl } from '../lib/videos';
+import { countView, StorageRefusal, storedVideoUrl } from '../lib/videos';
 
 // Plays a video from the club's video storage inside the app, on a black
 // page with the phone's own controls.
@@ -21,6 +21,8 @@ export default function VideoPlayerScreen() {
   const video = videos.find((v) => v.id === id);
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
+  // Set when the club's free plan for the month is the reason it cannot play.
+  const [limited, setLimited] = useState(false);
 
   const key = video?.storageKey;
   useEffect(() => {
@@ -30,7 +32,10 @@ export default function VideoPlayerScreen() {
         setUrl(link);
         if (id) countView(id);
       })
-      .catch((e) => setError((e as Error).message));
+      .catch((e) => {
+        setLimited(e instanceof StorageRefusal && !!e.limit);
+        setError((e as Error).message);
+      });
   }, [key]);
 
   // Turning the phone sideways shows the video in landscape; leaving the
@@ -51,7 +56,13 @@ export default function VideoPlayerScreen() {
         <VideoView style={StyleSheet.absoluteFill} player={player} contentFit="contain" fullscreenOptions={{ enable: true }} allowsPictureInPicture={false} />
       ) : (
         <View style={styles.center}>
-          {error || !video ? (
+          {limited ? (
+            <>
+              <Ionicons name="time-outline" size={34} color="#fff" style={{ marginBottom: 10 }} />
+              <Text style={[styles.message, { fontFamily: fonts.medium, fontSize: 17, marginBottom: 6 }]}>This video can't be played right now</Text>
+              <Text style={styles.message}>{error}</Text>
+            </>
+          ) : error || !video ? (
             <Text style={styles.message}>{error ? `Could not open the video: ${error}` : 'This video no longer exists.'}</Text>
           ) : (
             <ActivityIndicator color="#fff" />
