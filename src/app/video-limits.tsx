@@ -13,13 +13,17 @@ import { fonts, useColors } from '../lib/theme';
 import { FREE_PLAN, loadVideoLimits, PRICES, storageFill, type VideoLimits } from '../lib/videos';
 
 // For the admin: how far the video storage may go past Cloudflare's free
-// plan, with what that could cost a month. Saving asks for the PIN.
+// plan, with what that could cost a month. The page only opens with the
+// admin's PIN; saving then uses that same PIN.
 export default function VideoLimitsScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const [saved, setSaved] = useState<VideoLimits | null>(null);
   const [limits, setLimits] = useState<VideoLimits>(FREE_PLAN);
-  const [asking, setAsking] = useState(false);
+  // The PIN the admin entered to open the page; nothing is shown before it.
+  const [pin, setPin] = useState<string | null>(null);
+  const [noPin, setNoPin] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -38,23 +42,33 @@ export default function VideoLimitsScreen() {
   const changed = !!saved && (saved.storageGb !== limits.storageGb || saved.readMillions !== limits.readMillions || saved.writeMillions !== limits.writeMillions);
   const dollars = (n: number) => `$${n.toFixed(2)}`;
 
-  async function confirm(pin: string) {
+  // Opening the page: the PIN is checked before anything can be changed.
+  async function unlock(entered: string) {
+    const { data, error: failed } = await supabase.rpc('check_pin', { p_pin: entered });
+    if (failed) return failed.message;
+    if (data === 'none') {
+      setNoPin(true);
+      return;
+    }
+    if (data !== 'ok') return pinMessage(data as PinAnswer);
+    setPin(entered);
+  }
+
+  async function save() {
+    if (saving || !pin) return;
+    setSaving(true);
+    setError('');
     const { data, error: failed } = await supabase.rpc('set_video_limits', {
       p_pin: pin,
       p_storage_gb: limits.storageGb,
       p_read_millions: limits.readMillions,
       p_write_millions: limits.writeMillions,
     });
-    if (failed) return failed.message;
-    if (data !== 'ok') {
-      // Without a PIN there is nothing to enter: point to where it is set.
-      if (data === 'none') {
-        setAsking(false);
-        setError('Set a PIN first.');
-      }
-      return pinMessage(data as PinAnswer) || 'These limits are not allowed.';
+    if (failed || data !== 'ok') {
+      setError(failed?.message ?? (pinMessage(data as PinAnswer) || 'These limits are not allowed.'));
+      setSaving(false);
+      return;
     }
-    setAsking(false);
     storageFill(true);
     goBack();
   }
@@ -92,7 +106,16 @@ export default function VideoLimitsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {!saved ? (
+        {noPin ? (
+          <>
+            <Text style={[styles.note, { color: c.inkSoft, fontSize: 14, lineHeight: 20 }]}>
+              The limits are protected with your PIN, and you have not set one yet.
+            </Text>
+            <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={() => router.replace('/pin')}>
+              <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Set your PIN</Text>
+            </Pressable>
+          </>
+        ) : !pin ? null : !saved ? (
           <ActivityIndicator color={c.pitch} style={{ marginTop: 24 }} />
         ) : (
           <>
@@ -129,16 +152,10 @@ export default function VideoLimitsScreen() {
               This is the highest it can get with these limits, if every limit is fully used. Prices are Cloudflare's, in US dollars.
             </Text>
 
-            {error ? (
-              <Pressable onPress={() => router.push('/pin')}>
-                <Text style={[styles.note, { color: c.danger }]}>
-                  {error} <Text style={{ color: c.pitch, fontFamily: fonts.medium }}>Set your PIN</Text>
-                </Text>
-              </Pressable>
-            ) : null}
+            {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
             {changed ? (
-              <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={() => { setError(''); setAsking(true); }}>
-                <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save limits</Text>
+              <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={save}>
+                {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save limits</Text>}
               </Pressable>
             ) : null}
           </>
@@ -146,11 +163,11 @@ export default function VideoLimitsScreen() {
       </ScrollView>
 
       <PinPrompt
-        visible={asking}
+        visible={!pin && !noPin}
         title="Enter your PIN"
-        text={total ? `To allow up to ${dollars(total)} a month.` : 'To go back to the free plan.'}
-        onEntered={confirm}
-        onClose={() => setAsking(false)}
+        text="To see and change the limits of the video storage."
+        onEntered={unlock}
+        onClose={goBack}
       />
     </View>
   );
