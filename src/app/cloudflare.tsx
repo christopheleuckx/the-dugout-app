@@ -14,6 +14,8 @@ import {
   fmtSize,
   folderName,
   listStorage,
+  STORAGE_WARNING,
+  storageFill,
   storageUsage,
   type StorageUsage,
   type StoredVideo,
@@ -42,6 +44,8 @@ export default function CloudflareScreen() {
   const [folder, setFolder] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  // How the videos in a folder are ordered: the largest and oldest first help to clean up.
+  const [order, setOrder] = useState<'newest' | 'largest' | 'oldest'>('newest');
   // Cloudflare's own figures for this month, or why they could not be read.
   const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [usageError, setUsageError] = useState('');
@@ -77,6 +81,7 @@ export default function CloudflareScreen() {
             try {
               await deleteStoredVideo(file.key);
               setFiles((list) => (list ?? []).filter((f) => f.key !== file.key));
+              storageFill(true);
               await refresh();
             } catch (e) {
               setError(`Could not delete the video: ${(e as Error).message}`);
@@ -119,7 +124,10 @@ export default function CloudflareScreen() {
     const inside = all.filter((f) => folderName(f.key) === name);
     return { name, count: inside.length, bytes: inside.reduce((sum, f) => sum + f.size, 0) };
   });
-  const inFolder = folder === null ? [] : all.filter((f) => folderName(f.key) === folder);
+  const inFolder = (folder === null ? [] : all.filter((f) => folderName(f.key) === folder)).sort((a, b) =>
+    order === 'largest' ? b.size - a.size : order === 'oldest' ? a.modified.localeCompare(b.modified) : b.modified.localeCompare(a.modified),
+  );
+  const share = gb / FREE_GB;
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
   const tile = (label: string, value: string, note?: string) => (
@@ -155,6 +163,14 @@ export default function CloudflareScreen() {
         {files === null ? (
           <ActivityIndicator color={c.pitch} style={{ marginTop: 24 }} />
         ) : folder !== null ? (
+          <>
+          <View style={[styles.toggle, { backgroundColor: c.surface2 }]}>
+            {(['newest', 'largest', 'oldest'] as const).map((key) => (
+              <Pressable key={key} style={[styles.toggleOption, key === order && { backgroundColor: c.surface }]} onPress={() => setOrder(key)}>
+                <Text style={{ color: key === order ? c.ink : c.inkSoft, fontFamily: fonts.medium, fontSize: 14, textTransform: 'capitalize' }}>{key}</Text>
+              </Pressable>
+            ))}
+          </View>
           <View style={[styles.card, { backgroundColor: c.surface }]}>
             {inFolder.map((f, i) => {
               const used = attached(f.key);
@@ -188,8 +204,19 @@ export default function CloudflareScreen() {
               );
             })}
           </View>
+          </>
         ) : (
           <>
+            {share >= STORAGE_WARNING ? (
+              <View style={[styles.warning, { backgroundColor: (share >= 1 ? c.danger : c.amber) + '22' }]}>
+                <Ionicons name="warning-outline" size={20} color={share >= 1 ? c.danger : c.amber} />
+                <Text style={[styles.note, { flex: 1, marginHorizontal: 0, color: c.ink }]}>
+                  {share >= 1
+                    ? 'The free storage is full. New videos cannot be uploaded until you delete some.'
+                    : `The free storage is ${Math.round(share * 100)}% full. Delete videos you no longer need: open a folder and order by largest or oldest.`}
+                </Text>
+              </View>
+            ) : null}
             <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 16, gap: 8 }]}>
               <Text style={[styles.tileLabel, { color: c.inkSoft }]}>Storage used</Text>
               <Text style={[styles.tileValue, { color: c.ink }]}>
@@ -197,7 +224,7 @@ export default function CloudflareScreen() {
                 <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}> of {FREE_GB} GB free</Text>
               </Text>
               <View style={[styles.track, { backgroundColor: c.surface2 }]}>
-                <View style={[styles.fill, { backgroundColor: gb > FREE_GB ? c.danger : c.pitch, width: `${Math.min(100, Math.max(1, (gb / FREE_GB) * 100))}%` }]} />
+                <View style={[styles.fill, { backgroundColor: share >= 1 ? c.danger : share >= STORAGE_WARNING ? c.amber : c.pitch, width: `${Math.min(100, Math.max(1, (gb / FREE_GB) * 100))}%` }]} />
               </View>
             </View>
             <View style={styles.tiles}>
@@ -282,5 +309,8 @@ const styles = StyleSheet.create({
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4 },
   note: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, marginHorizontal: 4 },
+  warning: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, padding: 14 },
+  toggle: { flexDirection: 'row', alignSelf: 'center', borderRadius: 10, padding: 3 },
+  toggleOption: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14 },
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
 });
