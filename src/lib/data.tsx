@@ -41,7 +41,15 @@ export type Rating = { score: number | null; comment: string };
 export type Stint = { label: string; starting: string; after10: string };
 
 // Same scale as TEAM_RATING_SCALE in the web app.
-export const TEAM_RATING_LABELS = ['Below IP3 level', 'No influence', 'IP3 level', 'Dominating', 'Elite'];
+export const TEAM_RATING_LABELS = ['Poor Team Performance', 'Below Expectations', 'Solid Team Performance', 'Dominant Team Performance', 'Exceptional Team Performance'];
+// What each team rating means, shown under it when choosing.
+export const TEAM_RATING_GUIDES = [
+  'Failed to meet IP3 expectations. Significant difficulties in organisation, execution of playing principles and collective decision-making.',
+  'Struggled to consistently apply our playing principles. Limited collective impact, insufficient control and too many individual or tactical mistakes.',
+  'Performed at the expected IP3 level. Applied our playing principles effectively, with some areas for improvement.',
+  'Had a significant impact on the game as a team. Controlled large parts of the match, dominated the opposition collectively and consistently applied our playing principles.',
+  'Outstanding collective performance. Executed our playing principles consistently, controlled the game and performed at a level above IP3 expectations, even against stronger opposition.',
+];
 
 // A team's post-match report, as filled in on the web app's Team report page.
 export type Report = {

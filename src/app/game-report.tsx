@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fmtDate, TEAM_RATING_LABELS, useData, type Team } from '../lib/data';
+import { fmtDate, TEAM_RATING_GUIDES, TEAM_RATING_LABELS, useData, type Team } from '../lib/data';
 import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -113,12 +113,15 @@ export default function GameReportScreen() {
         {rating ? (
           <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 4 }]}>
             {[5, 4, 3, 2, 1].map((score, i) => (
-              <Pressable key={score} style={[styles.option, i > 0 && line]} onPress={() => save({ score })}>
+              <Pressable key={score} style={[styles.option, { alignItems: 'flex-start', paddingVertical: 13 }, i > 0 && line]} onPress={() => save({ score })}>
                 <View style={[styles.badge, { backgroundColor: c.rating[score - 1] }]}>
                   <Text style={{ color: '#fff', fontFamily: fonts.semi, fontSize: 15 }}>{score}</Text>
                 </View>
-                <Text style={[styles.label, { color: c.ink, flex: 1 }]}>{TEAM_RATING_LABELS[score - 1]}</Text>
-                {report?.score === score ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.label, { color: c.ink }]}>{TEAM_RATING_LABELS[score - 1]}</Text>
+                  <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 }}>{TEAM_RATING_GUIDES[score - 1]}</Text>
+                </View>
+                {report?.score === score ? <Ionicons name="checkmark" size={20} color={c.pitch} style={{ marginTop: 6 }} /> : null}
               </Pressable>
             ))}
             <Pressable style={[styles.option, line]} onPress={() => save({ score: null })}>
