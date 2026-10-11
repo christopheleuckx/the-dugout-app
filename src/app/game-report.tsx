@@ -8,6 +8,7 @@ import { fmtDate, TEAM_RATING_GUIDES, TEAM_RATING_LABELS, useData, type Team } f
 import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { EditIcon } from '../components/Icons';
 
 // A text part of the report: a field of its own, or the note of one quarter.
 type Part = { key: string; title: string; text: string; field?: 'opponent' | 'wentWell' | 'toImprove'; quarter?: number };
@@ -171,7 +172,7 @@ export default function GameReportScreen() {
                       accessibilityLabel={`Edit ${part.title}`}
                       hitSlop={8}
                     >
-                      <Ionicons name="create-outline" size={18} color={c.ink} />
+                      <EditIcon color={c.ink} />
                     </Pressable>
                   ) : null}
                 </View>
@@ -181,7 +182,7 @@ export default function GameReportScreen() {
                   </View>
                 ) : (
                   <Pressable style={[styles.write, { backgroundColor: c.surface }]} onPress={() => open(part)}>
-                    <Ionicons name="create-outline" size={18} color={c.pitch} />
+                    <EditIcon color={c.pitch} />
                     <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Write your report</Text>
                   </Pressable>
                 )}

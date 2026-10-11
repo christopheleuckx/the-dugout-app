@@ -9,6 +9,7 @@ import { groupOf, POSITION_GROUPS } from '../../lib/selection';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
 import { goBack } from '../../lib/nav';
+import { EditIcon } from '../../components/Icons';
 
 // Shown label -> the value the web app stores (its ABSENCE_REASONS), so both
 // apps and the attendance percentage read the same reasons.
@@ -174,7 +175,7 @@ export default function TrainingScreen() {
             accessibilityLabel="Edit training"
             hitSlop={8}
           >
-            <Ionicons name="create-outline" size={18} color={c.ink} />
+            <EditIcon color={c.ink} />
           </Pressable>
         )}
       </View>

@@ -8,6 +8,7 @@ import { countdown, Crest, ResultBadge } from '../../components/MatchCard';
 import { fmtDate, TEAM_RATING_LABELS, todayIso, useData, type Game, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 import { goBack } from '../../lib/nav';
+import { EditIcon, SwitchIcon } from '../../components/Icons';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -33,11 +34,21 @@ function defaultTeam(game: Game, me: Profile | null): Team {
 }
 
 // Round jersey badge in the team's colour, like the profile badge in the tab bar.
-function Jersey({ team, size = 36 }: { team: Team; size?: number }) {
+// A club on the match card; ours also says which team is open, in its colour.
+type Side = { name: string; url: string | null; team?: Team };
+
+// The team's jersey in its colour. With "switchable" it carries a small badge
+// with two arrows: tapping it switches team.
+function Jersey({ team, size = 36, switchable = false }: { team: Team; size?: number; switchable?: boolean }) {
   const c = useColors();
   return (
     <View style={[styles.round, { width: size, height: size, backgroundColor: team === 'blue' ? c.teamBlue : c.teamRed }]}>
       <Ionicons name="shirt-outline" size={size * 0.52} color="#fff" />
+      {switchable ? (
+        <View style={[styles.switch, { backgroundColor: c.surface, borderColor: c.chalk }]}>
+          <SwitchIcon color={c.ink} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -63,11 +74,8 @@ export default function GameScreen() {
   const tournament = game.competition === 'Tournament';
   const score = game.scores.find((s) => s.team === team)?.score;
   // Home team on the left, like the scoreline. With two teams our name says which one is open.
-  const us = {
-    name: game.teams.length > 1 ? `FCV Dender ${team === 'blue' ? 'Blue' : 'Red'}` : 'FCV Dender',
-    url: clubLogoUrl,
-  };
-  const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
+  const us: Side = { name: 'FCV Dender', url: clubLogoUrl, team: game.teams.length > 1 ? team : undefined };
+  const them: Side = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
   const report = game.reports[team];
@@ -86,12 +94,17 @@ export default function GameScreen() {
         ? countdown(game.date, today)
         : 'No score';
   const place = game.records.find((r) => r.team === team)?.place;
-  const teamSide = (side: { name: string; url: string | null }) => (
+  const teamSide = (side: Side) => (
     <View style={styles.side}>
       <Crest url={side.url} name={side.name} size={72} />
       <Text style={[styles.sideName, { color: c.ink }]} numberOfLines={2}>
         {side.name}
       </Text>
+      {side.team ? (
+        <View style={[styles.teamTag, { backgroundColor: side.team === 'blue' ? c.teamBlue : c.teamRed }]}>
+          <Text style={styles.teamTagText}>{side.team === 'blue' ? 'Blue' : 'Red'}</Text>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -124,11 +137,11 @@ export default function GameScreen() {
             accessibilityLabel="Edit game"
             hitSlop={6}
           >
-            <Ionicons name="create-outline" size={18} color={c.ink} />
+            <EditIcon color={c.ink} />
           </Pressable>
           {game.teams.length > 1 ? (
             <Pressable onPress={() => setChoosing(true)} accessibilityLabel="Choose team" hitSlop={6}>
-              <Jersey team={team} />
+              <Jersey team={team} switchable />
             </Pressable>
           ) : null}
         </View>
@@ -281,7 +294,7 @@ export default function GameScreen() {
               accessibilityLabel="Edit selection"
               hitSlop={8}
             >
-              <Ionicons name="create-outline" size={18} color={c.ink} />
+              <EditIcon color={c.ink} />
             </Pressable>
           ) : null}
         </View>
@@ -382,6 +395,9 @@ const styles = StyleSheet.create({
   result: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingVertical: 24 },
   side: { width: 96, alignItems: 'center', gap: 10 },
   sideName: { fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' },
+  teamTag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 2, marginTop: -4 },
+  teamTagText: { color: '#fff', fontFamily: fonts.medium, fontSize: 12.5 },
+  switch: { position: 'absolute', right: -5, bottom: -5, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   middle: { height: 72, alignItems: 'center', justifyContent: 'center' },
   end: { fontFamily: fonts.regular, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
   final: { fontFamily: fonts.semi, fontSize: 36 },

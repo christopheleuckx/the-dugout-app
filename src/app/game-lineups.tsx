@@ -8,6 +8,7 @@ import { onPitch, Pitch } from '../components/Pitch';
 import { useData, type Player, type Team } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
+import { EditIcon } from '../components/Icons';
 
 const spot = (position: string) => (onPitch(position) ? position : 'Bench');
 
@@ -51,7 +52,7 @@ export default function GameLineupsScreen() {
           accessibilityLabel="Edit line-ups"
           hitSlop={8}
         >
-          <Ionicons name="create-outline" size={18} color={c.ink} />
+          <EditIcon color={c.ink} />
         </Pressable>
       </View>
 
