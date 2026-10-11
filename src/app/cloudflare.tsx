@@ -114,6 +114,14 @@ export default function CloudflareScreen() {
     (Math.max(0, (usage?.classB ?? 0) - FREE_READS) / 1e6) * DOLLARS_PER_MILLION_READS;
   const month = new Date().toLocaleDateString('en-GB', { month: 'long' });
   const number = (n: number) => n.toLocaleString('en-GB');
+  // The requests are counted per calendar month and start again on the 1st.
+  const renews = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+  // "99.98%": two decimals while nearly everything is left, else whole numbers.
+  const left = (used: number, limit: number) => {
+    const share = Math.max(0, 1 - used / limit) * 100;
+    // Rounded down, so it only reads 100% when nothing has been used.
+    return `${share > 99 && share < 100 ? (Math.floor(share * 100) / 100).toFixed(2) : Math.floor(share)}%`;
+  };
   // A request allowance: how many were used of the free number, with a bar.
   const allowance = (label: string, used: number, free: number, limit: number, first = false) => (
     <View style={[{ paddingVertical: 12, gap: 6 }, !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
@@ -127,6 +135,9 @@ export default function CloudflareScreen() {
       <View style={[styles.track, { backgroundColor: c.surface2, height: 6 }]}>
         <View style={[styles.fill, { height: 6, backgroundColor: used >= limit ? c.danger : used > free ? c.amber : c.pitch, width: `${Math.min(100, Math.max(1, (used / limit) * 100))}%` }]} />
       </View>
+      <Text style={[styles.sub, { color: c.inkSoft }]}>
+        <Text style={{ color: used >= limit ? c.danger : c.ink, fontFamily: fonts.medium }}>{left(used, limit)} left</Text> until {renews}
+      </Text>
     </View>
   );
   const views = videos.reduce((sum, v) => sum + (v.storageKey ? v.views : 0), 0);
@@ -276,7 +287,7 @@ export default function CloudflareScreen() {
                   {allowance('Read requests', usage.classB, FREE_READS, limits.readMillions * 1e6)}
                 </View>
                 <Text style={[styles.note, { color: c.inkSoft }]}>
-                  Counted by Cloudflare since 1 {month}; its figures can run a little behind. One play of a video is several downloads, because it is fetched in pieces.
+                  Counted by Cloudflare since 1 {month}; both start again at zero on {renews}. Its figures can run a little behind. One play of a video is several downloads, because it is fetched in pieces.
                 </Text>
               </>
             ) : (
