@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from '../lib/auth';
 import { fonts, radius, shell } from '../lib/theme';
+import { IS_BETA } from '../lib/supabase';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -35,7 +36,7 @@ export default function Login() {
       <StatusBar style="light" />
       <View style={styles.form}>
         <Text style={styles.brand}>The Dugout</Text>
-        <Text style={styles.sub}>Sign in with your Dugout account</Text>
+        <Text style={styles.sub}>{IS_BETA ? 'Beta · test data, not your real season' : 'Sign in with your Dugout account'}</Text>
 
         <TextInput
           style={styles.input}
