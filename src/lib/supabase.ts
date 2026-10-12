@@ -3,11 +3,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 
-// Same Supabase project as the web app (football-hub/index.html), so both
-// read and write exactly the same data. The publishable key is safe to ship
-// in a client: Row Level Security only lets signed-in users through.
-const SUPABASE_URL = 'https://wjmydsutslejxjxbozkt.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_ZOnLTh-euOjv7qwyfgpOIQ_Ogd8DSxc';
+// The live project is the same one the web app uses (football-hub/index.html),
+// so both read and write exactly the same data. The beta of version 2 is
+// started with EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY set (see
+// .env.beta) and then talks to the separate test project instead. A
+// publishable key is safe to ship in a client: Row Level Security only lets
+// signed-in users through.
+const LIVE_URL = 'https://wjmydsutslejxjxbozkt.supabase.co';
+const LIVE_KEY = 'sb_publishable_ZOnLTh-euOjv7qwyfgpOIQ_Ogd8DSxc';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || LIVE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || LIVE_KEY;
+// True when the app is not connected to the live data.
+export const IS_BETA = SUPABASE_URL !== LIVE_URL;
 const AUTH_EMAIL_DOMAIN = '@footballhub-app.com';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
