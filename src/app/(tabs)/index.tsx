@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { Swimlane } from '../../components/Swimlane';
-import { Empty, Screen, SectionTitle } from '../../components/ui';
+import { APP_NAME, Empty, Screen, SectionTitle } from '../../components/ui';
 import { currentWeek, fmtDate, todayIso, useData, type Game } from '../../lib/data';
 import { brand, fonts, useColors } from '../../lib/theme';
 
@@ -124,7 +124,7 @@ export default function Dashboard() {
     .filter((group) => group.items.length);
 
   return (
-    <Screen title="The Dugout">
+    <Screen title={APP_NAME}>
       <View>
         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14 }}>
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}

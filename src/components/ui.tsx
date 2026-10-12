@@ -5,6 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
 import { Loader } from './Loader';
+import { IS_BETA } from '../lib/supabase';
+
+// The beta shows its own name and icon on every tab, so it is never mistaken
+// for the live app.
+const LOGO = require('../../assets/icon.png');
+const BETA_LOGO = require('../../assets/icon-beta.png');
+export const APP_NAME = IS_BETA ? 'The Dugout - Beta' : 'The Dugout';
 
 // Page frame shared by every tab: title bar with the app logo, pull-to-refresh, and the
 // loading / error states for the shared data load.
@@ -24,7 +31,7 @@ export function Screen({
   return (
     <View style={{ flex: 1, backgroundColor: c.chalk }}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <Image source={require('../../assets/icon.png')} style={styles.appLogo} accessibilityLabel="The Dugout" />
+        <Image source={IS_BETA ? BETA_LOGO : LOGO} style={styles.appLogo} accessibilityLabel={APP_NAME} />
         <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
         {/* Spacer the size of the logo keeps the title centred. */}
         <View style={{ width: 40 }} />
