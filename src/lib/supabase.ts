@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 // The live project is the same one the web app uses (football-hub/index.html),
 // so both read and write exactly the same data. The beta of version 2 is
 // started with EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY set (see
-// .env.beta) and then talks to the separate test project instead. A
+// beta.env) and then talks to the separate test project instead. A
 // publishable key is safe to ship in a client: Row Level Security only lets
 // signed-in users through.
 const LIVE_URL = 'https://wjmydsutslejxjxbozkt.supabase.co';
