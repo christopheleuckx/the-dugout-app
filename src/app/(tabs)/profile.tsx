@@ -124,7 +124,7 @@ export default function Profile() {
       <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/account')}>
           <Ionicons name="person-circle-outline" size={22} color={c.inkSoft} />
-          <Text style={[styles.label, { color: c.ink }]}>Account details</Text>
+          <Text style={[styles.label, { color: c.ink }]}>Account settings</Text>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
         {me && me.ageGroups.length > 1 ? (
@@ -139,17 +139,13 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
           </Pressable>
         ) : null}
-        {me?.isAdmin ? (
-          <>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/manage')}>
-              <Ionicons name="people-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Manage</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Coaches and what they may do</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/cloudflare')}>
+      </View>
+
+      {me?.isAdmin ? (
+        <>
+          <Text style={[styles.caption, { color: c.inkSoft }]}>Tools & costs</Text>
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
+            <Pressable style={styles.row} onPress={() => router.push('/cloudflare')}>
               <Ionicons name="cloud-outline" size={22} color={c.inkSoft} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Cloudflare</Text>
@@ -167,9 +163,27 @@ export default function Profile() {
               </View>
               <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
             </Pressable>
-          </>
-        ) : null}
-      </View>
+          </View>
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
+            <Pressable style={styles.row} onPress={() => router.push('/manage?view=age-groups')}>
+              <Ionicons name="shield-outline" size={22} color={c.inkSoft} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Age groups</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Clubs, their age groups and formats</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+            </Pressable>
+            <Pressable style={[styles.row, line]} onPress={() => router.push('/manage?view=coaches')}>
+              <Ionicons name="people-outline" size={22} color={c.inkSoft} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Coaches</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Who can sign in and what they may do</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+            </Pressable>
+          </View>
+        </>
+      ) : null}
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/about')}>
@@ -210,6 +224,7 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
+  caption: { fontFamily: fonts.regular, fontSize: 13, marginLeft: 12, marginTop: 4, marginBottom: -4 },
   card: { borderRadius: 14, paddingHorizontal: 16 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16 },
   edit: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

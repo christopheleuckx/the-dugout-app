@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,6 +37,8 @@ export default function ManageScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { me, refresh } = useData();
+  // The Profile opens this page twice: once for the age groups, once for the coaches.
+  const ageGroupsOnly = useLocalSearchParams<{ view?: string }>().view === 'age-groups';
   const [coaches, setCoaches] = useState<Coach[] | null>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
   // The coach being changed, or "new" for the form to add one.
@@ -238,8 +241,8 @@ export default function ManageScreen() {
         <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : 'Manage'}</Text>
-        {open || adding ? (
+        <Text style={[styles.title, { color: c.ink }]}>{adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Age groups' : 'Coaches'}</Text>
+        {open || adding || ageGroupsOnly ? (
           <View style={{ width: 36 }} />
         ) : (
           <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => show('new')} accessibilityLabel="New coach" hitSlop={8}>
@@ -362,7 +365,7 @@ export default function ManageScreen() {
         ) : (
           <>
             {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
-            {clubs.map((club) => (
+            {(ageGroupsOnly ? clubs : []).map((club) => (
               <View key={club.id} style={{ gap: 10 }}>
                 <Text style={[styles.section, { color: c.ink }]}>{club.name}</Text>
                 <View style={[styles.card, { backgroundColor: c.surface }]}>
@@ -404,32 +407,33 @@ export default function ManageScreen() {
                 </View>
               </View>
             ))}
-            <Text style={[styles.section, { color: c.ink, marginTop: clubs.length ? 8 : 0 }]}>Coaches</Text>
-            <View style={[styles.card, { backgroundColor: c.surface }]}>
-              {coaches.map((coach, i) => (
-                <Pressable key={coach.id} style={[styles.row, { minHeight: 62 }, i > 0 && line]} onPress={() => show(coach)}>
-                  <Avatar profile={coach} size={38} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
-                      {`${coach.firstName} ${coach.lastName}`.trim() || coach.username}
-                    </Text>
-                    <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={1}>
-                      {[
-                        clubs
-                          .flatMap((club) => club.ageGroups)
-                          .filter((g) => (links[coach.id] ?? []).includes(g.id))
-                          .map((g) => g.name)
-                          .join(', ') || 'No age group',
-                        coach.isAdmin ? 'Admin' : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-                </Pressable>
-              ))}
-            </View>
+            {ageGroupsOnly ? null : (
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
+                {coaches.map((coach, i) => (
+                  <Pressable key={coach.id} style={[styles.row, { minHeight: 62 }, i > 0 && line]} onPress={() => show(coach)}>
+                    <Avatar profile={coach} size={38} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
+                        {`${coach.firstName} ${coach.lastName}`.trim() || coach.username}
+                      </Text>
+                      <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={1}>
+                        {[
+                          clubs
+                            .flatMap((club) => club.ageGroups)
+                            .filter((g) => (links[coach.id] ?? []).includes(g.id))
+                            .map((g) => g.name)
+                            .join(', ') || 'No age group',
+                          coach.isAdmin ? 'Admin' : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
