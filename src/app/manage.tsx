@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -16,16 +17,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '../components/Avatar';
+import { Crest } from '../components/MatchCard';
 import { useData, type Profile } from '../lib/data';
 import { goBack } from '../lib/nav';
-import { supabase } from '../lib/supabase';
+import { logoUrl, supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 
 const FORMATS = ['8v8', '9v9', '11v11'];
 
 // A club with its age groups, as the structure of version 2 stores them.
 type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number };
-type Club = { id: string; name: string; ageGroups: AgeGroup[] };
+type Club = { id: string; name: string; logoPath: string | null; ageGroups: AgeGroup[] };
 
 // A coach's account as the admin manages it.
 type Coach = Profile & { flags: Record<string, unknown> };
@@ -97,13 +99,14 @@ export default function ManageScreen() {
     // Clubs, their age groups and teams, with how many coaches and players each has.
     const structure = await supabase
       .from('clubs')
-      .select('id, name, age_groups(id, name, default_format, teams(key, name), age_group_members(user_id))')
+      .select('id, name, logo_path, age_groups(id, name, default_format, teams(key, name), age_group_members(user_id))')
       .order('name');
     if (!structure.error) {
       setClubs(
         (structure.data ?? []).map((club) => ({
           id: club.id,
           name: club.name,
+          logoPath: club.logo_path ?? null,
           ageGroups: (club.age_groups ?? [])
             .map((a) => ({
               id: a.id,
@@ -223,6 +226,39 @@ export default function ManageScreen() {
       setError(`Could not ${editing ? 'save' : 'add'} the age group: ${(e as Error).message}`);
     }
     setSaving(false);
+  }
+
+  // A club's logo: chosen from the photos, stored with the other logos, and
+  // the old file removed. Everyone of the club sees it on their games.
+  const [logoBusy, setLogoBusy] = useState<string | null>(null);
+  async function changeLogo(club: Club) {
+    setError('');
+    let result;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, base64: true });
+    } catch (e) {
+      setError(`Could not open your photos: ${(e as { message?: string })?.message ?? 'unknown error'}`);
+      return;
+    }
+    if (result.canceled) return;
+    setLogoBusy(club.id);
+    try {
+      const base64 = result.assets[0].base64;
+      if (!base64) throw new Error('the photo could not be read');
+      const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0)).buffer;
+      const path = `club/${club.id}-${Date.now()}.jpg`;
+      const uploaded = await supabase.storage.from('competitor-logos').upload(path, bytes, { contentType: 'image/jpeg' });
+      if (uploaded.error) throw uploaded.error;
+      const saved = await supabase.from('clubs').update({ logo_path: path }).eq('id', club.id).select('id');
+      if (saved.error) throw saved.error;
+      if (!saved.data?.length) throw new Error('you may not change this club');
+      if (club.logoPath) await supabase.storage.from('competitor-logos').remove([club.logoPath]);
+      await load();
+      await refresh();
+    } catch (e) {
+      setError(`Could not save the logo: ${(e as { message?: string })?.message ?? 'unknown error'}`);
+    }
+    setLogoBusy(null);
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
@@ -367,7 +403,13 @@ export default function ManageScreen() {
             {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
             {(ageGroupsOnly ? clubs : []).map((club) => (
               <View key={club.id} style={{ gap: 10 }}>
-                <Text style={[styles.section, { color: c.ink }]}>{club.name}</Text>
+                <Pressable style={styles.club} onPress={() => changeLogo(club)} accessibilityLabel={`Change the logo of ${club.name}`}>
+                  {logoBusy === club.id ? <ActivityIndicator color={c.pitch} style={{ width: 44, height: 44 }} /> : <Crest url={logoUrl(club.logoPath)} name={club.name} size={44} />}
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.section, { color: c.ink }]}>{club.name}</Text>
+                    <Text style={{ color: c.pitch, fontFamily: fonts.regular, fontSize: 13 }}>{club.logoPath ? 'Change logo' : 'Add logo'}</Text>
+                  </View>
+                </Pressable>
                 <View style={[styles.card, { backgroundColor: c.surface }]}>
                   {club.ageGroups.map((group, i) => (
                     <Pressable
@@ -442,6 +484,7 @@ export default function ManageScreen() {
 }
 
 const styles = StyleSheet.create({
+  club: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
   page: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
