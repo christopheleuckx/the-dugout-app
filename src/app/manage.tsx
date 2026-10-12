@@ -49,6 +49,8 @@ export default function ManageScreen() {
   const [groups, setGroups] = useState<string[]>([]);
   // The form to add an age group to a club.
   const [adding, setAdding] = useState<Club | null>(null);
+  // The age group being changed with that same form, instead of a new one.
+  const [editing, setEditing] = useState<AgeGroup | null>(null);
   const [groupName, setGroupName] = useState('');
   const [format, setFormat] = useState('8v8');
   const [twoTeams, setTwoTeams] = useState(true);
@@ -191,6 +193,15 @@ export default function ManageScreen() {
     setSaving(true);
     setError('');
     try {
+      if (editing) {
+        const changed = await supabase.from('age_groups').update({ name: groupName.trim(), default_format: format }).eq('id', editing.id);
+        if (changed.error) throw new Error(/duplicate/i.test(changed.error.message) ? 'This club already has an age group with that name.' : changed.error.message);
+        await Promise.all([load(), refresh()]);
+        setAdding(null);
+        setEditing(null);
+        setSaving(false);
+        return;
+      }
       const made = await supabase.from('age_groups').insert({ club_id: adding.id, name: groupName.trim(), default_format: format }).select('id').single();
       if (made.error) throw new Error(/duplicate/i.test(made.error.message) ? 'This club already has an age group with that name.' : made.error.message);
       const teams = twoTeams
@@ -206,7 +217,7 @@ export default function ManageScreen() {
       await Promise.all([load(), refresh()]);
       setAdding(null);
     } catch (e) {
-      setError(`Could not add the age group: ${(e as Error).message}`);
+      setError(`Could not ${editing ? 'save' : 'add'} the age group: ${(e as Error).message}`);
     }
     setSaving(false);
   }
@@ -224,10 +235,10 @@ export default function ManageScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (adding ? setAdding(null) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{adding ? 'New age group' : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : 'Manage'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : 'Manage'}</Text>
         {open || adding ? (
           <View style={{ width: 36 }} />
         ) : (
@@ -240,7 +251,9 @@ export default function ManageScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {adding ? (
           <>
-            <Text style={[styles.note, { color: c.inkSoft }]}>A new age group of {adding.name}, with its own players, games and trainings.</Text>
+            <Text style={[styles.note, { color: c.inkSoft }]}>
+              {editing ? `An age group of ${adding.name}.` : `A new age group of ${adding.name}, with its own players, games and trainings.`}
+            </Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>{field('Name', groupName, setGroupName, { placeholder: 'U13' }, true)}</View>
             <Text style={[styles.caption, { color: c.inkSoft }]}>Usual format</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
@@ -251,21 +264,29 @@ export default function ManageScreen() {
                 </Pressable>
               ))}
             </View>
-            <Text style={[styles.caption, { color: c.inkSoft }]}>Teams</Text>
-            <View style={[styles.card, { backgroundColor: c.surface }]}>
-              {[
-                { two: false, label: 'One team' },
-                { two: true, label: 'Blue and Red' },
-              ].map((option, i) => (
-                <Pressable key={option.label} style={[styles.row, i > 0 && line]} onPress={() => setTwoTeams(option.two)}>
-                  <Text style={[styles.label, { color: c.ink }]}>{option.label}</Text>
-                  {twoTeams === option.two ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
-                </Pressable>
-              ))}
-            </View>
+            {editing ? (
+              <Text style={[styles.note, { color: c.inkSoft }]}>
+                New games start in this format; a game can still choose another one. Teams: {editing.teams.join(' and ')}.
+              </Text>
+            ) : (
+              <>
+              <Text style={[styles.caption, { color: c.inkSoft }]}>Teams</Text>
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
+                {[
+                  { two: false, label: 'One team' },
+                  { two: true, label: 'Blue and Red' },
+                ].map((option, i) => (
+                  <Pressable key={option.label} style={[styles.row, i > 0 && line]} onPress={() => setTwoTeams(option.two)}>
+                    <Text style={[styles.label, { color: c.ink }]}>{option.label}</Text>
+                    {twoTeams === option.two ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                  </Pressable>
+                ))}
+              </View>
+              </>
+            )}
             {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
             <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={addGroup}>
-              {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Add age group</Text>}
+              {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>{editing ? 'Save' : 'Add age group'}</Text>}
             </Pressable>
           </>
         ) : open ? (
@@ -346,18 +367,30 @@ export default function ManageScreen() {
                 <Text style={[styles.section, { color: c.ink }]}>{club.name}</Text>
                 <View style={[styles.card, { backgroundColor: c.surface }]}>
                   {club.ageGroups.map((group, i) => (
-                    <View key={group.id} style={[styles.row, { minHeight: 62 }, i > 0 && line]}>
+                    <Pressable
+                      key={group.id}
+                      style={[styles.row, { minHeight: 62 }, i > 0 && line]}
+                      onPress={() => {
+                        setGroupName(group.name);
+                        setFormat(group.format);
+                        setError('');
+                        setEditing(group);
+                        setAdding(club);
+                      }}
+                    >
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
                         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
                           {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
                         </Text>
                       </View>
-                    </View>
+                      <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                    </Pressable>
                   ))}
                   <Pressable
                     style={[styles.row, club.ageGroups.length > 0 && line]}
                     onPress={() => {
+                      setEditing(null);
                       setGroupName('');
                       setFormat('8v8');
                       setTwoTeams(true);
