@@ -300,11 +300,15 @@ export default function ManageScreen() {
                         key={group.id}
                         style={[styles.row, i > 0 && line]}
                         onPress={() => setGroups(on ? groups.filter((g) => g !== group.id) : [...groups, group.id])}
-                        accessibilityRole="checkbox"
+                        accessibilityRole="switch"
                         accessibilityState={{ checked: on }}
                       >
                         <Text style={[styles.label, { color: c.ink }]}>{group.name}</Text>
-                        <Ionicons name={on ? 'checkbox' : 'square-outline'} size={22} color={on ? c.pitch : c.inkSoft} />
+                        <Switch
+                          value={on}
+                          onValueChange={(next) => setGroups(next ? [...groups.filter((g) => g !== group.id), group.id] : groups.filter((g) => g !== group.id))}
+                          trackColor={{ true: c.pitch }}
+                        />
                       </Pressable>
                     );
                   })}
