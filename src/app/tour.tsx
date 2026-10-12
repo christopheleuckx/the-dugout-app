@@ -17,7 +17,7 @@ const STEP_MS = 2600;
 const PAD = 10;
 // The rounding of the highlight and of its label, and how thick the dark
 // border around the highlight is (enough to cover the whole small screen).
-const RADIUS = 16;
+const RADIUS = 8;
 const HOLE = 700;
 
 // A small screen of the app. While it is the slide on show, a frame steps
