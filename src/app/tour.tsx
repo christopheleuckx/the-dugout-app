@@ -15,6 +15,10 @@ const DIM = 'rgba(12,31,74,0.62)';
 // How long each part of a small screen stays pointed out.
 const STEP_MS = 2600;
 const PAD = 10;
+// The rounding of the highlight and of its label, and how thick the dark
+// border around the highlight is (enough to cover the whole small screen).
+const RADIUS = 16;
+const HOLE = 700;
 
 // A small screen of the app. While it is the slide on show, a frame steps
 // from one pointed-out part to the next, dimming the rest and scrolling the
@@ -93,11 +97,14 @@ function MiniScreen({ scenes, active, width, height }: { scenes: TourBlock[][]; 
 
       {target ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]} pointerEvents="none">
-          {/* Four dark panes around the frame leave the pointed-out part clear. */}
-          <Animated.View style={[styles.dim, { top: 0, left: 0, right: 0, height: top }]} />
-          <Animated.View style={[styles.dim, { top: Animated.add(top, size), left: 0, right: 0, bottom: 0 }]} />
-          <Animated.View style={[styles.dim, { top, left: 0, width: PAD - 4, height: size }]} />
-          <Animated.View style={[styles.dim, { top, right: 0, width: PAD - 4, height: size }]} />
+          {/* One very thick dark border around the pointed-out part: its inner
+              edge is the rounded opening, the border itself dims the rest. */}
+          <Animated.View
+            style={[
+              styles.dim,
+              { top: Animated.subtract(top, HOLE), left: PAD - 4 - HOLE, right: PAD - 4 - HOLE, height: Animated.add(size, HOLE * 2) },
+            ]}
+          />
           <Animated.View style={[styles.ring, { top, left: PAD - 4, right: PAD - 4, height: size }]} />
           <View style={[styles.tip, { top: tipTop }]}>
             <Text style={styles.tipText}>{spot?.spot}</Text>
@@ -203,9 +210,9 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#2F4C8C' },
   dotOn: { width: 20, backgroundColor: '#fff' },
   frame: { backgroundColor: '#F3F5F9', borderRadius: 20, overflow: 'hidden' },
-  dim: { position: 'absolute', backgroundColor: DIM },
-  ring: { position: 'absolute', borderWidth: 2, borderColor: '#fff', borderRadius: 12 },
-  tip: { position: 'absolute', left: 8, right: 8, backgroundColor: '#fff', borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10 },
+  dim: { position: 'absolute', borderWidth: HOLE, borderColor: DIM, borderRadius: HOLE + RADIUS },
+  ring: { position: 'absolute', borderWidth: 2, borderColor: '#fff', borderRadius: RADIUS },
+  tip: { position: 'absolute', left: 8, right: 8, backgroundColor: '#fff', borderRadius: RADIUS, paddingVertical: 8, paddingHorizontal: 12 },
   tipText: { color: NAVY, fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, textAlign: 'center' },
   newTag: { alignSelf: 'flex-start', backgroundColor: '#C81E2E', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2, marginTop: 16 },
   newText: { color: '#fff', fontFamily: fonts.medium, fontSize: 12 },
