@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fmtDate, toIso, useData } from '../lib/data';
+import { FORMATS } from '../lib/formats';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
@@ -30,7 +31,7 @@ const TEAMS = [
   { value: 2, label: 'Blue and Red' },
 ];
 
-type Page = null | 'opponent' | 'date' | 'time' | 'venue' | 'competition' | 'level' | 'teams' | 'quarters';
+type Page = null | 'opponent' | 'date' | 'time' | 'venue' | 'competition' | 'level' | 'teams' | 'format' | 'quarters';
 
 // New game, or the details of an existing one when opened with its id: a
 // settings-style form. Each row opens a page to choose its value; Save writes
@@ -39,7 +40,7 @@ export default function NewGameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { competitors, refresh } = useData();
+  const { competitors, me, refresh } = useData();
 
   const [page, setPage] = useState<Page>(null);
   const [opponent, setOpponent] = useState('');
@@ -49,6 +50,8 @@ export default function NewGameScreen() {
   const [competition, setCompetition] = useState('Competition');
   const [level, setLevel] = useState('IP3');
   const [teams, setTeams] = useState(2);
+  // A new game starts with the age group's usual format.
+  const [format, setFormat] = useState<string>(me?.activeAgeGroup?.format ?? '8v8');
   const [quarters, setQuarters] = useState(4);
   const [minutes, setMinutes] = useState(20);
   // Custom names per quarter; an empty one falls back to Q1, Q2…
@@ -66,7 +69,7 @@ export default function NewGameScreen() {
     if (!id) return;
     supabase
       .from('games')
-      .select('date, time, opponent, type, competition, home_away, location, remarks, quarters, quarter_length, num_teams, quarter_scores, quarter_labels')
+      .select('date, time, opponent, type, competition, home_away, location, remarks, quarters, quarter_length, num_teams, quarter_scores, quarter_labels, format')
       .eq('id', id)
       .single()
       .then(({ data: g, error: failed }) => {
@@ -85,6 +88,7 @@ export default function NewGameScreen() {
         setCompetition(g.competition ?? 'Competition');
         setLevel(g.type ?? 'IP3');
         setTeams(g.num_teams === 1 ? 1 : 2);
+        if (g.format) setFormat(g.format);
         setQuarters(g.quarters ?? 4);
         setMinutes(g.quarter_length ?? 20);
         setNames(Array.isArray(g.quarter_labels) ? g.quarter_labels : []);
@@ -126,6 +130,7 @@ export default function NewGameScreen() {
         quarters,
         quarter_length: minutes,
         num_teams: teams,
+        format,
         location: location.trim(),
         remarks,
         quarter_scores: Array.from({ length: quarters }, (_, i) => scores[i] ?? { for: null, against: null }),
@@ -230,6 +235,7 @@ export default function NewGameScreen() {
     competition: 'Competition',
     level: 'Level',
     teams: 'Teams',
+    format: 'Format',
     quarters: tournament ? 'Games' : 'Quarters',
   };
 
@@ -308,6 +314,7 @@ export default function NewGameScreen() {
   else if (page === 'competition') body = options(plain(COMPETITIONS), competition, setCompetition);
   else if (page === 'level') body = options(plain(LEVELS), level, setLevel);
   else if (page === 'teams') body = options(TEAMS, teams, setTeams);
+  else if (page === 'format') body = options(plain(FORMATS), format, setFormat);
   else if (page === 'quarters') {
     body = (
       <>
@@ -354,6 +361,7 @@ export default function NewGameScreen() {
           {row('Competition', competition, 'competition')}
           {row('Level', level, 'level')}
           {row('Teams', TEAMS.find((t) => t.value === teams)!.label, 'teams')}
+          {row('Format', format, 'format')}
           {row(titles.quarters, `${quarters} × ${minutes}'`, 'quarters')}
         </View>
         <View style={[styles.card, { backgroundColor: c.surface }]}>
