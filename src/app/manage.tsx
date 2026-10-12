@@ -23,6 +23,10 @@ import { fonts, useColors } from '../lib/theme';
 // The club's age groups this app covers.
 const AGE_GROUPS = ['U12', 'U15'];
 
+// A club with its age groups, as the structure of version 2 stores them.
+type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number; players: number };
+type Club = { id: string; name: string; ageGroups: AgeGroup[] };
+
 // A coach's account as the admin manages it.
 type Coach = Profile & { flags: Record<string, unknown> };
 
@@ -33,6 +37,7 @@ export default function ManageScreen() {
   const insets = useSafeAreaInsets();
   const { me, refresh } = useData();
   const [coaches, setCoaches] = useState<Coach[] | null>(null);
+  const [clubs, setClubs] = useState<Club[]>([]);
   // The coach being changed, or "new" for the form to add one.
   const [open, setOpen] = useState<Coach | 'new' | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -71,6 +76,29 @@ export default function ManageScreen() {
         flags: p.feature_flags ?? {},
       })),
     );
+    // Clubs, their age groups and teams, with how many coaches and players each has.
+    const structure = await supabase
+      .from('clubs')
+      .select('id, name, age_groups(id, name, default_format, teams(key, name), age_group_members(user_id), players(id))')
+      .order('name');
+    if (!structure.error) {
+      setClubs(
+        (structure.data ?? []).map((club) => ({
+          id: club.id,
+          name: club.name,
+          ageGroups: (club.age_groups ?? [])
+            .map((a) => ({
+              id: a.id,
+              name: a.name,
+              format: a.default_format,
+              teams: (a.teams ?? []).sort((x, y) => x.key.localeCompare(y.key)).map((t) => t.name),
+              coaches: (a.age_group_members ?? []).length,
+              players: (a.players ?? []).length,
+            }))
+            .sort((x, y) => x.name.localeCompare(y.name)),
+        })),
+      );
+    }
   }, []);
   useEffect(() => {
     load();
@@ -207,7 +235,24 @@ export default function ManageScreen() {
         ) : (
           <>
             {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
-            <Text style={[styles.section, { color: c.ink }]}>Coaches</Text>
+            {clubs.map((club) => (
+              <View key={club.id} style={{ gap: 10 }}>
+                <Text style={[styles.section, { color: c.ink }]}>{club.name}</Text>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
+                  {club.ageGroups.map((group, i) => (
+                    <View key={group.id} style={[styles.row, { minHeight: 62 }, i > 0 && line]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
+                        <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                          {[group.format, group.teams.join(' and '), `${group.players} players`, `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+            <Text style={[styles.section, { color: c.ink, marginTop: clubs.length ? 8 : 0 }]}>Coaches</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {coaches.map((coach, i) => (
                 <Pressable key={coach.id} style={[styles.row, { minHeight: 62 }, i > 0 && line]} onPress={() => show(coach)}>
