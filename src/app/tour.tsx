@@ -124,9 +124,11 @@ export default function TourScreen() {
   const [index, setIndex] = useState(0);
   const last = index === slides.length - 1;
 
-  // The small screen takes the room that is left above the text and buttons.
+  // The small screen takes the room that is really left between the dots and
+  // the buttons, minus the lines of text under it, so Next and Skip always fit.
+  const [room, setRoom] = useState(height - insets.top - insets.bottom - 190);
   const frameWidth = Math.min(310, width - 72);
-  const frameHeight = Math.max(250, Math.min(440, height - insets.top - insets.bottom - 352));
+  const frameHeight = Math.max(200, Math.min(460, room - 132));
 
   // Leaving, by the last button or by Skip, counts as having seen it.
   async function close() {
@@ -143,7 +145,7 @@ export default function TourScreen() {
   }
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 8 }]}>
+    <View style={[styles.page, { paddingTop: insets.top + 2, paddingBottom: Math.max(insets.bottom, 12) }]}>
       <StatusBar style="light" />
       <Text style={styles.counter}>
         {index + 1} of {slides.length}
@@ -162,6 +164,7 @@ export default function TourScreen() {
         onScroll={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
         scrollEventThrottle={32}
         style={{ flex: 1 }}
+        onLayout={(e) => setRoom(e.nativeEvent.layout.height)}
       >
         {slides.map((slide, i) => (
           <View key={slide.title} style={{ width, paddingHorizontal: 24 }}>
@@ -173,18 +176,20 @@ export default function TourScreen() {
                 <Text style={styles.newText}>New</Text>
               </View>
             ) : null}
-            <Text style={[styles.title, onlyNew && { marginTop: 8 }]}>{slide.title}</Text>
-            <Text style={styles.text}>{slide.text}</Text>
+            <Text style={[styles.title, onlyNew && { marginTop: 8 }]} maxFontSizeMultiplier={1.15} numberOfLines={2}>{slide.title}</Text>
+            <Text style={styles.text} maxFontSizeMultiplier={1.15} numberOfLines={3}>
+              {slide.text}
+            </Text>
           </View>
         ))}
       </ScrollView>
 
       <View style={{ paddingHorizontal: 24 }}>
         <Pressable style={({ pressed }) => [styles.next, pressed && { opacity: 0.85 }]} onPress={next}>
-          <Text style={styles.nextText}>{last ? 'Get started' : 'Next'}</Text>
+          <Text style={styles.nextText} maxFontSizeMultiplier={1.15}>{last ? 'Get started' : 'Next'}</Text>
         </Pressable>
         <Pressable style={styles.skip} onPress={close} disabled={last} hitSlop={6}>
-          <Text style={[styles.skipText, last && { opacity: 0 }]}>Skip</Text>
+          <Text style={[styles.skipText, last && { opacity: 0 }]} maxFontSizeMultiplier={1.15}>Skip</Text>
         </Pressable>
       </View>
     </View>
@@ -194,7 +199,7 @@ export default function TourScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: NAVY },
   counter: { color: '#B5C7EA', fontFamily: fonts.regular, fontSize: 13, textAlign: 'center' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 16 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 6, marginBottom: 10 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#2F4C8C' },
   dotOn: { width: 20, backgroundColor: '#fff' },
   frame: { backgroundColor: '#F3F5F9', borderRadius: 20, overflow: 'hidden' },
@@ -204,10 +209,10 @@ const styles = StyleSheet.create({
   tipText: { color: NAVY, fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, textAlign: 'center' },
   newTag: { alignSelf: 'flex-start', backgroundColor: '#C81E2E', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2, marginTop: 16 },
   newText: { color: '#fff', fontFamily: fonts.medium, fontSize: 12 },
-  title: { color: '#fff', fontFamily: fonts.semi, fontSize: 22, lineHeight: 27, marginTop: 18 },
-  text: { color: '#C9D6F0', fontFamily: fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 6 },
+  title: { color: '#fff', fontFamily: fonts.semi, fontSize: 22, lineHeight: 27, marginTop: 14 },
+  text: { color: '#C9D6F0', fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, marginTop: 4 },
   next: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   nextText: { color: NAVY, fontFamily: fonts.semi, fontSize: 16 },
-  skip: { alignItems: 'center', paddingVertical: 12 },
+  skip: { alignItems: 'center', paddingTop: 12, paddingBottom: 6 },
   skipText: { color: '#B5C7EA', fontFamily: fonts.regular, fontSize: 15 },
 });
