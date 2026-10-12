@@ -20,18 +20,18 @@ import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 
-// The club's age groups this app covers.
-const AGE_GROUPS = ['U12', 'U15'];
+const FORMATS = ['8v8', '9v9', '11v11'];
 
 // A club with its age groups, as the structure of version 2 stores them.
-type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number; players: number };
+type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number };
 type Club = { id: string; name: string; ageGroups: AgeGroup[] };
 
 // A coach's account as the admin manages it.
 type Coach = Profile & { flags: Record<string, unknown> };
 
 // For admins: the coaches who can sign in. Add a coach, link them to an age
-// group, and decide whether they may save videos to their phone.
+// groups, and decide whether they may save videos to their phone. Also the
+// clubs with their age groups, and adding an age group to a club.
 export default function ManageScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
@@ -44,7 +44,14 @@ export default function ManageScreen() {
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [ageGroup, setAgeGroup] = useState<string | null>(null);
+  // Per coach id: the age groups they are linked to; and the ticks on the open coach.
+  const [links, setLinks] = useState<Record<string, string[]>>({});
+  const [groups, setGroups] = useState<string[]>([]);
+  // The form to add an age group to a club.
+  const [adding, setAdding] = useState<Club | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [format, setFormat] = useState('8v8');
+  const [twoTeams, setTwoTeams] = useState(true);
   const [saveVideos, setSaveVideos] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -73,13 +80,19 @@ export default function ManageScreen() {
         avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         canSaveVideos: p.is_admin || !!p.feature_flags?.saveVideos,
         tourSeen: 0,
+        ageGroups: [],
+        activeAgeGroup: null,
         flags: p.feature_flags ?? {},
       })),
     );
+    const members = await supabase.from('age_group_members').select('age_group_id, user_id');
+    const byCoach: Record<string, string[]> = {};
+    for (const m of members.data ?? []) (byCoach[m.user_id] ??= []).push(m.age_group_id);
+    setLinks(byCoach);
     // Clubs, their age groups and teams, with how many coaches and players each has.
     const structure = await supabase
       .from('clubs')
-      .select('id, name, age_groups(id, name, default_format, teams(key, name), age_group_members(user_id), players(id))')
+      .select('id, name, age_groups(id, name, default_format, teams(key, name), age_group_members(user_id))')
       .order('name');
     if (!structure.error) {
       setClubs(
@@ -93,7 +106,6 @@ export default function ManageScreen() {
               format: a.default_format,
               teams: (a.teams ?? []).sort((x, y) => x.key.localeCompare(y.key)).map((t) => t.name),
               coaches: (a.age_group_members ?? []).length,
-              players: (a.players ?? []).length,
             }))
             .sort((x, y) => x.name.localeCompare(y.name)),
         })),
@@ -110,7 +122,7 @@ export default function ManageScreen() {
     setLastName(existing?.lastName ?? '');
     setUsername(existing?.username ?? '');
     setPassword('');
-    setAgeGroup(existing?.ageGroup ?? null);
+    setGroups(existing ? (links[existing.id] ?? []) : me?.activeAgeGroup ? [me.activeAgeGroup.id] : []);
     setSaveVideos(existing ? existing.canSaveVideos : false);
     setError('');
     setOpen(coach);
@@ -140,14 +152,61 @@ export default function ManageScreen() {
       const flags = saveVideos !== before ? { feature_flags: { ...(open === 'new' ? {} : open.flags), saveVideos } } : {};
       const saved = await supabase
         .from('profiles')
-        .update({ first_name: firstName.trim(), last_name: lastName.trim(), age_group: ageGroup, ...flags })
+        .update({ first_name: firstName.trim(), last_name: lastName.trim(), ...flags })
         .eq('id', id);
       if (saved.error) throw new Error(saved.error.message);
+      // Link and unlink age groups to match the ticks.
+      const linkedBefore = open === 'new' ? [] : (links[id] ?? []);
+      const added = groups.filter((g) => !linkedBefore.includes(g));
+      const removed = linkedBefore.filter((g) => !groups.includes(g));
+      if (added.length) {
+        const linked = await supabase.from('age_group_members').insert(added.map((g) => ({ age_group_id: g, user_id: id })));
+        if (linked.error) throw new Error(linked.error.message);
+      }
+      if (removed.length) {
+        const unlinked = await supabase.from('age_group_members').delete().eq('user_id', id).in('age_group_id', removed);
+        if (unlinked.error) throw new Error(unlinked.error.message);
+      }
+      // A coach always works in one of their own age groups: a new coach
+      // starts in the first one, and so does a coach unlinked from the one
+      // they were working in.
+      if (open === 'new') {
+        await supabase.from('profiles').update({ active_age_group_id: groups[0] ?? null }).eq('id', id);
+      } else if (removed.length) {
+        await supabase.from('profiles').update({ active_age_group_id: groups[0] ?? null }).eq('id', id).in('active_age_group_id', removed);
+      }
       await load();
       if (id === me?.id) await refresh();
       setOpen(null);
     } catch (e) {
       setError(`Could not save: ${(e as Error).message}`);
+    }
+    setSaving(false);
+  }
+
+  // A new age group gets its teams, and the admin who makes it is linked to it.
+  async function addGroup() {
+    if (saving || !adding || !me) return;
+    if (!groupName.trim()) return setError('Give the age group a name.');
+    setSaving(true);
+    setError('');
+    try {
+      const made = await supabase.from('age_groups').insert({ club_id: adding.id, name: groupName.trim(), default_format: format }).select('id').single();
+      if (made.error) throw new Error(/duplicate/i.test(made.error.message) ? 'This club already has an age group with that name.' : made.error.message);
+      const teams = twoTeams
+        ? [
+            { age_group_id: made.data.id, key: 'blue', name: 'Blue', color: '#2E86DE' },
+            { age_group_id: made.data.id, key: 'red', name: 'Red', color: '#C81E2E' },
+          ]
+        : [{ age_group_id: made.data.id, key: 'blue', name: groupName.trim(), color: '#2E86DE' }];
+      const teamed = await supabase.from('teams').insert(teams);
+      if (teamed.error) throw new Error(teamed.error.message);
+      const linked = await supabase.from('age_group_members').insert({ age_group_id: made.data.id, user_id: me.id });
+      if (linked.error) throw new Error(linked.error.message);
+      await Promise.all([load(), refresh()]);
+      setAdding(null);
+    } catch (e) {
+      setError(`Could not add the age group: ${(e as Error).message}`);
     }
     setSaving(false);
   }
@@ -165,11 +224,11 @@ export default function ManageScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (adding ? setAdding(null) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : 'Manage'}</Text>
-        {open ? (
+        <Text style={[styles.title, { color: c.ink }]}>{adding ? 'New age group' : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : 'Manage'}</Text>
+        {open || adding ? (
           <View style={{ width: 36 }} />
         ) : (
           <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => show('new')} accessibilityLabel="New coach" hitSlop={8}>
@@ -179,7 +238,37 @@ export default function ManageScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {open ? (
+        {adding ? (
+          <>
+            <Text style={[styles.note, { color: c.inkSoft }]}>A new age group of {adding.name}, with its own players, games and trainings.</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>{field('Name', groupName, setGroupName, { placeholder: 'U13' }, true)}</View>
+            <Text style={[styles.caption, { color: c.inkSoft }]}>Usual format</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              {FORMATS.map((f, i) => (
+                <Pressable key={f} style={[styles.row, i > 0 && line]} onPress={() => setFormat(f)}>
+                  <Text style={[styles.label, { color: c.ink }]}>{f}</Text>
+                  {format === f ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                </Pressable>
+              ))}
+            </View>
+            <Text style={[styles.caption, { color: c.inkSoft }]}>Teams</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              {[
+                { two: false, label: 'One team' },
+                { two: true, label: 'Blue and Red' },
+              ].map((option, i) => (
+                <Pressable key={option.label} style={[styles.row, i > 0 && line]} onPress={() => setTwoTeams(option.two)}>
+                  <Text style={[styles.label, { color: c.ink }]}>{option.label}</Text>
+                  {twoTeams === option.two ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                </Pressable>
+              ))}
+            </View>
+            {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
+            <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={addGroup}>
+              {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Add age group</Text>}
+            </Pressable>
+          </>
+        ) : open ? (
           <>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {field('First name', firstName, setFirstName, {}, true)}
@@ -200,15 +289,28 @@ export default function ManageScreen() {
               <Text style={[styles.note, { color: c.inkSoft }]}>Give the username and password to the coach yourself; they sign in with them.</Text>
             ) : null}
 
-            <Text style={[styles.caption, { color: c.inkSoft }]}>Age group</Text>
-            <View style={[styles.card, { backgroundColor: c.surface }]}>
-              {[...AGE_GROUPS, null].map((group, i) => (
-                <Pressable key={group ?? 'none'} style={[styles.row, i > 0 && line]} onPress={() => setAgeGroup(group)}>
-                  <Text style={[styles.label, { color: c.ink }]}>{group ?? 'None'}</Text>
-                  {ageGroup === group ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
-                </Pressable>
-              ))}
-            </View>
+            {clubs.map((club) => (
+              <View key={club.id} style={{ gap: 10 }}>
+                <Text style={[styles.caption, { color: c.inkSoft }]}>Age groups · {club.name}</Text>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
+                  {club.ageGroups.map((group, i) => {
+                    const on = groups.includes(group.id);
+                    return (
+                      <Pressable
+                        key={group.id}
+                        style={[styles.row, i > 0 && line]}
+                        onPress={() => setGroups(on ? groups.filter((g) => g !== group.id) : [...groups, group.id])}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: on }}
+                      >
+                        <Text style={[styles.label, { color: c.ink }]}>{group.name}</Text>
+                        <Ionicons name={on ? 'checkbox' : 'square-outline'} size={22} color={on ? c.pitch : c.inkSoft} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
 
             <Text style={[styles.caption, { color: c.inkSoft }]}>Videos</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
@@ -244,11 +346,24 @@ export default function ManageScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
                         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
-                          {[group.format, group.teams.join(' and '), `${group.players} players`, `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
+                          {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
                         </Text>
                       </View>
                     </View>
                   ))}
+                  <Pressable
+                    style={[styles.row, club.ageGroups.length > 0 && line]}
+                    onPress={() => {
+                      setGroupName('');
+                      setFormat('8v8');
+                      setTwoTeams(true);
+                      setError('');
+                      setAdding(club);
+                    }}
+                  >
+                    <Ionicons name="add" size={20} color={c.pitch} />
+                    <Text style={[styles.label, { color: c.pitch }]}>Add age group</Text>
+                  </Pressable>
                 </View>
               </View>
             ))}
@@ -262,7 +377,16 @@ export default function ManageScreen() {
                       {`${coach.firstName} ${coach.lastName}`.trim() || coach.username}
                     </Text>
                     <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={1}>
-                      {[coach.ageGroup ?? 'No age group', coach.isAdmin ? 'Admin' : null, coach.canSaveVideos ? 'Can save videos' : null].filter(Boolean).join(' · ')}
+                      {[
+                        clubs
+                          .flatMap((club) => club.ageGroups)
+                          .filter((g) => (links[coach.id] ?? []).includes(g.id))
+                          .map((g) => g.name)
+                          .join(', ') || 'No age group',
+                        coach.isAdmin ? 'Admin' : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />

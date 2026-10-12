@@ -49,6 +49,7 @@ function RootNavigator() {
         <Stack.Screen name="video-player" options={{ animation: 'fade' }} />
         <Stack.Screen name="cloudflare" />
         <Stack.Screen name="manage" />
+        <Stack.Screen name="age-group" />
         <Stack.Screen name="supabase-usage" />
         <Stack.Screen name="pin" />
         <Stack.Screen name="video-limits" />

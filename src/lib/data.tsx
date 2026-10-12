@@ -189,6 +189,18 @@ export type Training = {
   unexcusedCount: number;
 };
 
+// An age group a coach works with: U12 of FCV Dender, with its teams.
+export type AgeGroup = {
+  id: string;
+  name: string;
+  // The format a new game starts with: 8v8, 9v9 or 11v11.
+  format: string;
+  clubId: string;
+  clubName: string;
+  clubLogoUrl: string | null;
+  teams: { key: Team; name: string; color: string }[];
+};
+
 export type Profile = {
   id: string;
   username: string;
@@ -207,6 +219,10 @@ export type Profile = {
   canSaveVideos: boolean;
   // The highest version of the walkthrough this coach has seen (0 = never).
   tourSeen: number;
+  // The age groups this coach is linked to, and the one the app is showing:
+  // the database only returns that age group's players, games and trainings.
+  ageGroups: AgeGroup[];
+  activeAgeGroup: AgeGroup | null;
 };
 
 type Data = {
@@ -318,6 +334,26 @@ async function load(userId: string): Promise<Data> {
     supabase.from('basics').select('id, name, category').order('created_at'),
     supabase.from('videos').select('id, game_id, team, training_id, title, storage_key, url, size_bytes, views, created_at').order('created_at'),
   ]);
+
+  // The age groups the coach is linked to, with their club and teams.
+  const linked = await supabase
+    .from('age_group_members')
+    .select('age_groups(id, name, default_format, clubs(id, name, logo_path), teams(key, name, color))')
+    .eq('user_id', userId);
+  const ageGroups: AgeGroup[] = ((linked.data ?? []) as any[])
+    .map((row) => row.age_groups)
+    .filter(Boolean)
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      format: a.default_format,
+      clubId: a.clubs?.id ?? '',
+      clubName: a.clubs?.name ?? '',
+      clubLogoUrl: logoUrl(a.clubs?.logo_path),
+      teams: (a.teams ?? []).sort((x: { key: string }, y: { key: string }) => x.key.localeCompare(y.key)),
+    }))
+    .sort((x, y) => x.clubName.localeCompare(y.clubName) || x.name.localeCompare(y.name));
+  const activeAgeGroup = ageGroups.find((a) => a.id === profile.data?.active_age_group_id) ?? null;
 
   const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos].find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
@@ -542,10 +578,13 @@ async function load(userId: string): Promise<Data> {
           avatarPath: p.avatar_path ?? null,
           canSaveVideos: p.is_admin || !!p.feature_flags?.saveVideos,
           tourSeen: p.tour_seen ?? 0,
+          ageGroups,
+          activeAgeGroup,
           avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         }
       : null,
-    clubLogoUrl: logoUrl(club.data?.logo_path),
+    // The logo of the club the coach is working in.
+    clubLogoUrl: activeAgeGroup ? activeAgeGroup.clubLogoUrl : logoUrl(club.data?.logo_path),
     teamTactics: tactics.data ?? [],
     basics: basics.data ?? [],
     competitors: (competitors.data ?? [])

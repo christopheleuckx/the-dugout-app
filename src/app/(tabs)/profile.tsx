@@ -114,7 +114,9 @@ export default function Profile() {
           <Text style={[styles.name, { color: c.ink }]} numberOfLines={1}>
             {me ? `${me.firstName} ${me.lastName}`.trim() || me.username : 'Unknown user'}
           </Text>
-          <Text style={[styles.sub, { color: c.inkSoft }]}>{me?.ageGroup ? `Coach ${me.ageGroup}` : 'Coach'}</Text>
+          <Text style={[styles.sub, { color: c.inkSoft }]}>
+            {me?.activeAgeGroup ? `Coach ${me.activeAgeGroup.name} · ${me.activeAgeGroup.clubName}` : 'Coach'}
+          </Text>
         </View>
       </View>
       {error ? <Text style={[styles.sub, { color: c.danger, marginHorizontal: 12 }]}>{error}</Text> : null}
@@ -125,6 +127,18 @@ export default function Profile() {
           <Text style={[styles.label, { color: c.ink }]}>Account details</Text>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
+        {me && me.ageGroups.length > 1 ? (
+          <Pressable style={[styles.row, line]} onPress={() => router.push('/age-group')}>
+            <Ionicons name="swap-horizontal-outline" size={22} color={c.inkSoft} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Age group</Text>
+              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                {me.activeAgeGroup ? `${me.activeAgeGroup.clubName} · ${me.activeAgeGroup.name}` : 'Choose one'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+          </Pressable>
+        ) : null}
         {me?.isAdmin ? (
           <>
             <Pressable style={[styles.row, line]} onPress={() => router.push('/manage')}>
