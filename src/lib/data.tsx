@@ -205,6 +205,8 @@ export type Profile = {
   avatarUrl: string | null;
   // Whether this coach may save videos to their own phone (admins always may).
   canSaveVideos: boolean;
+  // The highest version of the walkthrough this coach has seen (0 = never).
+  tourSeen: number;
 };
 
 type Data = {
@@ -539,6 +541,7 @@ async function load(userId: string): Promise<Data> {
           ageGroup: p.age_group ?? null,
           avatarPath: p.avatar_path ?? null,
           canSaveVideos: p.is_admin || !!p.feature_flags?.saveVideos,
+          tourSeen: p.tour_seen ?? 0,
           avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         }
       : null,

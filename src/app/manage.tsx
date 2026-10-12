@@ -67,6 +67,7 @@ export default function ManageScreen() {
         avatarPath: p.avatar_path ?? null,
         avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         canSaveVideos: p.is_admin || !!p.feature_flags?.saveVideos,
+        tourSeen: 0,
         flags: p.feature_flags ?? {},
       })),
     );

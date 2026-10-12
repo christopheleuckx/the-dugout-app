@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Image, PixelRatio, StyleSheet, Text, View } from 'react-native';
@@ -6,6 +7,7 @@ import { captureRef } from 'react-native-view-shot';
 
 import { useData } from '../../lib/data';
 import { brand, fonts, useColors } from '../../lib/theme';
+import { TOUR_VERSION } from '../../lib/tour';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -24,6 +26,16 @@ export default function TabsLayout() {
   const c = useColors();
   const { me } = useData();
   const initials = me ? `${me.firstName[0] ?? ''}${me.lastName[0] ?? ''}`.toUpperCase() : '';
+
+  // The walkthrough opens by itself for a coach who has not seen it yet, or
+  // not its newest slides; once per time the app is opened.
+  const toured = useRef(false);
+  const tourSeen = me?.tourSeen;
+  useEffect(() => {
+    if (tourSeen === undefined || tourSeen >= TOUR_VERSION || toured.current) return;
+    toured.current = true;
+    router.push('/tour');
+  }, [tourSeen]);
 
   // A tab icon has to be an image, so the signed-in coach's initials are
   // drawn off screen once and captured as one. A profile picture can later

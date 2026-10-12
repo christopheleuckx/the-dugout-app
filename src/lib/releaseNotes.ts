@@ -23,6 +23,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     version: 'October 2026 updates',
     title: "What's new",
     items: [
+      { title: 'A tour of the app', text: 'A short walkthrough shows what you can do in The Dugout. Watch it again any time with Take the tour, at the top of this page.' },
       { title: 'Goals and scores', text: 'Fill in the score and the goal scorers per quarter, straight from the game. Tap the scores later to change them.' },
       { title: 'Save a video to your phone', text: 'Coaches who are allowed to can save a video to their photo library, from the three dots next to a video.' },
       { title: 'PIN code', text: 'Set a six-digit PIN in your account details. It confirms sensitive actions, such as raising the limits of the video storage.' },

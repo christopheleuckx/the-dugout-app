@@ -54,6 +54,7 @@ function RootNavigator() {
         <Stack.Screen name="video-limits" />
         <Stack.Screen name="account" />
         <Stack.Screen name="about" />
+        <Stack.Screen name="tour" options={{ presentation: 'fullScreenModal', animation: 'fade', gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" />

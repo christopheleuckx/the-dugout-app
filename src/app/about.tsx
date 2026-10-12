@@ -27,6 +27,14 @@ export default function AboutScreen() {
           <Text style={[styles.app, { color: c.ink }]}>The Dugout</Text>
           <Text style={[styles.version, { color: c.inkSoft }]}>Version {appVersion()}</Text>
         </View>
+        <Pressable style={[styles.card, styles.tour, { backgroundColor: c.surface }]} onPress={() => router.push({ pathname: '/tour', params: { all: '1' } })}>
+          <Ionicons name="map-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.itemTitle, { color: c.ink, fontFamily: fonts.regular }]}>Take the tour</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>A walkthrough of what the app can do</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+        </Pressable>
         {RELEASE_NOTES.map((release) => (
           <View key={release.version} style={{ gap: 10 }}>
             <Text style={[styles.heading, { color: c.ink }]}>{release.title}</Text>
@@ -56,6 +64,7 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.medium, fontSize: 22, lineHeight: 27 },
   card: { borderRadius: 14, paddingHorizontal: 16 },
   item: { paddingVertical: 14, gap: 3 },
+  tour: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   itemTitle: { fontFamily: fonts.medium, fontSize: 16 },
   itemText: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 20 },
 });
