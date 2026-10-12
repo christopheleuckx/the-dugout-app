@@ -235,6 +235,8 @@ type Data = {
   u15Fixtures: U15Fixture[];
   me: Profile | null;
   clubLogoUrl: string | null;
+  // The club of the age group on show, as our side of a game is named.
+  clubName: string;
   // The lists a training's themes are chosen from, in the web app's order.
   teamTactics: Theme[];
   basics: Theme[];
@@ -249,7 +251,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, competitors: [], teamTactics: [], basics: [], videos: [] };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, clubName: '', competitors: [], teamTactics: [], basics: [], videos: [] };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -590,6 +592,7 @@ async function load(userId: string): Promise<Data> {
       : null,
     // The logo of the club the coach is working in.
     clubLogoUrl: activeAgeGroup ? activeAgeGroup.clubLogoUrl : logoUrl(club.data?.logo_path),
+    clubName: activeAgeGroup?.clubName || 'FCV Dender',
     teamTactics: tactics.data ?? [],
     basics: basics.data ?? [],
     competitors: (competitors.data ?? [])

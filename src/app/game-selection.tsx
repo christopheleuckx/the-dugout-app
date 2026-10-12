@@ -19,7 +19,7 @@ export default function GameSelectionScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ game: string }>();
-  const { games, players, refresh } = useData();
+  const { games, players, clubName, refresh } = useData();
   const game = games.find((g) => g.id === params.game);
 
   const [page, setPage] = useState<Page>(null);
@@ -43,7 +43,7 @@ export default function GameSelectionScreen() {
     );
   }
 
-  const teamName = (team: Team) => (numTeams === 1 ? 'FCV Dender' : `FCV Dender ${team === 'blue' ? 'Blue' : 'Red'}`);
+  const teamName = (team: Team) => (numTeams === 1 ? clubName : `${clubName} ${team === 'blue' ? 'Blue' : 'Red'}`);
   const teamColor = (team: Team) => (team === 'blue' ? c.teamBlue : c.teamRed);
   const selectedCount = (team: Team) => Object.values(draft).filter((x) => x.team === team).length;
 
