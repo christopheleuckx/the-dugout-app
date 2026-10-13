@@ -135,21 +135,29 @@ export default function Profile() {
             {me ? `${me.firstName} ${me.lastName}`.trim() || me.username : 'Unknown user'}
           </Text>
           <Text style={[styles.sub, { color: c.inkSoft }]} numberOfLines={1}>
-            {me?.activeAgeGroup ? `Coach ${me.activeAgeGroup.name} · ${me.activeAgeGroup.clubName}` : 'Coach'}
+            {me?.activeAgeGroup ? `Coach · ${me.activeAgeGroup.clubName}` : 'Coach'}
           </Text>
         </Pressable>
         {/* The club of the team on show; with more than one team it carries
             the same two-arrow badge as the jersey on a game, and switches. */}
         {me?.activeAgeGroup ? (
-          <Pressable onPress={() => canSwitch && setSwitching(true)} disabled={!canSwitch} accessibilityLabel="Switch team" hitSlop={6}>
-            <View style={[styles.ring, { borderColor: c.line }]}>
-              <Crest url={me.activeAgeGroup.clubLogoUrl} name={me.activeAgeGroup.clubName} size={52} />
-            </View>
-            {canSwitch ? (
-              <View style={[styles.switch, { backgroundColor: c.surface, borderColor: c.chalk }]}>
-                <SwitchIcon color={c.ink} />
+          <Pressable style={{ alignItems: 'center' }} onPress={() => canSwitch && setSwitching(true)} disabled={!canSwitch} accessibilityLabel="Switch team" hitSlop={6}>
+            <View>
+              <View style={[styles.ring, { borderColor: c.line }]}>
+                <Crest url={me.activeAgeGroup.clubLogoUrl} name={me.activeAgeGroup.clubName} size={52} />
               </View>
-            ) : null}
+              {canSwitch ? (
+                <View style={[styles.switch, { backgroundColor: c.surface, borderColor: c.chalk }]}>
+                  <SwitchIcon color={c.ink} />
+                </View>
+              ) : null}
+            </View>
+            {/* The logo says the club; the pill under it says the age group. */}
+            <View style={[styles.pill, { backgroundColor: c.pitch, borderColor: c.surface }]}>
+              <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 11 }} numberOfLines={1}>
+                {me.activeAgeGroup.name}
+              </Text>
+            </View>
           </Pressable>
         ) : null}
       </View>
@@ -242,7 +250,8 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   ring: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 999 },
-  switch: { position: 'absolute', right: -5, bottom: -5, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  pill: { marginTop: -7, borderRadius: 999, borderWidth: 2, paddingHorizontal: 8, paddingVertical: 1, maxWidth: 84 },
+  switch: { position: 'absolute', right: -6, top: -4, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   card: { borderRadius: 14, paddingHorizontal: 16 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16 },
   edit: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
