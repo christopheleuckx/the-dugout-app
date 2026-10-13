@@ -23,7 +23,7 @@ const DEFAULT_RANKING = Object.keys(RANKING);
 const ROW = 54;
 
 type Team = { id: string; competitorId: string | null; own: boolean; name: string; logoUrl: string | null };
-type Match = { id: string; home: string; away: string; date: string | null; time: string | null };
+type Match = { id: string; home: string; away: string; date: string | null; time: string | null; homeGoals: number | null; awayGoals: number | null };
 type Matchday = { id: string; number: number; matches: Match[] };
 type League = { id: string; name: string; win: number; draw: number; loss: number; ranking: string[] };
 type View_ = 'main' | 'teams' | 'ranking' | { matchday: string; match?: string };
@@ -114,12 +114,15 @@ export default function LeagueScreen() {
   const [matchDate, setMatchDate] = useState<Date | null>(null);
   const [matchTime, setMatchTime] = useState<Date | null>(null);
   const [picker, setPicker] = useState<'date' | 'time' | null>(null);
+  // Its score: both empty while the match has not been played.
+  const [homeGoals, setHomeGoals] = useState<number | null>(null);
+  const [awayGoals, setAwayGoals] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const [l, t, d] = await Promise.all([
       supabase.from('leagues').select('id, name, points_win, points_draw, points_loss, ranking').eq('id', id).maybeSingle(),
       supabase.from('league_teams').select('id, competitor_id, is_own_team').eq('league_id', id),
-      supabase.from('league_matchdays').select('id, number, league_matches(id, home_team_id, away_team_id, position, match_date, kickoff)').eq('league_id', id).order('number'),
+      supabase.from('league_matchdays').select('id, number, league_matches(id, home_team_id, away_team_id, position, match_date, kickoff, home_goals, away_goals)').eq('league_id', id).order('number'),
     ]);
     if (l.error || t.error || d.error) return setError(`Could not load the competition: ${(l.error ?? t.error ?? d.error)!.message}`);
     if (!l.data) return setMissing(true);
@@ -154,7 +157,7 @@ export default function LeagueScreen() {
         matches: (day.league_matches ?? [])
           .slice()
           .sort((a, b) => a.position - b.position)
-          .map((m) => ({ id: m.id, home: m.home_team_id, away: m.away_team_id, date: m.match_date ?? null, time: m.kickoff ? String(m.kickoff).slice(0, 5) : null })),
+          .map((m) => ({ id: m.id, home: m.home_team_id, away: m.away_team_id, date: m.match_date ?? null, time: m.kickoff ? String(m.kickoff).slice(0, 5) : null, homeGoals: m.home_goals ?? null, awayGoals: m.away_goals ?? null })),
       })),
     );
   }, [id, competitors, clubName, clubLogoUrl]);
@@ -208,6 +211,8 @@ export default function LeagueScreen() {
       setMatchTime(t);
     } else setMatchTime(null);
     setPicker(null);
+    setHomeGoals(m.homeGoals);
+    setAwayGoals(m.awayGoals);
     setView({ matchday: day.id, match: m.id });
   }
 
@@ -215,7 +220,14 @@ export default function LeagueScreen() {
 
   async function saveMatch() {
     if (!day || !match) return;
-    await save(supabase.from('league_matches').update({ match_date: matchDate ? toIso(matchDate) : null, kickoff: hhmm(matchTime) }).eq('id', match.id));
+    // A score is both numbers or none.
+    const scored = homeGoals !== null || awayGoals !== null;
+    await save(
+      supabase
+        .from('league_matches')
+        .update({ match_date: matchDate ? toIso(matchDate) : null, kickoff: hhmm(matchTime), home_goals: scored ? (homeGoals ?? 0) : null, away_goals: scored ? (awayGoals ?? 0) : null })
+        .eq('id', match.id),
+    );
     setView({ matchday: day.id });
   }
 
@@ -410,6 +422,35 @@ export default function LeagueScreen() {
           ) : null}
         </View>
 
+        <Text style={[styles.caption, { color: c.inkSoft }]}>Score</Text>
+        <View style={[styles.card, { backgroundColor: c.surface }]}>
+          {(
+            [
+              [home, homeGoals, setHomeGoals],
+              [away, awayGoals, setAwayGoals],
+            ] as [Team | undefined, number | null, (n: number | null) => void][]
+          ).map(([team, goals, set], i) => (
+            <View key={i} style={[styles.row, i > 0 && line]}>
+              <Text style={[styles.label, { color: c.ink }]} numberOfLines={1}>
+                {team?.name ?? '?'}
+              </Text>
+              <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => set(Math.max(0, (goals ?? 0) - 1))} accessibilityLabel={`One goal less for ${team?.name}`} hitSlop={6}>
+                <Ionicons name="remove" size={18} color={c.ink} />
+              </Pressable>
+              <Text style={{ width: 30, textAlign: 'center', color: goals === null ? c.inkSoft : c.ink, fontFamily: fonts.semi, fontSize: 18 }}>{goals ?? '–'}</Text>
+              <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => set(Math.min(99, (goals ?? -1) + 1))} accessibilityLabel={`One goal more for ${team?.name}`} hitSlop={6}>
+                <Ionicons name="add" size={18} color={c.ink} />
+              </Pressable>
+            </View>
+          ))}
+          {homeGoals !== null || awayGoals !== null ? (
+            <Pressable style={[styles.row, line]} onPress={() => (setHomeGoals(null), setAwayGoals(null))}>
+              <Text style={[styles.label, { color: c.danger }]}>No score yet</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <Text style={[styles.note, { color: c.inkSoft }]}>The score counts for the standings on the Home screen.</Text>
+
         <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={saveMatch}>
           <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save</Text>
         </Pressable>
@@ -439,6 +480,11 @@ export default function LeagueScreen() {
                   {m.date || m.time ? [m.date ? fmtDate(m.date) : null, m.time].filter(Boolean).join(' · ') : 'No date yet'}
                 </Text>
               </View>
+              {m.homeGoals !== null && m.awayGoals !== null ? (
+                <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>
+                  {m.homeGoals} - {m.awayGoals}
+                </Text>
+              ) : null}
               {crest(teamOf.get(m.away), 30)}
               <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
             </Pressable>
