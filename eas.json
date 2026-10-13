@@ -7,6 +7,15 @@
     "production": {
       "autoIncrement": true,
       "channel": "production"
+    },
+    "beta": {
+      "autoIncrement": true,
+      "channel": "beta",
+      "env": {
+        "APP_VARIANT": "beta",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cqkspannnzhbdhspqeay.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_j8uY7ZnCPc_30WT41GPfxA_srdVcnzX"
+      }
     }
   },
   "submit": {
