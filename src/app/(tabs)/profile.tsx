@@ -172,7 +172,7 @@ export default function Profile() {
           <Ionicons name="settings-outline" size={22} color={c.inkSoft} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Configure and manage</Text>
-            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{me?.isAdmin ? 'Age groups, coaches and opponents' : 'Opponents'}</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{me?.isAdmin ? 'Clubs, coaches and opponents' : 'Opponents'}</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>

@@ -44,7 +44,7 @@ export default function MenuScreen() {
     : [
         ...(isAdmin
           ? ([
-              { label: 'Age groups', hint: 'Clubs, their logos, age groups and formats', icon: 'shield-outline', to: '/manage?view=age-groups' },
+              { label: 'Club management', hint: 'Clubs, their logos, age groups and formats', icon: 'shield-outline', to: '/manage?view=age-groups' },
               { label: 'Coaches', hint: 'Who can sign in and what they may do', icon: 'people-outline', to: '/manage?view=coaches' },
             ] as Item[])
           : []),

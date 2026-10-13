@@ -277,7 +277,7 @@ export default function ManageScreen() {
         <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Age groups' : 'Coaches'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
         {open || adding || ageGroupsOnly ? (
           <View style={{ width: 36 }} />
         ) : (
