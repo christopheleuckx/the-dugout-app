@@ -1,12 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fmtDate, useData } from '../lib/data';
+import { fmtDate, toIso, useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { brand, fonts, useColors } from '../lib/theme';
 import { Crest } from './MatchCard';
-import { Swimlane } from './Swimlane';
 import { SectionTitle } from './ui';
 
 type Team = { id: string; own: boolean; name: string; logoUrl: string | null };
@@ -54,11 +53,18 @@ function standings(league: League): Row[] {
   });
 }
 
-// On Home: the competitions of the team on show. Per competition a lane of
-// matchdays (opening on the next one to play) and the table under it.
+// The matchday on show changes on Wednesday: until then the weekend that was
+// just played (its results), from Wednesday on the next one to be played.
+function lastWednesday() {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 4) % 7));
+  return toIso(d);
+}
+
+// On Home: the competitions of the team on show. Per competition the matchday
+// of the moment and the table under it.
 export function LeagueHome() {
   const c = useColors();
-  const { width } = useWindowDimensions();
   const { me, competitors, clubName, clubLogoUrl, games } = useData();
   const groupId = me?.activeAgeGroup?.id;
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -115,7 +121,6 @@ export function LeagueHome() {
   );
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
-  const cardWidth = Math.round(width * 0.82);
 
   return (
     <>
@@ -124,8 +129,11 @@ export function LeagueHome() {
         .map((league) => {
           const teamOf = new Map(league.teams.map((t) => [t.id, t]));
           const days = league.days.filter((d) => d.matches.length);
-          // Open on the first matchday that still has a match to play.
-          const next = days.findIndex((d) => d.matches.some((m) => m.homeGoals === null || m.awayGoals === null));
+          // The first matchday that ends on or after the last Wednesday; when
+          // the season is over, the last one. Matchdays without dates count as still to come.
+          const since = lastWednesday();
+          const lastDate = (d: Matchday) => d.matches.reduce((max, m) => (m.date && m.date > max ? m.date : max), '') || '9999';
+          const shown = [days.find((d) => lastDate(d) >= since) ?? days[days.length - 1]];
           const table = standings(league);
           const side = (id: string, goals: number | null, won: boolean) => {
             const team = teamOf.get(id);
@@ -143,8 +151,7 @@ export function LeagueHome() {
           return (
             <View key={league.id} style={{ gap: 10 }}>
               <SectionTitle>{league.name}</SectionTitle>
-              <Swimlane cardWidth={cardWidth} initialIndex={next === -1 ? days.length - 1 : next}>
-                {days.map((d) => (
+                {shown.map((d) => (
                   <View key={d.id} style={[styles.card, { backgroundColor: c.surface }]}>
                     <View style={[styles.head, { backgroundColor: brand.navy }]}>
                       <Text style={styles.headText}>Matchday {d.number}</Text>
@@ -170,7 +177,6 @@ export function LeagueHome() {
                     })}
                   </View>
                 ))}
-              </Swimlane>
 
               <View style={[styles.card, { backgroundColor: c.surface }]}>
                 <View style={[styles.head, { backgroundColor: brand.navy }]}>
@@ -179,11 +185,8 @@ export function LeagueHome() {
                 <View style={styles.tableRow}>
                   <Text style={[styles.pos, { color: c.inkSoft }]}>#</Text>
                   <Text style={[styles.cell, { flex: 1, textAlign: 'left', color: c.inkSoft }]}>Club</Text>
-                  {['P', 'W', 'D', 'L', '+/-', 'Pts'].map((h) => (
-                    <Text key={h} style={[styles.cell, h === '+/-' && styles.wide, { color: c.inkSoft }]}>
-                      {h}
-                    </Text>
-                  ))}
+                  <Text style={[styles.cell, { color: c.inkSoft }]}>Played</Text>
+                  <Text style={[styles.cell, { color: c.inkSoft }]}>Points</Text>
                 </View>
                 {table.map((row, i) => (
                   <View key={row.team.id} style={[styles.tableRow, line, row.team.own && { backgroundColor: c.surface2 }]}>
@@ -195,10 +198,6 @@ export function LeagueHome() {
                       </Text>
                     </View>
                     <Text style={[styles.cell, { color: c.ink }]}>{row.played}</Text>
-                    <Text style={[styles.cell, { color: c.ink }]}>{row.wins}</Text>
-                    <Text style={[styles.cell, { color: c.ink }]}>{row.draws}</Text>
-                    <Text style={[styles.cell, { color: c.ink }]}>{row.losses}</Text>
-                    <Text style={[styles.cell, styles.wide, { color: c.ink }]}>{row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}</Text>
                     <Text style={[styles.cell, { color: c.ink, fontFamily: fonts.semi }]}>{row.points}</Text>
                   </View>
                 ))}
@@ -219,6 +218,5 @@ const styles = StyleSheet.create({
   when: { width: 74, alignItems: 'center', gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, paddingLeft: 10 },
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, gap: 4 },
   pos: { width: 20, fontFamily: fonts.medium, fontSize: 13, textAlign: 'center' },
-  cell: { width: 24, fontFamily: fonts.regular, fontSize: 13, textAlign: 'center' },
-  wide: { width: 32 },
+  cell: { width: 52, fontFamily: fonts.regular, fontSize: 14, textAlign: 'center' },
 });
