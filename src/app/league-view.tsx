@@ -128,45 +128,42 @@ export default function LeagueViewScreen() {
                 onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth))}
               >
                 {days.map((d) => {
-                  // The matches under the date they are played on.
-                  const byDate = [...new Set(d.matches.map((m) => m.date ?? ''))].sort();
                   return (
                     <View key={d.id} style={{ width: pageWidth }}>
-                      <View style={[styles.card, { backgroundColor: c.surface, paddingHorizontal: 14, paddingVertical: 12 }]}>
-                        {byDate.map((date, g) => (
-                          <View key={date || 'none'} style={g > 0 && { marginTop: 14 }}>
-                            <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16, marginBottom: 2 }}>{date ? fmtDate(date) : 'No date yet'}</Text>
-                            {d.matches
-                              .filter((m) => (m.date ?? '') === date)
-                              .map((m, i) => {
-                                const played = m.homeGoals !== null && m.awayGoals !== null;
-                                const home = teamOf.get(m.home);
-                                const away = teamOf.get(m.away);
-                                const game = home?.own || away?.own ? games.find((x) => x.leagueMatchId === m.id) : undefined;
-                                return (
-                                  <Pressable key={m.id} style={[styles.fixture, i > 0 && line]} disabled={!game} onPress={() => game && router.push(`/game/${game.id}`)}>
-                                    <Text style={[styles.club, { textAlign: 'right', color: c.ink, fontFamily: home?.own ? fonts.semi : fonts.medium }]} numberOfLines={1}>
-                                      {shortName(home?.name ?? '?')}
+                      <View style={[styles.card, { backgroundColor: c.surface, paddingHorizontal: 14, paddingVertical: 4 }]}>
+                        {d.matches.map((m, i) => {
+                          const played = m.homeGoals !== null && m.awayGoals !== null;
+                          const home = teamOf.get(m.home);
+                          const away = teamOf.get(m.away);
+                          const game = home?.own || away?.own ? games.find((x) => x.leagueMatchId === m.id) : undefined;
+                          return (
+                            <Pressable key={m.id} style={[styles.fixture, i > 0 && line]} disabled={!game} onPress={() => game && router.push(`/game/${game.id}`)}>
+                              <Text style={[styles.club, { textAlign: 'right', color: c.ink, fontFamily: home?.own ? fonts.semi : fonts.medium }]} numberOfLines={1}>
+                                {shortName(home?.name ?? '?')}
+                              </Text>
+                              <Crest url={home?.logoUrl ?? null} name={home?.name ?? '?'} size={26} />
+                              {/* The day sits on top of the score or the kick-off. */}
+                              <View style={styles.middle}>
+                                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }}>{m.date ? fmtDate(m.date) : 'No date'}</Text>
+                                {played ? (
+                                  <View style={[styles.score, { backgroundColor: c.surface2 }]}>
+                                    <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>
+                                      {m.homeGoals} - {m.awayGoals}
                                     </Text>
-                                    <Crest url={home?.logoUrl ?? null} name={home?.name ?? '?'} size={26} />
-                                    {played ? (
-                                      <View style={[styles.score, { backgroundColor: c.surface2 }]}>
-                                        <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>
-                                          {m.homeGoals} - {m.awayGoals}
-                                        </Text>
-                                      </View>
-                                    ) : (
-                                      <Text style={[styles.time, { color: c.ink }]}>{m.time ?? '–'}</Text>
-                                    )}
-                                    <Crest url={away?.logoUrl ?? null} name={away?.name ?? '?'} size={26} />
-                                    <Text style={[styles.club, { color: c.ink, fontFamily: away?.own ? fonts.semi : fonts.medium }]} numberOfLines={1}>
-                                      {shortName(away?.name ?? '?')}
-                                    </Text>
-                                  </Pressable>
-                                );
-                              })}
-                          </View>
-                        ))}
+                                  </View>
+                                ) : (
+                                  <View style={styles.score}>
+                                    <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>{m.time ?? '–'}</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Crest url={away?.logoUrl ?? null} name={away?.name ?? '?'} size={26} />
+                              <Text style={[styles.club, { color: c.ink, fontFamily: away?.own ? fonts.semi : fonts.medium }]} numberOfLines={1}>
+                                {shortName(away?.name ?? '?')}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
                       </View>
                     </View>
                   );
@@ -241,8 +238,9 @@ const styles = StyleSheet.create({
   arrow: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   fixture: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 11 },
   club: { flex: 1, fontSize: 14 },
-  score: { width: 60, borderRadius: 8, paddingVertical: 5, alignItems: 'center' },
-  time: { width: 60, textAlign: 'center', fontFamily: fonts.semi, fontSize: 16 },
+  middle: { width: 76, alignItems: 'center', gap: 3 },
+  // The same box for a score and a kick-off, so every matchday is equally tall.
+  score: { width: 60, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   th: { fontFamily: fonts.regular, fontSize: 13 },
   mark: { position: 'absolute', left: 0, width: 4, height: 24, borderTopRightRadius: 3, borderBottomRightRadius: 3 },
   table: { flexDirection: 'row' },
