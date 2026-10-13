@@ -202,6 +202,8 @@ export type AgeGroup = {
   clubName: string;
   clubLogoUrl: string | null;
   teams: { key: Team; name: string; color: string }[];
+  // May this age group watch and upload videos? Set per club in Club management.
+  video: boolean;
 };
 
 export type Profile = {
@@ -237,6 +239,8 @@ type Data = {
   clubLogoUrl: string | null;
   // The club of the age group on show, as our side of a game is named.
   clubName: string;
+  // Whether the age group on show has the video feature.
+  videoEnabled: boolean;
   // The lists a training's themes are chosen from, in the web app's order.
   teamTactics: Theme[];
   basics: Theme[];
@@ -251,7 +255,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, clubName: '', competitors: [], teamTactics: [], basics: [], videos: [] };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, clubName: '', videoEnabled: false, competitors: [], teamTactics: [], basics: [], videos: [] };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -343,7 +347,7 @@ async function load(userId: string): Promise<Data> {
   // The age groups the coach is linked to, with their club and teams.
   const linked = await supabase
     .from('age_group_members')
-    .select('age_groups(id, name, default_format, clubs(id, name, logo_path), teams(key, name, color))')
+    .select('age_groups(id, name, default_format, video_enabled, clubs(id, name, logo_path, video_enabled, video_all_age_groups), teams(key, name, color))')
     .eq('user_id', userId);
   const ageGroups: AgeGroup[] = ((linked.data ?? []) as any[])
     .map((row) => row.age_groups)
@@ -355,6 +359,7 @@ async function load(userId: string): Promise<Data> {
       clubId: a.clubs?.id ?? '',
       clubName: a.clubs?.name ?? '',
       clubLogoUrl: logoUrl(a.clubs?.logo_path),
+      video: !!a.clubs?.video_enabled && (!!a.clubs?.video_all_age_groups || !!a.video_enabled),
       teams: (a.teams ?? []).sort((x: { key: string }, y: { key: string }) => x.key.localeCompare(y.key)),
     }))
     .sort((x, y) => x.clubName.localeCompare(y.clubName) || x.name.localeCompare(y.name));
@@ -593,6 +598,7 @@ async function load(userId: string): Promise<Data> {
     // The logo of the club the coach is working in.
     clubLogoUrl: activeAgeGroup ? activeAgeGroup.clubLogoUrl : logoUrl(club.data?.logo_path),
     clubName: activeAgeGroup?.clubName || 'FCV Dender',
+    videoEnabled: !!activeAgeGroup?.video,
     teamTactics: tactics.data ?? [],
     basics: basics.data ?? [],
     competitors: (competitors.data ?? [])

@@ -26,8 +26,10 @@ import { fonts, useColors } from '../lib/theme';
 const FORMATS = ['8v8', '9v9', '11v11'];
 
 // A club with its age groups, as the structure of version 2 stores them.
-type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number };
-type Club = { id: string; name: string; logoPath: string | null; ageGroups: AgeGroup[] };
+type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number; video: boolean };
+// Video: on for the club, and then for all its age groups or only the chosen ones.
+type Club = { id: string; name: string; logoPath: string | null; video: boolean; videoAll: boolean; ageGroups: AgeGroup[] };
+const hasVideo = (club: Club, group: AgeGroup) => club.video && (club.videoAll || group.video);
 
 // A coach's account as the admin manages it.
 type Coach = Profile & { flags: Record<string, unknown> };
@@ -54,6 +56,8 @@ export default function ManageScreen() {
   const [groups, setGroups] = useState<string[]>([]);
   // The form to add an age group to a club.
   const [adding, setAdding] = useState<Club | null>(null);
+  // The club whose video settings are on show.
+  const [videoClubId, setVideoClubId] = useState<string | null>(null);
   // The form to add a club; its logo and age groups are added afterwards.
   const [newClub, setNewClub] = useState(false);
   const [clubName, setClubName] = useState('');
@@ -102,7 +106,7 @@ export default function ManageScreen() {
     // Clubs, their age groups and teams, with how many coaches and players each has.
     const structure = await supabase
       .from('clubs')
-      .select('id, name, logo_path, age_groups(id, name, default_format, teams(key, name), age_group_members(user_id))')
+      .select('id, name, logo_path, video_enabled, video_all_age_groups, age_groups(id, name, default_format, video_enabled, teams(key, name), age_group_members(user_id))')
       .order('name');
     if (!structure.error) {
       setClubs(
@@ -110,6 +114,8 @@ export default function ManageScreen() {
           id: club.id,
           name: club.name,
           logoPath: club.logo_path ?? null,
+          video: !!club.video_enabled,
+          videoAll: !!club.video_all_age_groups,
           ageGroups: (club.age_groups ?? [])
             .map((a) => ({
               id: a.id,
@@ -117,6 +123,7 @@ export default function ManageScreen() {
               format: a.default_format,
               teams: (a.teams ?? []).sort((x, y) => x.key.localeCompare(y.key)).map((t) => t.name),
               coaches: (a.age_group_members ?? []).length,
+              video: !!a.video_enabled,
             }))
             .sort((x, y) => x.name.localeCompare(y.name)),
         })),
@@ -231,6 +238,31 @@ export default function ManageScreen() {
     setSaving(false);
   }
 
+  const videoClub = clubs.find((club) => club.id === videoClubId) ?? null;
+
+  // The video switches save at once. Shown as chosen straight away, and put
+  // back when the database refuses.
+  async function setClubVideo(club: Club, change: { video_enabled?: boolean; video_all_age_groups?: boolean }) {
+    setError('');
+    const before = clubs;
+    setClubs(clubs.map((x) => (x.id === club.id ? { ...x, video: change.video_enabled ?? x.video, videoAll: change.video_all_age_groups ?? x.videoAll } : x)));
+    const saved = await supabase.from('clubs').update(change).eq('id', club.id).select('id');
+    if (saved.error || !saved.data?.length) {
+      setClubs(before);
+      setError(`Could not save: ${saved.error?.message ?? 'only admins can change this'}`);
+    } else refresh();
+  }
+  async function setGroupVideo(club: Club, group: AgeGroup, on: boolean) {
+    setError('');
+    const before = clubs;
+    setClubs(clubs.map((x) => (x.id === club.id ? { ...x, ageGroups: x.ageGroups.map((g) => (g.id === group.id ? { ...g, video: on } : g)) } : x)));
+    const saved = await supabase.from('age_groups').update({ video_enabled: on }).eq('id', group.id).select('id');
+    if (saved.error || !saved.data?.length) {
+      setClubs(before);
+      setError(`Could not save: ${saved.error?.message ?? 'only admins can change this'}`);
+    } else refresh();
+  }
+
   async function addClub() {
     if (saving) return;
     const clean = clubName.trim().replace(/\s+/g, ' ');
@@ -293,10 +325,10 @@ export default function ManageScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (newClub ? setNewClub(false) : adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (videoClub ? setVideoClubId(null) : newClub ? setNewClub(false) : adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{newClub ? 'New club' : adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{videoClub ? `Video · ${videoClub.name}` : newClub ? 'New club' : adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
         {open || adding || ageGroupsOnly ? (
           <View style={{ width: 36 }} />
         ) : (
@@ -307,7 +339,48 @@ export default function ManageScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {newClub ? (
+        {videoClub ? (
+          <>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: c.ink }]}>Activate video feature</Text>
+                <Switch value={videoClub.video} onValueChange={(on) => setClubVideo(videoClub, { video_enabled: on })} trackColor={{ true: c.pitch }} />
+              </View>
+              {videoClub.video ? (
+                <View style={[styles.row, line]}>
+                  <Text style={[styles.label, { color: c.ink }]}>All age groups</Text>
+                  <Switch value={videoClub.videoAll} onValueChange={(on) => setClubVideo(videoClub, { video_all_age_groups: on })} trackColor={{ true: c.pitch }} />
+                </View>
+              ) : null}
+            </View>
+            <Text style={[styles.note, { color: c.inkSoft }]}>
+              {!videoClub.video
+                ? `The coaches of ${videoClub.name} don't see videos in the app and can't upload them.`
+                : videoClub.videoAll
+                  ? `Every age group of ${videoClub.name} can watch and upload videos on its games and trainings.`
+                  : 'Select the age groups that can watch and upload videos.'}
+            </Text>
+            {videoClub.video && !videoClub.videoAll ? (
+              <>
+                <Text style={[styles.caption, { color: c.inkSoft }]}>Age groups with video</Text>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
+                  {videoClub.ageGroups.map((group, i) => (
+                    <View key={group.id} style={[styles.row, i > 0 && line]}>
+                      <Text style={[styles.label, { color: c.ink }]}>{group.name}</Text>
+                      <Switch value={group.video} onValueChange={(on) => setGroupVideo(videoClub, group, on)} trackColor={{ true: c.pitch }} />
+                    </View>
+                  ))}
+                  {videoClub.ageGroups.length === 0 ? (
+                    <View style={styles.row}>
+                      <Text style={[styles.label, { color: c.inkSoft }]}>This club has no age groups yet.</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </>
+            ) : null}
+            {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
+          </>
+        ) : newClub ? (
           <>
             <Text style={[styles.note, { color: c.inkSoft }]}>A club has its own age groups, players, games and trainings. Add its logo and its age groups once it exists.</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>{field('Name', clubName, setClubName, { placeholder: 'FC Example', autoCapitalize: 'words' }, true)}</View>
@@ -439,10 +512,24 @@ export default function ManageScreen() {
                   </View>
                 </Pressable>
                 <View style={[styles.card, { backgroundColor: c.surface }]}>
-                  {club.ageGroups.map((group, i) => (
+                  <Pressable style={[styles.row, { minHeight: 62 }]} onPress={() => (setError(''), setVideoClubId(club.id))}>
+                    <Ionicons name="videocam-outline" size={22} color={c.inkSoft} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>Video</Text>
+                      <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                        {!club.video
+                          ? 'Off'
+                          : club.videoAll
+                            ? 'On for all age groups'
+                            : `On for ${club.ageGroups.filter((g) => g.video).length} of ${club.ageGroups.length} age groups`}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                  </Pressable>
+                  {club.ageGroups.map((group) => (
                     <Pressable
                       key={group.id}
-                      style={[styles.row, { minHeight: 62 }, i > 0 && line]}
+                      style={[styles.row, { minHeight: 62 }, line]}
                       onPress={() => {
                         setGroupName(group.name);
                         setFormat(group.format);
@@ -454,14 +541,14 @@ export default function ManageScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
                         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
-                          {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
+                          {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`, hasVideo(club, group) ? 'Video' : null].filter(Boolean).join(' · ')}
                         </Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
                     </Pressable>
                   ))}
                   <Pressable
-                    style={[styles.row, club.ageGroups.length > 0 && line]}
+                    style={[styles.row, line]}
                     onPress={() => {
                       setEditing(null);
                       setGroupName('');
@@ -507,7 +594,7 @@ export default function ManageScreen() {
           </>
         )}
       </ScrollView>
-      {ageGroupsOnly && !adding && !newClub && me?.isAdmin ? (
+      {ageGroupsOnly && !adding && !newClub && !videoClub && me?.isAdmin ? (
         <Pressable
           style={[styles.add, { backgroundColor: c.pitch, bottom: Math.max(insets.bottom, 12) + 12 }]}
           onPress={() => (setClubName(''), setError(''), setNewClub(true))}
