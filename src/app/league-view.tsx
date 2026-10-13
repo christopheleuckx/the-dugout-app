@@ -175,8 +175,9 @@ export default function LeagueViewScreen() {
             </>
           ) : null}
 
+          <Text style={[styles.section, { color: c.ink }]}>Standings</Text>
           {/* The clubs stay put on the left; the figures scroll sideways. */}
-          <View style={[styles.card, styles.table, { backgroundColor: c.surface, marginTop: 8 }]}>
+          <View style={[styles.card, styles.table, { backgroundColor: c.surface }]}>
             <View style={{ flex: 1 }}>
               <View style={[styles.cellRow, { paddingLeft: 12, gap: 8 }]}>
                 <Text style={[styles.th, { width: 26, textAlign: 'center', color: c.inkSoft }]}>Pos</Text>
@@ -233,6 +234,7 @@ const styles = StyleSheet.create({
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 17 },
   content: { padding: 16, gap: 10, paddingBottom: 60 },
+  section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 8 },
   note: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, marginHorizontal: 4 },
   card: { borderRadius: 14, overflow: 'hidden' },
   week: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, marginBottom: 4 },
