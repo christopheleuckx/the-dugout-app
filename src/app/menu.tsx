@@ -49,6 +49,7 @@ export default function MenuScreen() {
             ] as Item[])
           : []),
         { label: 'Opponents', hint: 'Names and logos, shared by everyone', icon: 'flag-outline', to: '/opponents' },
+        { label: 'Leagues and fixtures', hint: 'Competitions, matchdays and rules', icon: 'trophy-outline', to: '/leagues' },
       ];
 
   return (
