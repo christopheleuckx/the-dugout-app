@@ -168,7 +168,7 @@ export function LeagueHome() {
                     return (
                       <Pressable
                         key={m.id}
-                        style={[styles.card, styles.match, { backgroundColor: c.surface }, ours && { borderWidth: 1.5, borderColor: c.pitch }]}
+                        style={[styles.card, styles.match, { backgroundColor: c.surface }]}
                         disabled={!game}
                         onPress={() => game && router.push(`/game/${game.id}`)}
                       >
