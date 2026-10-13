@@ -9,7 +9,22 @@ const GUTTER = 16;
 // Horizontal, snapping row of equally wide cards with page dots underneath.
 // Bleeds through the page's side padding so cards scroll edge to edge.
 // `initialIndex` is the card the lane opens on.
-export function Swimlane({ cardWidth, initialIndex = 0, children }: { cardWidth: number; initialIndex?: number; children: ReactNode }) {
+// `lead` is an optional narrower tile in front of the cards, as tall as they are.
+export function Swimlane({
+  cardWidth,
+  initialIndex = 0,
+  lead,
+  leadWidth = 0,
+  children,
+}: {
+  cardWidth: number;
+  initialIndex?: number;
+  lead?: ReactNode;
+  leadWidth?: number;
+  children: ReactNode;
+}) {
+  // How far the cards are pushed along by the tile in front of them.
+  const shift = lead ? leadWidth + GAP : 0;
   const c = useColors();
   const [active, setActive] = useState(initialIndex);
   const cards = Children.toArray(children);
@@ -19,17 +34,18 @@ export function Swimlane({ cardWidth, initialIndex = 0, children }: { cardWidth:
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={cardWidth + GAP}
+        snapToOffsets={cards.map((_, i) => (i === 0 ? 0 : shift + i * (cardWidth + GAP)))}
         decelerationRate="fast"
-        contentOffset={{ x: initialIndex * (cardWidth + GAP), y: 0 }}
+        contentOffset={{ x: initialIndex === 0 ? 0 : shift + initialIndex * (cardWidth + GAP), y: 0 }}
         contentContainerStyle={{ paddingHorizontal: GUTTER, gap: GAP }}
         scrollEventThrottle={32}
         onScroll={({ nativeEvent: e }) => {
           const atEnd = e.contentOffset.x + e.layoutMeasurement.width >= e.contentSize.width - 4;
-          const index = atEnd ? cards.length - 1 : Math.round(e.contentOffset.x / (cardWidth + GAP));
+          const index = atEnd ? cards.length - 1 : Math.round(Math.max(0, e.contentOffset.x - shift / 2) / (cardWidth + GAP));
           setActive(Math.max(0, Math.min(cards.length - 1, index)));
         }}
       >
+        {lead ? <View style={{ width: leadWidth }}>{lead}</View> : null}
         {cards.map((card, i) => (
           <View key={i} style={{ width: cardWidth }}>
             {card}

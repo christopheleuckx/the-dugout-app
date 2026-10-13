@@ -123,7 +123,7 @@ export function LeagueHome() {
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
   const { width } = useWindowDimensions();
-  const cardWidth = Math.round(width * 0.7);
+  const cardWidth = Math.round(width * 0.66);
 
   return (
     <>
@@ -155,9 +155,17 @@ export function LeagueHome() {
           return (
             <View key={league.id} style={{ gap: 10 }}>
               <SectionTitle>{league.name}</SectionTitle>
-              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14, marginTop: -6 }}>Matchday {shown.number}</Text>
               {/* One card per match, our own first. */}
-              <Swimlane cardWidth={cardWidth}>
+              <Swimlane
+                cardWidth={cardWidth}
+                leadWidth={76}
+                lead={
+                  <View style={[styles.day, { backgroundColor: brand.navy }]}>
+                    <Text style={styles.dayLabel}>Matchday</Text>
+                    <Text style={styles.dayNumber}>{shown.number}</Text>
+                  </View>
+                }
+              >
                 {shown.matches
                   .slice()
                   .sort((x, y) => Number(isOurs(y)) - Number(isOurs(x)))
@@ -214,6 +222,9 @@ export function LeagueHome() {
 
 const styles = StyleSheet.create({
   card: { borderRadius: 14, overflow: 'hidden' },
+  day: { flex: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  dayLabel: { color: '#B5C7EA', fontFamily: fonts.regular, fontSize: 12 },
+  dayNumber: { color: '#fff', fontFamily: fonts.semi, fontSize: 30, lineHeight: 34 },
   head: { paddingHorizontal: 16, paddingVertical: 10 },
   headText: { color: '#fff', fontFamily: fonts.semi, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' },
   match: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
