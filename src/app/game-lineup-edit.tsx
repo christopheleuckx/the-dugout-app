@@ -405,10 +405,7 @@ export default function GameLineupEditScreen() {
 
                 <Text style={[styles.section, { color: c.ink }]}>Playing time</Text>
                 <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 6 }]}>
-                  {byLine(squad).map((l, g) => (
-                    <View key={l.label}>
-                      <Text style={[styles.line, { color: c.inkSoft, marginTop: g > 0 ? 10 : 4 }]}>{l.label}</Text>
-                      {l.players.map((p, n) => (
+                  {squad.map((p, n) => (
                     <View key={p.id} style={[styles.timeRow, n > 0 && line]}>
                       <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.regular, fontSize: 15 }} numberOfLines={1}>
                         {short(p)}
@@ -419,8 +416,6 @@ export default function GameLineupEditScreen() {
                       <Text style={{ width: 78, textAlign: 'right', color: c.inkSoft, fontFamily: fonts.medium, fontSize: 13 }}>
                         {shareOf(p.id)}% · {minutesOf(p.id)}'
                       </Text>
-                    </View>
-                      ))}
                     </View>
                   ))}
                 </View>
