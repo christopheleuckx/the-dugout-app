@@ -178,13 +178,7 @@ export default function OpponentsScreen() {
         <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
           {title}
         </Text>
-        {open ? (
-          <View style={{ width: 36 }} />
-        ) : (
-          <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => show('new')} accessibilityLabel="New opponent" hitSlop={8}>
-            <Ionicons name="add" size={22} color={c.ink} />
-          </Pressable>
-        )}
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -262,7 +256,7 @@ export default function OpponentsScreen() {
                 clearButtonMode="while-editing"
               />
             </View>
-            {groups.length === 0 ? <Text style={[styles.note, { color: c.inkSoft, marginTop: 12 }]}>No opponent found. Add it with the plus.</Text> : null}
+            {groups.length === 0 ? <Text style={[styles.note, { color: c.inkSoft, marginTop: 12 }]}>No opponent found. Add it with the plus below.</Text> : null}
             {groups.map(([letter, list]) => (
               <View key={letter} style={{ gap: 6 }}>
                 <Text style={[styles.letter, { color: c.inkSoft }]}>{letter}</Text>
@@ -272,16 +266,36 @@ export default function OpponentsScreen() {
           </>
         )}
       </ScrollView>
+      {open ? null : (
+        <Pressable style={[styles.add, { backgroundColor: c.pitch, bottom: Math.max(insets.bottom, 12) + 12 }]} onPress={() => show('new')} accessibilityLabel="New opponent">
+          <Ionicons name="add" size={28} color={c.onPitch} />
+        </Pressable>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  // The same round button as on the Games tab.
+  add: {
+    position: 'absolute',
+    right: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0E1320',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
   page: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 17 },
-  content: { padding: 16, gap: 10, paddingBottom: 48 },
+  content: { padding: 16, gap: 10, paddingBottom: 110 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 12, height: 44 },
   letter: { fontFamily: fonts.medium, fontSize: 13, marginLeft: 12, marginTop: 6 },
   caption: { fontFamily: fonts.regular, fontSize: 13, marginLeft: 12, marginTop: 8 },
