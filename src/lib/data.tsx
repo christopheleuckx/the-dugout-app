@@ -241,7 +241,7 @@ type Data = {
   teamTactics: Theme[];
   basics: Theme[];
   // Known opponent clubs, by name.
-  competitors: { id: string; name: string; logoUrl: string | null }[];
+  competitors: { id: string; name: string; logoPath: string | null; logoUrl: string | null }[];
   videos: Video[];
 };
 
@@ -596,7 +596,7 @@ async function load(userId: string): Promise<Data> {
     teamTactics: tactics.data ?? [],
     basics: basics.data ?? [],
     competitors: (competitors.data ?? [])
-      .map((c) => ({ id: c.id, name: c.name, logoUrl: logoUrl(c.logo_path) }))
+      .map((c) => ({ id: c.id, name: c.name, logoPath: c.logo_path ?? null, logoUrl: logoUrl(c.logo_path) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     videos: (videos.data ?? []).map((v) => ({
       id: v.id,

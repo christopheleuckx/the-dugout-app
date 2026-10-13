@@ -139,6 +139,14 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
           </Pressable>
         ) : null}
+        <Pressable style={[styles.row, line]} onPress={() => router.push('/opponents')}>
+          <Ionicons name="flag-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Opponents</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Names and logos, shared by everyone</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+        </Pressable>
       </View>
 
       {me?.isAdmin ? (
