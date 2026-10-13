@@ -8,9 +8,10 @@ const GUTTER = 16;
 
 // Horizontal, snapping row of equally wide cards with page dots underneath.
 // Bleeds through the page's side padding so cards scroll edge to edge.
-export function Swimlane({ cardWidth, children }: { cardWidth: number; children: ReactNode }) {
+// `initialIndex` is the card the lane opens on.
+export function Swimlane({ cardWidth, initialIndex = 0, children }: { cardWidth: number; initialIndex?: number; children: ReactNode }) {
   const c = useColors();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(initialIndex);
   const cards = Children.toArray(children);
 
   return (
@@ -20,6 +21,7 @@ export function Swimlane({ cardWidth, children }: { cardWidth: number; children:
         showsHorizontalScrollIndicator={false}
         snapToInterval={cardWidth + GAP}
         decelerationRate="fast"
+        contentOffset={{ x: initialIndex * (cardWidth + GAP), y: 0 }}
         contentContainerStyle={{ paddingHorizontal: GUTTER, gap: GAP }}
         scrollEventThrottle={32}
         onScroll={({ nativeEvent: e }) => {
