@@ -59,3 +59,12 @@ export function lookAlikes<T extends { id: string; name: string }>(of: T, all: T
     .sort((a, b) => a.score - b.score || a.other.name.localeCompare(b.other.name))
     .map((r) => r.other);
 }
+
+// A club's name without the club-type words in front of or behind it, for
+// places where two clubs share one line: "KHO Wolvertem Merchtem" becomes
+// "Wolvertem Merchtem". A name made of only such words stays as it is.
+export function shortName(name: string) {
+  const words = name.trim().split(/\s+/);
+  const kept = words.filter((w) => !TYPE_WORDS.has(w.toLowerCase().replace(/[^a-z]/g, '')));
+  return (kept.length ? kept : words).join(' ');
+}
