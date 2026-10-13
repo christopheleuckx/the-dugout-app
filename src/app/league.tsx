@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Crest } from '../components/MatchCard';
-import { useData } from '../lib/data';
+import { fmtDate, toIso, useData } from '../lib/data';
 import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -22,10 +23,10 @@ const DEFAULT_RANKING = Object.keys(RANKING);
 const ROW = 54;
 
 type Team = { id: string; competitorId: string | null; own: boolean; name: string; logoUrl: string | null };
-type Match = { id: string; home: string; away: string };
+type Match = { id: string; home: string; away: string; date: string | null; time: string | null };
 type Matchday = { id: string; number: number; matches: Match[] };
 type League = { id: string; name: string; win: number; draw: number; loss: number; ranking: string[] };
-type View_ = 'main' | 'teams' | 'ranking' | { matchday: string };
+type View_ = 'main' | 'teams' | 'ranking' | { matchday: string; match?: string };
 
 // A row that is picked up by its handle. While it is held it follows the
 // finger; on release the page decides what the drop means.
@@ -108,12 +109,17 @@ export default function LeagueScreen() {
   const [picked, setPicked] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [missing, setMissing] = useState(false);
+  // The match on show: its date and kick-off as they are being chosen, and
+  // which of the two pickers is open.
+  const [matchDate, setMatchDate] = useState<Date | null>(null);
+  const [matchTime, setMatchTime] = useState<Date | null>(null);
+  const [picker, setPicker] = useState<'date' | 'time' | null>(null);
 
   const load = useCallback(async () => {
     const [l, t, d] = await Promise.all([
       supabase.from('leagues').select('id, name, points_win, points_draw, points_loss, ranking').eq('id', id).maybeSingle(),
       supabase.from('league_teams').select('id, competitor_id, is_own_team').eq('league_id', id),
-      supabase.from('league_matchdays').select('id, number, league_matches(id, home_team_id, away_team_id, position)').eq('league_id', id).order('number'),
+      supabase.from('league_matchdays').select('id, number, league_matches(id, home_team_id, away_team_id, position, match_date, kickoff)').eq('league_id', id).order('number'),
     ]);
     if (l.error || t.error || d.error) return setError(`Could not load the competition: ${(l.error ?? t.error ?? d.error)!.message}`);
     if (!l.data) return setMissing(true);
@@ -148,7 +154,7 @@ export default function LeagueScreen() {
         matches: (day.league_matches ?? [])
           .slice()
           .sort((a, b) => a.position - b.position)
-          .map((m) => ({ id: m.id, home: m.home_team_id, away: m.away_team_id })),
+          .map((m) => ({ id: m.id, home: m.home_team_id, away: m.away_team_id, date: m.match_date ?? null, time: m.kickoff ? String(m.kickoff).slice(0, 5) : null })),
       })),
     );
   }, [id, competitors, clubName, clubLogoUrl]);
@@ -167,6 +173,7 @@ export default function LeagueScreen() {
 
   const teamOf = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
   const day = typeof view === 'object' ? days.find((x) => x.id === view.matchday) : undefined;
+  const match = typeof view === 'object' && view.match ? day?.matches.find((m) => m.id === view.match) : undefined;
   const free = day ? teams.filter((t) => !day.matches.some((m) => m.home === t.id || m.away === t.id)) : [];
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
 
@@ -189,6 +196,34 @@ export default function LeagueScreen() {
     Alert.alert(`Remove ${there.name}?`, `${there.name} plays in ${used} ${used === 1 ? 'match' : 'matches'} of this competition. Removing the team removes those matches too.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => save(supabase.from('league_teams').delete().eq('id', there.id)) },
+    ]);
+  }
+
+  function openMatch(m: Match) {
+    if (!day) return;
+    setMatchDate(m.date ? new Date(`${m.date}T00:00:00`) : null);
+    if (m.time) {
+      const t = new Date();
+      t.setHours(Number(m.time.slice(0, 2)), Number(m.time.slice(3, 5)), 0, 0);
+      setMatchTime(t);
+    } else setMatchTime(null);
+    setPicker(null);
+    setView({ matchday: day.id, match: m.id });
+  }
+
+  const hhmm = (d: Date | null) => (d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : null);
+
+  async function saveMatch() {
+    if (!day || !match) return;
+    await save(supabase.from('league_matches').update({ match_date: matchDate ? toIso(matchDate) : null, kickoff: hhmm(matchTime) }).eq('id', match.id));
+    setView({ matchday: day.id });
+  }
+
+  function removeMatch() {
+    if (!day || !match) return;
+    Alert.alert('Delete this match?', `${teamOf.get(match.home)?.name ?? '?'} – ${teamOf.get(match.away)?.name ?? '?'} is removed from matchday ${day.number}. Both teams are free again.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => (setView({ matchday: day.id }), save(supabase.from('league_matches').delete().eq('id', match.id))) },
     ]);
   }
 
@@ -245,8 +280,8 @@ export default function LeagueScreen() {
     ]);
   }
 
-  const back = () => (view === 'main' ? goBack() : (setView('main'), setPicked(null), setSearch('')));
-  const title = view === 'teams' ? 'Teams' : view === 'ranking' ? 'Order of clubs' : day ? `Matchday ${day.number}` : (league?.name ?? 'Competition');
+  const back = () => (view === 'main' ? goBack() : match && day ? setView({ matchday: day.id }) : (setView('main'), setPicked(null), setSearch('')));
+  const title = view === 'teams' ? 'Teams' : view === 'ranking' ? 'Order of clubs' : match ? 'Match' : day ? `Matchday ${day.number}` : (league?.name ?? 'Competition');
 
   const crest = (t: Team | undefined, size = 34) => (
     <View style={[styles.ring, { borderColor: c.line }]}>
@@ -325,6 +360,64 @@ export default function LeagueScreen() {
         </Pressable>
       </>
     );
+  } else if (day && match) {
+    const ten = new Date();
+    ten.setHours(10, 0, 0, 0);
+    const home = teamOf.get(match.home);
+    const away = teamOf.get(match.away);
+    body = (
+      <>
+        <View style={[styles.card, styles.versus, { backgroundColor: c.surface }]}>
+          <View style={styles.side}>
+            {crest(home, 52)}
+            <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' }} numberOfLines={2}>
+              {home?.name ?? '?'}
+            </Text>
+          </View>
+          <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Matchday {day.number}</Text>
+          <View style={styles.side}>
+            {crest(away, 52)}
+            <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' }} numberOfLines={2}>
+              {away?.name ?? '?'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: c.surface }]}>
+          <Pressable style={styles.row} onPress={() => (setPicker(picker === 'date' ? null : 'date'), !matchDate && setMatchDate(new Date()))}>
+            <Text style={[styles.label, { color: c.ink }]}>Date</Text>
+            <Text style={{ color: matchDate ? c.pitch : c.inkSoft, fontFamily: fonts.regular, fontSize: 16 }}>{matchDate ? fmtDate(toIso(matchDate)) : 'Not set'}</Text>
+          </Pressable>
+          {picker === 'date' ? (
+            <View style={line}>
+              <DateTimePicker mode="date" display="inline" value={matchDate ?? new Date()} accentColor={c.pitch} onChange={(_, d) => d && setMatchDate(d)} />
+              <Pressable style={[styles.row, line]} onPress={() => (setMatchDate(null), setPicker(null))}>
+                <Text style={[styles.label, { color: c.danger }]}>No date yet</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          <Pressable style={[styles.row, line]} onPress={() => (setPicker(picker === 'time' ? null : 'time'), !matchTime && setMatchTime(ten))}>
+            <Text style={[styles.label, { color: c.ink }]}>Kick-off</Text>
+            <Text style={{ color: matchTime ? c.pitch : c.inkSoft, fontFamily: fonts.regular, fontSize: 16 }}>{hhmm(matchTime) ?? 'Not set'}</Text>
+          </Pressable>
+          {picker === 'time' ? (
+            <View style={line}>
+              <DateTimePicker mode="time" display="spinner" minuteInterval={5} value={matchTime ?? ten} onChange={(_, d) => d && setMatchTime(d)} />
+              <Pressable style={[styles.row, line]} onPress={() => (setMatchTime(null), setPicker(null))}>
+                <Text style={[styles.label, { color: c.danger }]}>No kick-off time yet</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+
+        <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={saveMatch}>
+          <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save</Text>
+        </Pressable>
+        <Pressable style={[styles.button, { backgroundColor: c.surface }]} onPress={removeMatch}>
+          <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Delete match</Text>
+        </Pressable>
+      </>
+    );
   } else if (day) {
     body = (
       <>
@@ -336,16 +429,19 @@ export default function LeagueScreen() {
             </View>
           ) : null}
           {day.matches.map((m, i) => (
-            <View key={m.id} style={[styles.row, { minHeight: 58 }, i > 0 && line]}>
+            <Pressable key={m.id} style={[styles.row, { minHeight: 62 }, i > 0 && line]} onPress={() => openMatch(m)}>
               {crest(teamOf.get(m.home), 30)}
-              <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
-                {teamOf.get(m.home)?.name ?? '?'} <Text style={{ color: c.inkSoft, fontFamily: fonts.regular }}>–</Text> {teamOf.get(m.away)?.name ?? '?'}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
+                  {teamOf.get(m.home)?.name ?? '?'} <Text style={{ color: c.inkSoft, fontFamily: fonts.regular }}>–</Text> {teamOf.get(m.away)?.name ?? '?'}
+                </Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                  {m.date || m.time ? [m.date ? fmtDate(m.date) : null, m.time].filter(Boolean).join(' · ') : 'No date yet'}
+                </Text>
+              </View>
               {crest(teamOf.get(m.away), 30)}
-              <Pressable onPress={() => save(supabase.from('league_matches').delete().eq('id', m.id))} accessibilityLabel="Remove this match" hitSlop={8}>
-                <Ionicons name="close-circle" size={22} color={c.inkSoft} />
-              </Pressable>
-            </View>
+              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+            </Pressable>
           ))}
         </View>
 
@@ -479,6 +575,8 @@ const styles = StyleSheet.create({
   input: { flex: 2, textAlign: 'right', fontFamily: fonts.regular, fontSize: 16, paddingVertical: 0 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 12, height: 44 },
   ring: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 999 },
+  versus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  side: { width: 110, alignItems: 'center', gap: 8 },
   badge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   step: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, marginTop: 6 },
