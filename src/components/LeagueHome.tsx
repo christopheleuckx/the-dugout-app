@@ -1,11 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { fmtDate, toIso, useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { brand, fonts, useColors } from '../lib/theme';
 import { Crest } from './MatchCard';
+import { Swimlane } from './Swimlane';
 import { SectionTitle } from './ui';
 
 type Team = { id: string; own: boolean; name: string; logoUrl: string | null };
@@ -121,6 +122,8 @@ export function LeagueHome() {
   );
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.round(width * 0.7);
 
   return (
     <>
@@ -133,7 +136,8 @@ export function LeagueHome() {
           // the season is over, the last one. Matchdays without dates count as still to come.
           const since = lastWednesday();
           const lastDate = (d: Matchday) => d.matches.reduce((max, m) => (m.date && m.date > max ? m.date : max), '') || '9999';
-          const shown = [days.find((d) => lastDate(d) >= since) ?? days[days.length - 1]];
+          const shown = days.find((d) => lastDate(d) >= since) ?? days[days.length - 1];
+          const isOurs = (m: Match) => !!(teamOf.get(m.home)?.own || teamOf.get(m.away)?.own);
           const table = standings(league);
           const side = (id: string, goals: number | null, won: boolean) => {
             const team = teamOf.get(id);
@@ -151,45 +155,44 @@ export function LeagueHome() {
           return (
             <View key={league.id} style={{ gap: 10 }}>
               <SectionTitle>{league.name}</SectionTitle>
-                {shown.map((d) => (
-                  <View key={d.id} style={[styles.card, { backgroundColor: c.surface }]}>
-                    <View style={[styles.head, { backgroundColor: brand.navy }]}>
-                      <Text style={styles.headText}>Matchday {d.number}</Text>
-                    </View>
-                    {d.matches.map((m, i) => {
-                      const played = m.homeGoals !== null && m.awayGoals !== null;
-                      const ours = teamOf.get(m.home)?.own || teamOf.get(m.away)?.own;
-                      const game = ours ? games.find((g) => g.leagueMatchId === m.id) : undefined;
-                      return (
-                        <Pressable key={m.id} style={[styles.match, i > 0 && line, ours && { backgroundColor: c.surface2 }]} disabled={!game} onPress={() => game && router.push(`/game/${game.id}`)}>
-                          <View style={{ flex: 1, gap: 8 }}>
-                            {side(m.home, played ? m.homeGoals : null, played && m.homeGoals! > m.awayGoals!)}
-                            {side(m.away, played ? m.awayGoals : null, played && m.awayGoals! > m.homeGoals!)}
+              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14, marginTop: -6 }}>Matchday {shown.number}</Text>
+              {/* One card per match, our own first. */}
+              <Swimlane cardWidth={cardWidth}>
+                {shown.matches
+                  .slice()
+                  .sort((x, y) => Number(isOurs(y)) - Number(isOurs(x)))
+                  .map((m) => {
+                    const played = m.homeGoals !== null && m.awayGoals !== null;
+                    const ours = isOurs(m);
+                    const game = ours ? games.find((g) => g.leagueMatchId === m.id) : undefined;
+                    return (
+                      <Pressable
+                        key={m.id}
+                        style={[styles.card, styles.match, { backgroundColor: c.surface }, ours && { borderWidth: 1.5, borderColor: c.pitch }]}
+                        disabled={!game}
+                        onPress={() => game && router.push(`/game/${game.id}`)}
+                      >
+                        <View style={{ flex: 1, gap: 8 }}>
+                          {side(m.home, played ? m.homeGoals : null, played && m.homeGoals! > m.awayGoals!)}
+                          {side(m.away, played ? m.awayGoals : null, played && m.awayGoals! > m.homeGoals!)}
+                        </View>
+                        {played ? null : (
+                          <View style={[styles.when, { borderLeftColor: c.line }]}>
+                            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{m.date ? fmtDate(m.date).slice(4) : 'No date'}</Text>
+                            <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>{m.time ?? '–'}</Text>
                           </View>
-                          {played ? null : (
-                            <View style={[styles.when, { borderLeftColor: c.line }]}>
-                              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{m.date ? fmtDate(m.date).slice(4) : 'No date'}</Text>
-                              <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>{m.time ?? '–'}</Text>
-                            </View>
-                          )}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ))}
+                        )}
+                      </Pressable>
+                    );
+                  })}
+              </Swimlane>
 
               <View style={[styles.card, { backgroundColor: c.surface }]}>
                 <View style={[styles.head, { backgroundColor: brand.navy }]}>
                   <Text style={styles.headText}>Standings</Text>
                 </View>
-                <View style={styles.tableRow}>
-                  <Text style={[styles.pos, { color: c.inkSoft }]}>#</Text>
-                  <Text style={[styles.cell, { flex: 1, textAlign: 'left', color: c.inkSoft }]}>Club</Text>
-                  <Text style={[styles.cell, { color: c.inkSoft }]}>Played</Text>
-                  <Text style={[styles.cell, { color: c.inkSoft }]}>Points</Text>
-                </View>
                 {table.map((row, i) => (
-                  <View key={row.team.id} style={[styles.tableRow, line, row.team.own && { backgroundColor: c.surface2 }]}>
+                  <View key={row.team.id} style={[styles.tableRow, i > 0 && line, row.team.own && { backgroundColor: c.surface2 }]}>
                     <Text style={[styles.pos, { color: c.ink }]}>{i + 1}</Text>
                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Crest url={row.team.logoUrl} name={row.team.name} size={22} />
@@ -218,5 +221,5 @@ const styles = StyleSheet.create({
   when: { width: 74, alignItems: 'center', gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, paddingLeft: 10 },
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, gap: 4 },
   pos: { width: 20, fontFamily: fonts.medium, fontSize: 13, textAlign: 'center' },
-  cell: { width: 52, fontFamily: fonts.regular, fontSize: 14, textAlign: 'center' },
+  cell: { width: 40, fontFamily: fonts.regular, fontSize: 14, textAlign: 'center' },
 });
