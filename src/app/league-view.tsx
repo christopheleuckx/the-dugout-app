@@ -72,6 +72,23 @@ export default function LeagueViewScreen() {
   const dates = day ? [...new Set(day.matches.map((m) => m.date).filter((d): d is string => !!d))].sort() : [];
   const range = dates.length === 0 ? 'No dates yet' : dates.length === 1 ? fmtDate(dates[0]) : `${fmtDate(dates[0])} – ${fmtDate(dates[dates.length - 1])}`;
 
+  // Our form: the last five league matches we played, oldest first.
+  const own = league?.teams.find((t) => t.own);
+  const form = own
+    ? (league?.days ?? [])
+        .flatMap((d) => d.matches)
+        .filter((m) => (m.home === own.id || m.away === own.id) && m.homeGoals !== null && m.awayGoals !== null)
+        .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+        .slice(-5)
+        .map((m) => {
+          const ours = m.home === own.id ? m.homeGoals! : m.awayGoals!;
+          const theirs = m.home === own.id ? m.awayGoals! : m.homeGoals!;
+          const opponent = teamOf.get(m.home === own.id ? m.away : m.home);
+          return { id: m.id, result: ours > theirs ? 'W' : ours < theirs ? 'L' : 'D', score: `${ours}-${theirs}`, opponent };
+        })
+    : [];
+  const formColor = { W: c.win, D: c.amber, L: c.danger } as Record<string, string>;
+
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
@@ -98,9 +115,25 @@ export default function LeagueViewScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {days.length === 0 ? <Text style={[styles.note, { color: c.inkSoft }]}>No matches yet. Add them with the gear in the top right.</Text> : null}
+          {own && form.length ? (
+            <View style={[styles.card, styles.form, { backgroundColor: c.surface }]}>
+              <Crest url={own.logoUrl} name={own.name} size={40} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 15 }}>{own.name}</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Form, last {form.length === 1 ? 'match' : `${form.length} matches`}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {form.map((f) => (
+                  <View key={f.id} style={[styles.result, { backgroundColor: formColor[f.result] }]} accessibilityLabel={`${f.result} ${f.score} against ${f.opponent?.name ?? '?'}`}>
+                    <Text style={{ color: '#fff', fontFamily: fonts.semi, fontSize: 13 }}>{f.result}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
           {day ? (
             <>
-              <View style={styles.week}>
+              <View style={[styles.week, { marginTop: 8 }]}>
                 <Pressable style={[styles.arrow, { backgroundColor: c.surface }, shown === 0 && { opacity: 0.35 }]} onPress={() => go(shown - 1)} disabled={shown === 0} accessibilityLabel="Previous matchday" hitSlop={8}>
                   <Ionicons name="chevron-back" size={20} color={c.ink} />
                 </Pressable>
@@ -126,6 +159,8 @@ export default function LeagueViewScreen() {
                 showsHorizontalScrollIndicator={false}
                 scrollEventThrottle={32}
                 onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth))}
+                // Whenever the matches are (re)drawn, the lane goes back to the matchday in the title.
+                onContentSizeChange={() => pager.current?.scrollTo({ x: shown * pageWidth, animated: false })}
               >
                 {days.map((d) => {
                   return (
@@ -234,6 +269,8 @@ const styles = StyleSheet.create({
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 8 },
   note: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, marginHorizontal: 4 },
   card: { borderRadius: 14, overflow: 'hidden' },
+  form: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  result: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   week: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, marginBottom: 4 },
   arrow: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   // A fixed height, the same with or without the date line.
