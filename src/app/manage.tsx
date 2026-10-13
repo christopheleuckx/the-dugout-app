@@ -54,6 +54,9 @@ export default function ManageScreen() {
   const [groups, setGroups] = useState<string[]>([]);
   // The form to add an age group to a club.
   const [adding, setAdding] = useState<Club | null>(null);
+  // The form to add a club; its logo and age groups are added afterwards.
+  const [newClub, setNewClub] = useState(false);
+  const [clubName, setClubName] = useState('');
   // The age group being changed with that same form, instead of a new one.
   const [editing, setEditing] = useState<AgeGroup | null>(null);
   const [groupName, setGroupName] = useState('');
@@ -228,6 +231,22 @@ export default function ManageScreen() {
     setSaving(false);
   }
 
+  async function addClub() {
+    if (saving) return;
+    const clean = clubName.trim().replace(/\s+/g, ' ');
+    if (!clean) return setError('Give the club a name.');
+    if (clubs.some((club) => club.name.toLowerCase() === clean.toLowerCase())) return setError('There is already a club with that name.');
+    setSaving(true);
+    setError('');
+    const made = await supabase.from('clubs').insert({ name: clean }).select('id');
+    if (made.error || !made.data?.length) setError(`Could not add the club: ${made.error?.message ?? 'only admins can add a club'}`);
+    else {
+      await load();
+      setNewClub(false);
+    }
+    setSaving(false);
+  }
+
   // A club's logo: chosen from the photos, stored with the other logos, and
   // the old file removed. Everyone of the club sees it on their games.
   const [logoBusy, setLogoBusy] = useState<string | null>(null);
@@ -274,10 +293,10 @@ export default function ManageScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (newClub ? setNewClub(false) : adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{newClub ? 'New club' : adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
         {open || adding || ageGroupsOnly ? (
           <View style={{ width: 36 }} />
         ) : (
@@ -288,7 +307,16 @@ export default function ManageScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {adding ? (
+        {newClub ? (
+          <>
+            <Text style={[styles.note, { color: c.inkSoft }]}>A club has its own age groups, players, games and trainings. Add its logo and its age groups once it exists.</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>{field('Name', clubName, setClubName, { placeholder: 'FC Example', autoCapitalize: 'words' }, true)}</View>
+            {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
+            <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={addClub}>
+              {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Add club</Text>}
+            </Pressable>
+          </>
+        ) : adding ? (
           <>
             <Text style={[styles.note, { color: c.inkSoft }]}>
               {editing ? `An age group of ${adding.name}.` : `A new age group of ${adding.name}, with its own players, games and trainings.`}
@@ -479,17 +507,41 @@ export default function ManageScreen() {
           </>
         )}
       </ScrollView>
+      {ageGroupsOnly && !adding && !newClub && me?.isAdmin ? (
+        <Pressable
+          style={[styles.add, { backgroundColor: c.pitch, bottom: Math.max(insets.bottom, 12) + 12 }]}
+          onPress={() => (setClubName(''), setError(''), setNewClub(true))}
+          accessibilityLabel="New club"
+        >
+          <Ionicons name="add" size={28} color={c.onPitch} />
+        </Pressable>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  // The same round button as on the Games tab.
+  add: {
+    position: 'absolute',
+    right: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0E1320',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
   club: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
   page: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 17 },
-  content: { padding: 16, gap: 10, paddingBottom: 48 },
+  content: { padding: 16, gap: 10, paddingBottom: 110 },
   section: { fontFamily: fonts.medium, fontSize: 19 },
   caption: { fontFamily: fonts.regular, fontSize: 13, marginLeft: 12, marginTop: 8 },
   note: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, marginHorizontal: 12 },
