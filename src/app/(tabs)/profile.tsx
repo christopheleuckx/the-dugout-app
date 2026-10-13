@@ -8,9 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/Avatar';
 import { SwitchIcon } from '../../components/Icons';
 import { Crest } from '../../components/MatchCard';
+import { TeamSheet } from '../../components/TeamSwitch';
 import { Screen } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
-import { useData, type AgeGroup } from '../../lib/data';
+import { useData } from '../../lib/data';
 import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
@@ -101,27 +102,14 @@ export default function Profile() {
     setBusy(false);
   }
 
-  // Switching team: the whole app then shows that age group, because the
-  // database only returns its players, games and trainings.
+  // Switching team happens in the shared sheet.
   const canSwitch = (me?.ageGroups.length ?? 0) > 1;
   const [switching, setSwitching] = useState(false);
-  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
-  async function switchTo(group: AgeGroup) {
-    if (switchingTo || !me) return;
-    if (group.id === me.activeAgeGroup?.id) return setSwitching(false);
-    setSwitchingTo(group.id);
-    setError('');
-    const saved = await supabase.from('profiles').update({ active_age_group_id: group.id }).eq('id', me.id);
-    if (saved.error) setError(`Could not switch: ${saved.error.message}`);
-    else await refresh();
-    setSwitchingTo(null);
-    setSwitching(false);
-  }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
 
   return (
-    <Screen title="Profile">
+    <Screen title="Profile" team={false}>
       <View style={[styles.card, styles.person, { backgroundColor: c.surface }]}>
         <Pressable onPress={() => setChoosing(true)} accessibilityLabel="Change profile picture" hitSlop={6}>
           <Avatar profile={me} size={60} />
@@ -204,29 +192,7 @@ export default function Profile() {
         </Pressable>
       </View>
 
-      <Modal visible={switching} transparent animationType="slide" onRequestClose={() => setSwitching(false)}>
-        <Pressable style={{ flex: 1 }} onPress={() => setSwitching(false)} accessibilityLabel="Close" />
-        <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 12 }]}>
-          <View style={[styles.grabber, { backgroundColor: c.line }]} />
-          <Text style={[styles.sheetTitle, { color: c.ink }]}>Switch team</Text>
-          {(me?.ageGroups ?? []).map((group, i) => (
-            <Pressable key={group.id} style={[styles.row, { minHeight: 58 }, i > 0 && line]} onPress={() => switchTo(group)}>
-              <View style={[styles.ring, { borderColor: c.line }]}>
-                <Crest url={group.clubLogoUrl} name={group.clubName} size={38} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0, fontFamily: fonts.medium }]}>{group.name}</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{[group.clubName, group.format].join(' · ')}</Text>
-              </View>
-              {switchingTo === group.id ? (
-                <ActivityIndicator size="small" color={c.pitch} />
-              ) : me?.activeAgeGroup?.id === group.id ? (
-                <Ionicons name="checkmark" size={20} color={c.pitch} />
-              ) : null}
-            </Pressable>
-          ))}
-        </View>
-      </Modal>
+      <TeamSheet visible={switching} onClose={() => setSwitching(false)} />
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)} onDismiss={openPicker}>
         <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)} accessibilityLabel="Close" />

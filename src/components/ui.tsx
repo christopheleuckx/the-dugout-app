@@ -6,6 +6,7 @@ import { useData } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
 import { Loader } from './Loader';
 import { IS_BETA } from '../lib/supabase';
+import { HeaderTeam } from './TeamSwitch';
 
 // The beta shows its own name and icon on every tab, so it is never mistaken
 // for the live app.
@@ -18,9 +19,12 @@ export const APP_NAME = IS_BETA ? 'The Dugout - Beta' : 'The Dugout';
 export function Screen({
   title,
   scrollRef,
+  team = true,
   children,
 }: {
   title: string;
+  // The club logo and age group on the right of the title bar.
+  team?: boolean;
   scrollRef?: RefObject<ScrollView | null>;
   children: ReactNode;
 }) {
@@ -33,8 +37,8 @@ export function Screen({
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <Image source={IS_BETA ? BETA_LOGO : LOGO} style={styles.appLogo} accessibilityLabel={APP_NAME} />
         <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
-        {/* Spacer the size of the logo keeps the title centred. */}
-        <View style={{ width: 40 }} />
+        {/* As wide as the logo, which keeps the title centred. */}
+        {team ? <HeaderTeam /> : <View style={{ width: 40 }} />}
       </View>
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
