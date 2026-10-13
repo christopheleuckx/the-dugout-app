@@ -49,7 +49,6 @@ function RootNavigator() {
         <Stack.Screen name="video-player" options={{ animation: 'fade' }} />
         <Stack.Screen name="cloudflare" />
         <Stack.Screen name="manage" />
-        <Stack.Screen name="age-group" />
         <Stack.Screen name="opponents" />
         <Stack.Screen name="menu" />
         <Stack.Screen name="supabase-usage" />
