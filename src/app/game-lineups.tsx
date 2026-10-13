@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Pitch } from '../components/Pitch';
 import { onPitch } from '../lib/formats';
+import { groupOf } from '../lib/selection';
 import { useData, type Player, type Team } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
@@ -31,6 +32,9 @@ export default function GameLineupsScreen() {
   // "Thibaut C." like shortName() in the web app.
   const short = (p: Player) => `${p.firstName}${p.lastName.trim() ? ` ${p.lastName.trim()[0]}.` : ''}`;
   const names = new Map(players.map((p) => [p.id, short(p)]));
+  // Lists run by line: goalies, defenders, midfielders, wingers, attackers.
+  const lineOf = new Map(players.map((p) => [p.id, groupOf(p.bestPosition) * 100 + (Number(p.bestPosition) || 0)]));
+  const inLineOrder = <T extends { id: string }>(list: T[]) => list.slice().sort((a, b) => (lineOf.get(a.id) ?? 999) - (lineOf.get(b.id) ?? 999) || (names.get(a.id) ?? '').localeCompare(names.get(b.id) ?? ''));
   const color = params.team === 'red' ? c.teamRed : c.teamBlue;
 
   return (
@@ -86,11 +90,11 @@ export default function GameLineupsScreen() {
           onScroll={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
         >
           {lineups.map((lineup, i) => {
-            const bench = lineup.players.filter((p) => !onPitch(p[moment]));
+            const bench = inLineOrder(lineup.players.filter((p) => !onPitch(p[moment])));
             // What the coach has to act on: players coming on, going off, or
             // switching position. Staying on the bench (in another bench slot) is not listed.
-            const changes = lineup.players.filter(
-              (p) => p.starting !== p.after10 && (onPitch(p.starting) || onPitch(p.after10)),
+            const changes = inLineOrder(
+              lineup.players.filter((p) => p.starting !== p.after10 && (onPitch(p.starting) || onPitch(p.after10))),
             );
             return (
               <ScrollView key={i} style={{ width }} contentContainerStyle={styles.content}>
