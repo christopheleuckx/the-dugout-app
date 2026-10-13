@@ -6,9 +6,11 @@ import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '../../components/Avatar';
+import { SwitchIcon } from '../../components/Icons';
+import { Crest } from '../../components/MatchCard';
 import { Screen } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
-import { useData } from '../../lib/data';
+import { useData, type AgeGroup } from '../../lib/data';
 import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
@@ -99,6 +101,23 @@ export default function Profile() {
     setBusy(false);
   }
 
+  // Switching team: the whole app then shows that age group, because the
+  // database only returns its players, games and trainings.
+  const canSwitch = (me?.ageGroups.length ?? 0) > 1;
+  const [switching, setSwitching] = useState(false);
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  async function switchTo(group: AgeGroup) {
+    if (switchingTo || !me) return;
+    if (group.id === me.activeAgeGroup?.id) return setSwitching(false);
+    setSwitchingTo(group.id);
+    setError('');
+    const saved = await supabase.from('profiles').update({ active_age_group_id: group.id }).eq('id', me.id);
+    if (saved.error) setError(`Could not switch: ${saved.error.message}`);
+    else await refresh();
+    setSwitchingTo(null);
+    setSwitching(false);
+  }
+
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
 
   return (
@@ -110,88 +129,54 @@ export default function Profile() {
             {busy ? <ActivityIndicator size="small" color={c.pitch} /> : <Ionicons name="camera-outline" size={14} color={c.ink} />}
           </View>
         </Pressable>
-        <View style={{ flex: 1 }}>
+        {/* The name opens the account settings. */}
+        <Pressable style={{ flex: 1 }} onPress={() => router.push('/account')} accessibilityLabel="Account settings">
           <Text style={[styles.name, { color: c.ink }]} numberOfLines={1}>
             {me ? `${me.firstName} ${me.lastName}`.trim() || me.username : 'Unknown user'}
           </Text>
-          <Text style={[styles.sub, { color: c.inkSoft }]}>
+          <Text style={[styles.sub, { color: c.inkSoft }]} numberOfLines={1}>
             {me?.activeAgeGroup ? `Coach ${me.activeAgeGroup.name} · ${me.activeAgeGroup.clubName}` : 'Coach'}
           </Text>
-        </View>
+        </Pressable>
+        {/* The club of the team on show; with more than one team it carries
+            the same two-arrow badge as the jersey on a game, and switches. */}
+        {me?.activeAgeGroup ? (
+          <Pressable onPress={() => canSwitch && setSwitching(true)} disabled={!canSwitch} accessibilityLabel="Switch team" hitSlop={6}>
+            <View style={[styles.ring, { borderColor: c.line }]}>
+              <Crest url={me.activeAgeGroup.clubLogoUrl} name={me.activeAgeGroup.clubName} size={52} />
+            </View>
+            {canSwitch ? (
+              <View style={[styles.switch, { backgroundColor: c.surface, borderColor: c.chalk }]}>
+                <SwitchIcon color={c.ink} />
+              </View>
+            ) : null}
+          </Pressable>
+        ) : null}
       </View>
       {error ? <Text style={[styles.sub, { color: c.danger, marginHorizontal: 12 }]}>{error}</Text> : null}
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
-        <Pressable style={styles.row} onPress={() => router.push('/account')}>
-          <Ionicons name="person-circle-outline" size={22} color={c.inkSoft} />
-          <Text style={[styles.label, { color: c.ink }]}>Account settings</Text>
-          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-        </Pressable>
-        {me && me.ageGroups.length > 1 ? (
-          <Pressable style={[styles.row, line]} onPress={() => router.push('/age-group')}>
-            <Ionicons name="swap-horizontal-outline" size={22} color={c.inkSoft} />
+        {me?.isAdmin ? (
+          <Pressable style={styles.row} onPress={() => router.push('/menu?section=tools')}>
+            <Ionicons name="construct-outline" size={22} color={c.inkSoft} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Age group</Text>
-              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
-                {me.activeAgeGroup ? `${me.activeAgeGroup.clubName} · ${me.activeAgeGroup.name}` : 'Choose one'}
+              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Tools & costs</Text>
+              <Text style={{ color: nearlyFull ? c.amber : c.inkSoft, fontFamily: nearlyFull ? fonts.medium : fonts.regular, fontSize: 13 }}>
+                {nearlyFull ? `Video storage ${Math.min(100, Math.round(fill! * 100))}% full` : 'Cloudflare and Supabase'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
           </Pressable>
         ) : null}
-        <Pressable style={[styles.row, line]} onPress={() => router.push('/opponents')}>
-          <Ionicons name="flag-outline" size={22} color={c.inkSoft} />
+        <Pressable style={[styles.row, me?.isAdmin && line]} onPress={() => router.push('/menu?section=manage')}>
+          <Ionicons name="settings-outline" size={22} color={c.inkSoft} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Opponents</Text>
-            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Names and logos, shared by everyone</Text>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Configure and manage</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{me?.isAdmin ? 'Age groups, coaches and opponents' : 'Opponents'}</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
       </View>
-
-      {me?.isAdmin ? (
-        <>
-          <Text style={[styles.caption, { color: c.inkSoft }]}>Tools & costs</Text>
-          <View style={[styles.card, { backgroundColor: c.surface }]}>
-            <Pressable style={styles.row} onPress={() => router.push('/cloudflare')}>
-              <Ionicons name="cloud-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Cloudflare</Text>
-                <Text style={{ color: nearlyFull ? c.amber : c.inkSoft, fontFamily: nearlyFull ? fonts.medium : fonts.regular, fontSize: 13 }}>
-                  {nearlyFull ? `Video storage ${Math.min(100, Math.round(fill! * 100))}% full` : 'Video storage and usage'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/supabase-usage')}>
-              <Ionicons name="server-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Supabase</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Database and pictures</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-          </View>
-          <View style={[styles.card, { backgroundColor: c.surface }]}>
-            <Pressable style={styles.row} onPress={() => router.push('/manage?view=age-groups')}>
-              <Ionicons name="shield-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Age groups</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Clubs, their age groups and formats</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/manage?view=coaches')}>
-              <Ionicons name="people-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Coaches</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Who can sign in and what they may do</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-          </View>
-        </>
-      ) : null}
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/about')}>
@@ -210,6 +195,30 @@ export default function Profile() {
           <Text style={[styles.label, { color: c.ink }]}>Sign out</Text>
         </Pressable>
       </View>
+
+      <Modal visible={switching} transparent animationType="slide" onRequestClose={() => setSwitching(false)}>
+        <Pressable style={{ flex: 1 }} onPress={() => setSwitching(false)} accessibilityLabel="Close" />
+        <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 12 }]}>
+          <View style={[styles.grabber, { backgroundColor: c.line }]} />
+          <Text style={[styles.sheetTitle, { color: c.ink }]}>Switch team</Text>
+          {(me?.ageGroups ?? []).map((group, i) => (
+            <Pressable key={group.id} style={[styles.row, { minHeight: 58 }, i > 0 && line]} onPress={() => switchTo(group)}>
+              <View style={[styles.ring, { borderColor: c.line }]}>
+                <Crest url={group.clubLogoUrl} name={group.clubName} size={38} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: c.ink, flex: 0, fontFamily: fonts.medium }]}>{group.name}</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{[group.clubName, group.format].join(' · ')}</Text>
+              </View>
+              {switchingTo === group.id ? (
+                <ActivityIndicator size="small" color={c.pitch} />
+              ) : me?.activeAgeGroup?.id === group.id ? (
+                <Ionicons name="checkmark" size={20} color={c.pitch} />
+              ) : null}
+            </Pressable>
+          ))}
+        </View>
+      </Modal>
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)} onDismiss={openPicker}>
         <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)} accessibilityLabel="Close" />
@@ -232,7 +241,8 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  caption: { fontFamily: fonts.regular, fontSize: 13, marginLeft: 12, marginTop: 4, marginBottom: -4 },
+  ring: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 999 },
+  switch: { position: 'absolute', right: -5, bottom: -5, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   card: { borderRadius: 14, paddingHorizontal: 16 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16 },
   edit: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
