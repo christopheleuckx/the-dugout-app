@@ -142,9 +142,9 @@ export default function LeagueViewScreen() {
                                 {shortName(home?.name ?? '?')}
                               </Text>
                               <Crest url={home?.logoUrl ?? null} name={home?.name ?? '?'} size={26} />
-                              {/* The day sits on top of the score or the kick-off. */}
+                              {/* A match to come has its day on top of the kick-off; a played one only its score, centred. */}
                               <View style={styles.middle}>
-                                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }}>{m.date ? fmtDate(m.date) : 'No date'}</Text>
+                                {played ? null : <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }}>{m.date ? fmtDate(m.date) : 'No date'}</Text>}
                                 {played ? (
                                   <View style={[styles.score, { backgroundColor: c.surface2 }]}>
                                     <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>
@@ -236,9 +236,10 @@ const styles = StyleSheet.create({
   card: { borderRadius: 14, overflow: 'hidden' },
   week: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, marginBottom: 4 },
   arrow: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  fixture: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 11 },
+  // A fixed height, the same with or without the date line.
+  fixture: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 68 },
   club: { flex: 1, fontSize: 14 },
-  middle: { width: 76, alignItems: 'center', gap: 3 },
+  middle: { width: 76, alignItems: 'center', justifyContent: 'center', gap: 3 },
   // The same box for a score and a kick-off, so every matchday is equally tall.
   score: { width: 60, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   th: { fontFamily: fonts.regular, fontSize: 13 },
