@@ -55,7 +55,7 @@ function ResultCard({ game }: { game: Game }) {
 export default function Dashboard() {
   const c = useColors();
   const { width } = useWindowDimensions();
-  const { games, trainings, u15Fixtures, me } = useData();
+  const { games, trainings, me } = useData();
   const today = todayIso();
   const [weekOffset, setWeekOffset] = useState(0);
   const week = currentWeek(weekOffset);
@@ -87,20 +87,6 @@ export default function Dashboard() {
         crestName: g.opponent || 'TBD',
         meta: g.cancelStatus ?? [g.time, g.homeAway].filter(Boolean).join(' · '),
         logoUrl: g.opponentLogoUrl,
-        kind: 'Game' as const,
-      })),
-    ...u15Fixtures
-      .filter((f) => inWeek(f.date))
-      .map((f) => ({
-        key: f.id,
-        gameId: null,
-        trainingId: null,
-        date: f.date,
-        sort: f.time ?? '99:99',
-        title: `U15 · ${f.opponent}`,
-        crestName: f.opponent,
-        meta: f.cancelStatus ?? [f.time, f.homeAway].filter(Boolean).join(' · '),
-        logoUrl: f.opponentLogoUrl,
         kind: 'Game' as const,
       })),
     ...trainings
