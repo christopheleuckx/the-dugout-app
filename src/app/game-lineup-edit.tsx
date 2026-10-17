@@ -388,17 +388,16 @@ export default function GameLineupEditScreen() {
                 <Text style={[styles.section, { color: c.ink }]}>Bench</Text>
                 <View style={[styles.card, styles.chips, { backgroundColor: c.surface }]}>
                   {bench.length === 0 ? <Text style={[styles.hint, { color: c.inkSoft, margin: 0 }]}>No one on the bench.</Text> : null}
-                  {byLine(bench).map((l) => (
-                    <View key={l.label} style={{ width: '100%', gap: 6 }}>
-                      <Text style={[styles.line, { color: c.inkSoft }]}>{l.label}</Text>
-                      <View style={styles.chips}>
-                        {l.players.map((p) => (
-                          <Pressable key={p.id} style={[styles.chip, { backgroundColor: c.surface2 }]} onPress={() => setSheet({ player: p.id })}>
-                            <Text style={{ color: c.inkSoft, fontFamily: fonts.semi, fontSize: 12 }}>{p.bestPosition || '–'}</Text>
-                            <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 14 }}>{short(p)}</Text>
-                          </Pressable>
-                        ))}
-                      </View>
+                  {/* In line order, without headings. */}
+                  {byLine(bench)
+                    .flatMap((l) => l.players)
+                    .map((p) => (
+                      <Pressable key={p.id} style={[styles.chip, { backgroundColor: c.surface2 }]} onPress={() => setSheet({ player: p.id })}>
+                        <Text style={{ color: c.inkSoft, fontFamily: fonts.semi, fontSize: 12 }}>{p.bestPosition || '–'}</Text>
+                        <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 14 }}>{short(p)}</Text>
+                      </Pressable>
+                    ))}
+                </View>
                     </View>
                   ))}
                 </View>
