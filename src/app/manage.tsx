@@ -56,6 +56,8 @@ export default function ManageScreen() {
   const [adding, setAdding] = useState<Club | null>(null);
   // The form to add a club; its logo and age groups are added afterwards.
   const [newClub, setNewClub] = useState(false);
+  // The club whose age groups are on show; none means the list of clubs.
+  const [clubId, setClubId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
   // The age group being changed with that same form, instead of a new one.
   const [editing, setEditing] = useState<AgeGroup | null>(null);
@@ -232,6 +234,16 @@ export default function ManageScreen() {
   }
 
 
+  const clubOpen = clubs.find((club) => club.id === clubId) ?? null;
+  function newAgeGroup(club: Club) {
+    setEditing(null);
+    setGroupName('');
+    setFormat('8v8');
+    setTwoTeams(true);
+    setError('');
+    setAdding(club);
+  }
+
   async function addClub() {
     if (saving) return;
     const clean = clubName.trim().replace(/\s+/g, ' ');
@@ -294,10 +306,10 @@ export default function ManageScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (newClub ? setNewClub(false) : adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (newClub ? setNewClub(false) : adding ? (setAdding(null), setEditing(null)) : open ? setOpen(null) : clubOpen ? setClubId(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>{newClub ? 'New club' : adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
+        <Text style={[styles.title, { color: c.ink }]}>{newClub ? 'New club' : adding ? (editing ? editing.name : 'New age group') : isNew ? 'New coach' : open ? `${open.firstName} ${open.lastName}`.trim() : clubOpen ? clubOpen.name : ageGroupsOnly ? 'Club management' : 'Coaches'}</Text>
         {open || adding || ageGroupsOnly ? (
           <View style={{ width: 36 }} />
         ) : (
@@ -430,54 +442,62 @@ export default function ManageScreen() {
         ) : (
           <>
             {error ? <Text style={[styles.note, { color: c.danger }]}>{error}</Text> : null}
-            {(ageGroupsOnly ? clubs : []).map((club) => (
-              <View key={club.id} style={{ gap: 10 }}>
-                <Pressable style={styles.club} onPress={() => changeLogo(club)} accessibilityLabel={`Change the logo of ${club.name}`}>
-                  {logoBusy === club.id ? <ActivityIndicator color={c.pitch} style={{ width: 44, height: 44 }} /> : <Crest url={logoUrl(club.logoPath)} name={club.name} size={44} />}
+            {ageGroupsOnly && !clubOpen ? (
+              // The clubs; one opens its age groups.
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
+                {clubs.map((club, i) => (
+                  <Pressable key={club.id} style={[styles.row, { minHeight: 64 }, i > 0 && line]} onPress={() => (setError(''), setClubId(club.id))}>
+                    <Crest url={logoUrl(club.logoPath)} name={club.name} size={40} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{club.name}</Text>
+                      <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                        {club.ageGroups.length ? club.ageGroups.map((g) => g.name).join(', ') : 'No age groups yet'}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            {ageGroupsOnly && clubOpen ? (
+              <View style={{ gap: 10 }}>
+                <Pressable style={styles.club} onPress={() => changeLogo(clubOpen)} accessibilityLabel={`Change the logo of ${clubOpen.name}`}>
+                  {logoBusy === clubOpen.id ? <ActivityIndicator color={c.pitch} style={{ width: 44, height: 44 }} /> : <Crest url={logoUrl(clubOpen.logoPath)} name={clubOpen.name} size={44} />}
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.section, { color: c.ink }]}>{club.name}</Text>
-                    <Text style={{ color: c.pitch, fontFamily: fonts.regular, fontSize: 13 }}>{club.logoPath ? 'Change logo' : 'Add logo'}</Text>
+                    <Text style={[styles.section, { color: c.ink }]}>{clubOpen.name}</Text>
+                    <Text style={{ color: c.pitch, fontFamily: fonts.regular, fontSize: 13 }}>{clubOpen.logoPath ? 'Change logo' : 'Add logo'}</Text>
                   </View>
                 </Pressable>
-                <View style={[styles.card, { backgroundColor: c.surface }]}>
-                  {club.ageGroups.map((group) => (
-                    <Pressable
-                      key={group.id}
-                      style={[styles.row, { minHeight: 62 }, line]}
-                      onPress={() => {
-                        setGroupName(group.name);
-                        setFormat(group.format);
-                        setError('');
-                        setEditing(group);
-                        setAdding(club);
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
-                        <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
-                          {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-                    </Pressable>
-                  ))}
-                  <Pressable
-                    style={[styles.row, line]}
-                    onPress={() => {
-                      setEditing(null);
-                      setGroupName('');
-                      setFormat('8v8');
-                      setTwoTeams(true);
-                      setError('');
-                      setAdding(club);
-                    }}
-                  >
-                    <Ionicons name="add" size={20} color={c.pitch} />
-                    <Text style={[styles.label, { color: c.pitch }]}>Add age group</Text>
-                  </Pressable>
-                </View>
+                <Text style={[styles.caption, { color: c.inkSoft }]}>Age groups</Text>
+                {clubOpen.ageGroups.length === 0 ? (
+                  <Text style={[styles.note, { color: c.inkSoft }]}>No age groups yet. Add the first one with the plus below.</Text>
+                ) : (
+                  <View style={[styles.card, { backgroundColor: c.surface }]}>
+                    {clubOpen.ageGroups.map((group, i) => (
+                      <Pressable
+                        key={group.id}
+                        style={[styles.row, { minHeight: 62 }, i > 0 && line]}
+                        onPress={() => {
+                          setGroupName(group.name);
+                          setFormat(group.format);
+                          setError('');
+                          setEditing(group);
+                          setAdding(clubOpen);
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
+                          <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                            {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
               </View>
-            ))}
+            ) : null}
             {ageGroupsOnly ? null : (
               <View style={[styles.card, { backgroundColor: c.surface }]}>
                 {coaches.map((coach, i) => (
@@ -508,11 +528,12 @@ export default function ManageScreen() {
           </>
         )}
       </ScrollView>
+      {/* The plus adds a club on the list of clubs, and an age group inside a club. */}
       {ageGroupsOnly && !adding && !newClub && me?.isAdmin ? (
         <Pressable
           style={[styles.add, { backgroundColor: c.pitch, bottom: Math.max(insets.bottom, 12) + 12 }]}
-          onPress={() => (setClubName(''), setError(''), setNewClub(true))}
-          accessibilityLabel="New club"
+          onPress={() => (clubOpen ? newAgeGroup(clubOpen) : (setClubName(''), setError(''), setNewClub(true)))}
+          accessibilityLabel={clubOpen ? 'New age group' : 'New club'}
         >
           <Ionicons name="add" size={28} color={c.onPitch} />
         </Pressable>

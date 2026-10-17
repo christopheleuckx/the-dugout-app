@@ -50,6 +50,9 @@ function RootNavigator() {
         <Stack.Screen name="cloudflare" />
         <Stack.Screen name="manage" />
         <Stack.Screen name="opponents" />
+        <Stack.Screen name="menu" />
+        <Stack.Screen name="leagues" />
+        <Stack.Screen name="league" />
         <Stack.Screen name="supabase-usage" />
         <Stack.Screen name="pin" />
         <Stack.Screen name="video-limits" />
