@@ -125,6 +125,14 @@ export default function Profile() {
           <Text style={[styles.label, { color: c.ink }]}>Account details</Text>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
+        <Pressable style={[styles.row, line]} onPress={() => router.push('/opponents')}>
+          <Ionicons name="flag-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Opponents</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Names and logos</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+        </Pressable>
         {me?.isAdmin ? (
           <>
             <Pressable style={[styles.row, line]} onPress={() => router.push('/manage')}>
