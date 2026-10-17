@@ -24,9 +24,7 @@ export default function Squad() {
       {players.length === 0 ? <Empty>No players yet.</Empty> : null}
       {lines.map((line) => (
         <View key={line.label} style={{ gap: 10 }}>
-          <SectionTitle>
-            {line.label} · {line.players.length}
-          </SectionTitle>
+          <SectionTitle>{line.label}</SectionTitle>
           {line.players.map((p) => (
             <Card key={p.id}>
               <View style={styles.row}>
