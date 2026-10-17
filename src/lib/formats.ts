@@ -50,7 +50,8 @@ const ORDER: Record<Format, string[]> = {
   '11v11': ['K', '2', '3', '4', '5', '6', '8', '10', '7', '11', '9'],
 };
 
-export const positionsOf = (format: Format) => ORDER[format];
-export const coordsOf = (format: Format) => COORDS[format];
+// An unknown or missing format draws the 8v8 pitch.
+export const positionsOf = (format: Format) => ORDER[asFormat(format)];
+export const coordsOf = (format: Format) => COORDS[asFormat(format)];
 // A position of any format; everything else is the bench.
 export const onPitch = (position: string) => FORMATS.some((f) => position in COORDS[f]);
