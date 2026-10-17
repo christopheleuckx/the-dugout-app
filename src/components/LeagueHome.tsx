@@ -8,7 +8,6 @@ import { currentMatchday, loadLeagues, standings, type League, type Match } from
 import { brand, fonts, useColors } from '../lib/theme';
 import { Crest } from './MatchCard';
 import { Swimlane } from './Swimlane';
-import { SectionTitle } from './ui';
 
 // On Home: the competitions of the team on show. Per competition the matchday
 // of the moment and the table under it.
@@ -57,25 +56,25 @@ export function LeagueHome() {
             );
           };
 
+          // Four clubs around ours: two above and one below, moved along at
+          // the top or bottom of the table so there are always four.
+          const ownAt = table.findIndex((row) => row.team.own);
+          const from = Math.max(0, Math.min((ownAt === -1 ? 0 : ownAt) - 2, table.length - 4));
+          const around = table.slice(from, from + 4);
+          const open = () => router.push({ pathname: '/league-view', params: { id: league.id } });
+
           return (
-            <View key={league.id} style={{ gap: 10 }}>
-              <Pressable style={styles.title} onPress={() => router.push({ pathname: '/league-view', params: { id: league.id } })} accessibilityLabel={`Open ${league.name}`}>
-                <SectionTitle>{league.name}</SectionTitle>
-                <View style={{ flex: 1 }} />
-                <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 14 }}>All games</Text>
-                <Ionicons name="chevron-forward" size={16} color={c.pitch} />
+            <View key={league.id} style={[styles.block, { backgroundColor: brand.navy }]}>
+              <Pressable style={styles.title} onPress={open} accessibilityRole="link" accessibilityLabel={`Open ${league.name}`}>
+                <Text style={styles.titleText} numberOfLines={1}>
+                  {league.name}
+                </Text>
+                <Ionicons name="chevron-forward" size={22} color={LIGHT} />
               </Pressable>
+              <Text style={styles.matchday}>Matchday {shown.number}</Text>
+
               {/* One card per match, our own first. */}
-              <Swimlane
-                cardWidth={cardWidth}
-                leadWidth={76}
-                lead={
-                  <View style={[styles.day, { backgroundColor: brand.navy }]}>
-                    <Text style={styles.dayLabel}>Matchday</Text>
-                    <Text style={styles.dayNumber}>{shown.number}</Text>
-                  </View>
-                }
-              >
+              <Swimlane cardWidth={cardWidth} dots={{ idle: 'rgba(255,255,255,0.3)', active: '#fff' }}>
                 {shown.matches
                   .slice()
                   .sort((x, y) => Number(isOurs(y)) - Number(isOurs(x)))
@@ -105,13 +104,11 @@ export function LeagueHome() {
                   })}
               </Swimlane>
 
-              <View style={[styles.card, { backgroundColor: c.surface }]}>
-                <View style={[styles.head, { backgroundColor: brand.navy }]}>
-                  <Text style={styles.headText}>Standings</Text>
-                </View>
-                {table.map((row, i) => (
+              {/* The table opens the full league page as well. */}
+              <Pressable style={[styles.card, { backgroundColor: c.surface, marginTop: 6 }]} onPress={open} accessibilityLabel={`Standings of ${league.name}`}>
+                {around.map((row, i) => (
                   <View key={row.team.id} style={[styles.tableRow, i > 0 && line, row.team.own && { backgroundColor: c.surface2 }]}>
-                    <Text style={[styles.pos, { color: c.ink }]}>{i + 1}</Text>
+                    <Text style={[styles.pos, { color: c.ink }]}>{from + i + 1}</Text>
                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Crest url={row.team.logoUrl} name={row.team.name} size={22} />
                       <Text style={{ flex: 1, color: c.ink, fontFamily: row.team.own ? fonts.semi : fonts.regular, fontSize: 14 }} numberOfLines={1}>
@@ -122,7 +119,11 @@ export function LeagueHome() {
                     <Text style={[styles.cell, { color: c.ink, fontFamily: fonts.semi }]}>{row.points}</Text>
                   </View>
                 ))}
-              </View>
+              </Pressable>
+
+              <Pressable style={({ pressed }) => [styles.more, pressed && { opacity: 0.8 }]} onPress={open}>
+                <Text style={styles.moreText}>Discover more</Text>
+              </Pressable>
             </View>
           );
         })}
@@ -130,14 +131,18 @@ export function LeagueHome() {
   );
 }
 
+// The light blue of the title on the navy block, after Sporza's headings.
+const LIGHT = '#6CC6F5';
+
 const styles = StyleSheet.create({
-  title: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  // Edge to edge across the page, to set the league apart from the rest of Home.
+  block: { marginHorizontal: -16, paddingHorizontal: 16, paddingTop: 22, paddingBottom: 20, marginTop: 12, gap: 10 },
+  title: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
+  titleText: { color: LIGHT, fontFamily: fonts.semi, fontSize: 26, letterSpacing: 0.3 },
+  matchday: { color: '#fff', fontFamily: fonts.medium, fontSize: 16, marginTop: -4 },
+  more: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 4 },
+  moreText: { color: brand.navy, fontFamily: fonts.semi, fontSize: 15 },
   card: { borderRadius: 14, overflow: 'hidden' },
-  day: { flex: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dayLabel: { color: '#B5C7EA', fontFamily: fonts.regular, fontSize: 12 },
-  dayNumber: { color: '#fff', fontFamily: fonts.semi, fontSize: 30, lineHeight: 34 },
-  head: { paddingHorizontal: 16, paddingVertical: 10 },
-  headText: { color: '#fff', fontFamily: fonts.semi, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' },
   match: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   side: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   when: { width: 74, alignItems: 'center', gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, paddingLeft: 10 },

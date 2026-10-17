@@ -15,12 +15,15 @@ export function Swimlane({
   initialIndex = 0,
   lead,
   leadWidth = 0,
+  dots,
   children,
 }: {
   cardWidth: number;
   initialIndex?: number;
   lead?: ReactNode;
   leadWidth?: number;
+  // The page dots' colours, for a lane on a dark background.
+  dots?: { idle: string; active: string };
   children: ReactNode;
 }) {
   // How far the cards are pushed along by the tile in front of them.
@@ -57,7 +60,7 @@ export function Swimlane({
           {cards.map((_, i) => (
             <View
               key={i}
-              style={[styles.dot, { backgroundColor: c.line }, i === active && { width: 18, backgroundColor: c.pitch }]}
+              style={[styles.dot, { backgroundColor: dots?.idle ?? c.line }, i === active && { width: 18, backgroundColor: dots?.active ?? c.pitch }]}
             />
           ))}
         </View>
