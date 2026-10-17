@@ -78,12 +78,12 @@ export default function Dashboard() {
       .filter((g) => inWeek(g.date) && !g.hiddenFromCalendar)
       .map((g) => ({
         key: g.id,
-        // Only U12 games have a game screen to open.
+        // These games have a game screen to open.
         gameId: g.id as string | null,
         trainingId: null,
         date: g.date!,
         sort: g.time ?? '99:99',
-        title: `U12 · ${g.opponent || 'TBD'}`,
+        title: `${me?.activeAgeGroup?.name ?? 'U12'} · ${g.opponent || 'TBD'}`,
         crestName: g.opponent || 'TBD',
         meta: g.cancelStatus ?? [g.time, g.homeAway].filter(Boolean).join(' · '),
         logoUrl: g.opponentLogoUrl,

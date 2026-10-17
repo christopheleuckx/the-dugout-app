@@ -100,13 +100,6 @@ export default function AccountScreen() {
               </View>
             </View>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
-              <Pressable style={styles.row} onPress={() => setChoosing(true)}>
-                <Text style={[styles.label, { color: c.ink }]}>My team</Text>
-                <Text style={[styles.value, { color: c.inkSoft }]}>{ageGroup ?? 'Choose'}</Text>
-                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-              </Pressable>
-            </View>
-            <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Pressable style={styles.row} onPress={() => router.push('/pin')}>
                 <Text style={[styles.label, { color: c.ink }]}>PIN code</Text>
                 <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />

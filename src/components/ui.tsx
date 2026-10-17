@@ -5,15 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
 import { Loader } from './Loader';
+import { HeaderTeam } from './TeamSwitch';
 
 // Page frame shared by every tab: title bar with the app logo, pull-to-refresh, and the
 // loading / error states for the shared data load.
 export function Screen({
   title,
   scrollRef,
+  team = true,
   children,
 }: {
   title: string;
+  // The club logo and age group on the right of the title bar.
+  team?: boolean;
   scrollRef?: RefObject<ScrollView | null>;
   children: ReactNode;
 }) {
@@ -26,8 +30,8 @@ export function Screen({
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <Image source={require('../../assets/icon.png')} style={styles.appLogo} accessibilityLabel="The Dugout" />
         <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
-        {/* Spacer the size of the logo keeps the title centred. */}
-        <View style={{ width: 40 }} />
+        {/* As wide as the logo, which keeps the title centred. */}
+        {team ? <HeaderTeam /> : <View style={{ width: 40 }} />}
       </View>
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>

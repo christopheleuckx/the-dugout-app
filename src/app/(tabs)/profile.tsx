@@ -114,7 +114,7 @@ export default function Profile() {
           <Text style={[styles.name, { color: c.ink }]} numberOfLines={1}>
             {me ? `${me.firstName} ${me.lastName}`.trim() || me.username : 'Unknown user'}
           </Text>
-          <Text style={[styles.sub, { color: c.inkSoft }]}>{me?.ageGroup ? `Coach ${me.ageGroup}` : 'Coach'}</Text>
+          <Text style={[styles.sub, { color: c.inkSoft }]}>{me?.activeAgeGroup ? `Coach ${me.activeAgeGroup.name} · ${me.activeAgeGroup.clubName}` : 'Coach'}</Text>
         </View>
       </View>
       {error ? <Text style={[styles.sub, { color: c.danger, marginHorizontal: 12 }]}>{error}</Text> : null}
@@ -135,11 +135,19 @@ export default function Profile() {
         </Pressable>
         {me?.isAdmin ? (
           <>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/manage')}>
+            <Pressable style={[styles.row, line]} onPress={() => router.push('/manage?view=age-groups')}>
+              <Ionicons name="shield-outline" size={22} color={c.inkSoft} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Club management</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Clubs, logos, age groups and formats</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+            </Pressable>
+            <Pressable style={[styles.row, line]} onPress={() => router.push('/manage?view=coaches')}>
               <Ionicons name="people-outline" size={22} color={c.inkSoft} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Manage</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Coaches and what they may do</Text>
+                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Coaches</Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Who can sign in, their age groups and what they may do</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
             </Pressable>

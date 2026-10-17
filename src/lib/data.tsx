@@ -118,7 +118,7 @@ export type Game = {
   scores: { team: Team; score: Score }[];
   // How many teams the game was set up for (1, or 2 for Blue and Red).
   numTeams: number;
-  // 8v8, 9v9 or 11v11; a game without a choice is 8v8.
+  // 8v8, 9v9 or 11v11: the game's own choice, else the age group's usual one.
   format: Format;
   // Per player id: the team they are selected in, or why they are not selected.
   selection: Record<string, { team: Team | null; reason: string | null }>;
@@ -194,6 +194,18 @@ export type Training = {
   unexcusedCount: number;
 };
 
+// An age group a coach works with: U12 of FCV Dender, with its teams.
+export type AgeGroup = {
+  id: string;
+  name: string;
+  // The format a new game starts with: 8v8, 9v9 or 11v11.
+  format: string;
+  clubId: string;
+  clubName: string;
+  clubLogoUrl: string | null;
+  teams: { key: Team; name: string; color: string }[];
+};
+
 export type Profile = {
   id: string;
   username: string;
@@ -212,6 +224,10 @@ export type Profile = {
   canSaveVideos: boolean;
   // The highest version of the walkthrough this coach has seen (0 = never).
   tourSeen: number;
+  // The age groups this coach is linked to, and the one the app is showing:
+  // the database only returns that age group's players, games and trainings.
+  ageGroups: AgeGroup[];
+  activeAgeGroup: AgeGroup | null;
 };
 
 type Data = {
@@ -221,6 +237,8 @@ type Data = {
   u15Fixtures: U15Fixture[];
   me: Profile | null;
   clubLogoUrl: string | null;
+  // The club of the age group on show, as our side of a game is named.
+  clubName: string;
   // The lists a training's themes are chosen from, in the web app's order.
   teamTactics: Theme[];
   basics: Theme[];
@@ -235,7 +253,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, competitors: [], teamTactics: [], basics: [], videos: [] };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, clubName: '', competitors: [], teamTactics: [], basics: [], videos: [] };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -324,6 +342,26 @@ async function load(userId: string): Promise<Data> {
     supabase.from('videos').select('id, game_id, team, training_id, title, storage_key, url, size_bytes, views, created_at').order('created_at'),
   ]);
 
+  // The age groups the coach is linked to, with their club and teams.
+  const linked = await supabase
+    .from('age_group_members')
+    .select('age_groups(id, name, default_format, clubs(id, name, logo_path), teams(key, name, color))')
+    .eq('user_id', userId);
+  const ageGroups: AgeGroup[] = ((linked.data ?? []) as any[])
+    .map((row) => row.age_groups)
+    .filter(Boolean)
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      format: a.default_format,
+      clubId: a.clubs?.id ?? '',
+      clubName: a.clubs?.name ?? '',
+      clubLogoUrl: logoUrl(a.clubs?.logo_path),
+      teams: (a.teams ?? []).sort((x: { key: string }, y: { key: string }) => x.key.localeCompare(y.key)),
+    }))
+    .sort((x, y) => x.clubName.localeCompare(y.clubName) || x.name.localeCompare(y.name));
+  const activeAgeGroup = ageGroups.find((a) => a.id === profile.data?.active_age_group_id) ?? null;
+
   const failed = [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos].find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
 
@@ -408,6 +446,7 @@ async function load(userId: string): Promise<Data> {
       };
     });
 
+  const usualFormat = activeAgeGroup?.format;
   const playerList: Player[] = (players.data ?? [])
     .map((r) => ({
       id: r.id,
@@ -491,7 +530,7 @@ async function load(userId: string): Promise<Data> {
         .map((team) => ({ team, score: teamScore(g, team) }))
         .filter((s): s is { team: Team; score: Score } => s.score !== null),
       numTeams: g.num_teams === 1 ? 1 : 2,
-      format: asFormat(g.format),
+      format: asFormat(g.format ?? usualFormat),
       selection: Object.fromEntries(
         (squad.data ?? [])
           .filter((r) => r.game_id === g.id && (r.team || r.not_selected_reason !== null))
@@ -549,10 +588,14 @@ async function load(userId: string): Promise<Data> {
           avatarPath: p.avatar_path ?? null,
           canSaveVideos: p.is_admin || !!p.feature_flags?.saveVideos,
           tourSeen: p.tour_seen ?? 0,
+          ageGroups,
+          activeAgeGroup,
           avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         }
       : null,
-    clubLogoUrl: logoUrl(club.data?.logo_path),
+    // The logo and name of the club the coach is working in.
+    clubLogoUrl: activeAgeGroup ? activeAgeGroup.clubLogoUrl : logoUrl(club.data?.logo_path),
+    clubName: activeAgeGroup?.clubName || 'FCV Dender',
     teamTactics: tactics.data ?? [],
     basics: basics.data ?? [],
     competitors: (competitors.data ?? [])
