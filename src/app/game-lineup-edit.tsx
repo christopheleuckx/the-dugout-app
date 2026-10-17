@@ -8,7 +8,7 @@ import { FIELD_POSITIONS, onPitch, Pitch } from '../components/Pitch';
 import { UndoToast } from '../components/UndoToast';
 import { useData, type Player, type Team } from '../lib/data';
 import { generateLineups } from '../lib/lineup';
-import { groupOf } from '../lib/selection';
+import { groupOf, POSITION_GROUPS } from '../lib/selection';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
@@ -59,7 +59,17 @@ export default function GameLineupEditScreen() {
   const team = params.team;
   const squad = (game?.teams.find((t) => t.team === team)?.players ?? [])
     .slice()
-    .sort((a, b) => groupOf(a.bestPosition) - groupOf(b.bestPosition) || a.firstName.localeCompare(b.firstName));
+    .sort(
+      (a, b) =>
+        groupOf(a.bestPosition) - groupOf(b.bestPosition) ||
+        (Number(a.bestPosition) || 0) - (Number(b.bestPosition) || 0) ||
+        a.firstName.localeCompare(b.firstName),
+    );
+  // The squad per line, goalies first and attackers last, for the lists.
+  const byLine = (list: Player[]) =>
+    [...POSITION_GROUPS.map((g) => g.label), 'No position']
+      .map((label, i) => ({ label, players: list.filter((p) => groupOf(p.bestPosition) === i) }))
+      .filter((l) => l.players.length);
   const count = game?.matches ?? 4;
 
   const [quarters, setQuarters] = useState<Quarter[]>(() =>
@@ -244,11 +254,9 @@ export default function GameLineupEditScreen() {
     goTo(0);
   }
   const sheetSpots = spotsOf(current);
-  // Players for a tapped position: those whose best position matches come first.
-  const candidates =
-    sheet && 'position' in sheet
-      ? squad.slice().sort((a, b) => Number(b.bestPosition === sheet.position) - Number(a.bestPosition === sheet.position))
-      : [];
+  // Players for a tapped position, line by line; those whose best position
+  // is this one stand out by their coloured badge.
+  const candidates = sheet && 'position' in sheet ? byLine(squad) : [];
 
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
@@ -378,7 +386,10 @@ export default function GameLineupEditScreen() {
                 <Text style={[styles.section, { color: c.ink }]}>Bench</Text>
                 <View style={[styles.card, styles.chips, { backgroundColor: c.surface }]}>
                   {bench.length === 0 ? <Text style={[styles.hint, { color: c.inkSoft, margin: 0 }]}>No one on the bench.</Text> : null}
-                  {bench.map((p) => (
+                  {/* In line order, without headings. */}
+                  {byLine(bench)
+                    .flatMap((l) => l.players)
+                    .map((p) => (
                     <Pressable key={p.id} style={[styles.chip, { backgroundColor: c.surface2 }]} onPress={() => setSheet({ player: p.id })}>
                       <Text style={{ color: c.inkSoft, fontFamily: fonts.semi, fontSize: 12 }}>{p.bestPosition || '–'}</Text>
                       <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 14 }}>{short(p)}</Text>
@@ -455,12 +466,16 @@ export default function GameLineupEditScreen() {
             <>
               <Text style={[styles.sheetTitle, { color: c.ink }]}>Position {sheet.position}</Text>
               <ScrollView style={{ maxHeight: 420 }}>
-                {candidates.map((p, n) => {
+                {candidates.map((l, g) => (
+                  <View key={l.label}>
+                    <Text style={[styles.line, { color: c.inkSoft, marginTop: g > 0 ? 12 : 2, marginBottom: 2 }]}>{l.label}</Text>
+                    {l.players.map((p, n) => {
                   const here = sheetSpots[p.id] === sheet.position;
+                  const own = p.bestPosition === sheet.position;
                   return (
                     <Pressable key={p.id} style={[styles.option, n > 0 && line]} onPress={() => (here ? toBench(p.id) : place(p.id, sheet.position))}>
-                      <View style={[styles.badge, { backgroundColor: c.surface2 }]}>
-                        <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 12 }}>{p.bestPosition || '–'}</Text>
+                      <View style={[styles.badge, { backgroundColor: own ? c.pitch : c.surface2 }]}>
+                        <Text style={{ color: own ? c.onPitch : c.ink, fontFamily: fonts.semi, fontSize: 12 }}>{p.bestPosition || '–'}</Text>
                       </View>
                       <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>{short(p)}</Text>
                       <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
@@ -469,7 +484,9 @@ export default function GameLineupEditScreen() {
                       {here ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
                     </Pressable>
                   );
-                })}
+                    })}
+                  </View>
+                ))}
               </ScrollView>
             </>
           ) : sheet ? (
@@ -517,6 +534,7 @@ const styles = StyleSheet.create({
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
   card: { borderRadius: 12, padding: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  line: { fontFamily: fonts.medium, fontSize: 12 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   track: { width: 70, height: 6, borderRadius: 3, overflow: 'hidden' },
