@@ -38,12 +38,27 @@ function distance(a: string, b: string) {
   return row[b.length];
 }
 
+// The club-type words of a name, run together: "KAA Gent" gives "kaa".
+function typeOf(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(' ')
+    .filter((w) => TYPE_WORDS.has(w))
+    .join('');
+}
+
 // Lower is more alike; null when the two names don't look like the same club.
 export function likeness(a: string, b: string): number | null {
   const x = coreName(a);
   const y = coreName(b);
   if (!x || !y) return null;
-  if (x === y) return 0;
+  if (x === y) {
+    // Same town but clearly different clubs, like KAA Gent and KRC Gent:
+    // still suggested, but after the real look-alikes.
+    const [ta, tb] = [typeOf(a), typeOf(b)];
+    return ta && tb && !ta.includes(tb) && !tb.includes(ta) ? 3 : 0;
+  }
   const [short, long] = x.length <= y.length ? [x, y] : [y, x];
   // One name inside the other, as whole words: "Gent" in "Gent Zeehaven".
   if (short.length >= 4 && ` ${long} `.includes(` ${short} `)) return 1;
