@@ -29,17 +29,13 @@ export default function Squad() {
             <Card key={p.id}>
               <View style={styles.row}>
                 <View style={[styles.number, { backgroundColor: c.pitch }]}>
-                  <Text style={[styles.numberText, { color: c.onPitch }]}>{p.bestPosition || '–'}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.name, { color: c.ink }]}>
-                    {p.firstName} {p.lastName}
-                  </Text>
-                  <Text style={{ color: c.inkSoft }}>
-                    {[p.developingPosition && p.developingPosition !== p.bestPosition && `Also ${p.developingPosition}`, p.preferredFoot && `${p.preferredFoot} foot`].filter(Boolean).join(' · ') ||
-                      (p.bestPosition ? 'No foot set' : 'No position set')}
+                  <Text style={[styles.numberText, { color: c.onPitch, fontSize: 16 }]}>
+                    {`${p.firstName.trim().charAt(0)}${p.lastName.trim().charAt(0)}`.toUpperCase()}
                   </Text>
                 </View>
+                <Text style={[styles.name, { flex: 1, color: c.ink }]}>
+                  {p.firstName} {p.lastName}
+                </Text>
               </View>
             </Card>
           ))}
