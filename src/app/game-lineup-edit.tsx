@@ -398,9 +398,6 @@ export default function GameLineupEditScreen() {
                       </Pressable>
                     ))}
                 </View>
-                    </View>
-                  ))}
-                </View>
 
                 <Text style={[styles.section, { color: c.ink }]}>Playing time</Text>
                 <View style={[styles.card, { backgroundColor: c.surface, paddingVertical: 6 }]}>
