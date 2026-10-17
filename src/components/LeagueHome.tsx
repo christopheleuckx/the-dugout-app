@@ -56,11 +56,6 @@ export function LeagueHome() {
             );
           };
 
-          // Four clubs around ours: two above and one below, moved along at
-          // the top or bottom of the table so there are always four.
-          const ownAt = table.findIndex((row) => row.team.own);
-          const from = Math.max(0, Math.min((ownAt === -1 ? 0 : ownAt) - 2, table.length - 4));
-          const around = table.slice(from, from + 4);
           const open = () => router.push({ pathname: '/league-view', params: { id: league.id } });
 
           return (
@@ -106,9 +101,9 @@ export function LeagueHome() {
 
               {/* The table opens the full league page as well. */}
               <Pressable style={[styles.card, { backgroundColor: c.surface, marginTop: 6 }]} onPress={open} accessibilityLabel={`Standings of ${league.name}`}>
-                {around.map((row, i) => (
+                {table.map((row, i) => (
                   <View key={row.team.id} style={[styles.tableRow, i > 0 && line, row.team.own && { backgroundColor: c.surface2 }]}>
-                    <Text style={[styles.pos, { color: c.ink }]}>{from + i + 1}</Text>
+                    <Text style={[styles.pos, { color: c.ink }]}>{i + 1}</Text>
                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Crest url={row.team.logoUrl} name={row.team.name} size={22} />
                       <Text style={{ flex: 1, color: c.ink, fontFamily: row.team.own ? fonts.semi : fonts.regular, fontSize: 14 }} numberOfLines={1}>
@@ -121,9 +116,6 @@ export function LeagueHome() {
                 ))}
               </Pressable>
 
-              <Pressable style={({ pressed }) => [styles.more, pressed && { opacity: 0.8 }]} onPress={open}>
-                <Text style={styles.moreText}>Discover more</Text>
-              </Pressable>
             </View>
           );
         })}
@@ -140,8 +132,6 @@ const styles = StyleSheet.create({
   title: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
   titleText: { color: LIGHT, fontFamily: fonts.semi, fontSize: 26, letterSpacing: 0.3 },
   matchday: { color: '#fff', fontFamily: fonts.medium, fontSize: 16, marginTop: -4 },
-  more: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 4 },
-  moreText: { color: brand.navy, fontFamily: fonts.semi, fontSize: 15 },
   card: { borderRadius: 14, overflow: 'hidden' },
   match: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   side: { flexDirection: 'row', alignItems: 'center', gap: 10 },
