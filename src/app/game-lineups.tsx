@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { onPitch, Pitch } from '../components/Pitch';
+import { Pitch } from '../components/Pitch';
+import { onPitch } from '../lib/formats';
 import { groupOf } from '../lib/selection';
 import { useData, type Player, type Team } from '../lib/data';
 import { fonts, useColors } from '../lib/theme';
@@ -99,6 +100,7 @@ export default function GameLineupsScreen() {
               <ScrollView key={i} style={{ width }} contentContainerStyle={styles.content}>
                 <View style={styles.pitch}>
                   <Pitch
+                    format={game!.format}
                     color={color}
                     slots={Object.fromEntries(
                       lineup.players.filter((p) => onPitch(p[moment])).map((p) => [p[moment], names.get(p.id) ?? '?']),

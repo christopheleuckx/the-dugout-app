@@ -4,9 +4,10 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FIELD_POSITIONS, onPitch, Pitch } from '../components/Pitch';
+import { Pitch } from '../components/Pitch';
 import { UndoToast } from '../components/UndoToast';
 import { useData, type Player, type Team } from '../lib/data';
+import { onPitch, positionsOf, type Format } from '../lib/formats';
 import { generateLineups } from '../lib/lineup';
 import { groupOf, POSITION_GROUPS } from '../lib/selection';
 import { supabase } from '../lib/supabase';
@@ -33,12 +34,12 @@ function shuffle<T>(list: T[]) {
 
 // A random line-up: a keeper in goal when the squad has one, every other
 // position filled by any player regardless of their best position.
-function randomFill(players: Player[]): Spots {
+function randomFill(players: Player[], format: Format): Spots {
   const spots: Spots = {};
   const keeper = shuffle(players.filter((p) => p.bestPosition === 'K'))[0];
   if (keeper) spots[keeper.id] = 'K';
   const rest = shuffle(players.filter((p) => p.id !== keeper?.id));
-  for (const position of FIELD_POSITIONS) {
+  for (const position of positionsOf(format)) {
     if (position === 'K' && keeper) continue;
     const p = rest.shift();
     if (!p) break;
@@ -246,7 +247,7 @@ export default function GameLineupEditScreen() {
       subsAllowed: subs,
       // Extra playing time only applies when the time isn't shared equally.
       highMinuteIds: equalTime ? [] : extra,
-    });
+    }, game!.format);
     const same = (a: Spots, b: Spots) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((id) => a[id] === b[id]);
     setQuarters(made.map((q) => ({ start: q.start, after: same(q.start, q.after) ? null : q.after })));
     setGenerating(false);
@@ -362,6 +363,7 @@ export default function GameLineupEditScreen() {
               <ScrollView key={i} style={{ width }} contentContainerStyle={styles.content}>
                 <View style={styles.pitch}>
                   <Pitch
+                    format={game!.format}
                     color={color}
                     slots={Object.fromEntries(squad.filter((p) => spots[p.id]).map((p) => [spots[p.id], short(p)]))}
                     onPressSpot={(position) => setSheet({ position })}
@@ -369,7 +371,7 @@ export default function GameLineupEditScreen() {
                 </View>
 
                 {moment === 'starting' ? (
-                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => update(i, randomFill(squad), 'starting')}>
+                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => update(i, randomFill(squad, game!.format), 'starting')}>
                     <Ionicons name="shuffle" size={18} color={c.pitch} />
                     <Text style={[styles.actionText, { color: c.pitch }]}>Random line-up</Text>
                   </Pressable>
@@ -494,7 +496,7 @@ export default function GameLineupEditScreen() {
               <Text style={[styles.sheetTitle, { color: c.ink }]}>
                 Place {short(squad.find((p) => p.id === sheet.player)!)}
               </Text>
-              {FIELD_POSITIONS.map((position, n) => {
+              {positionsOf(game!.format).map((position, n) => {
                 const occupant = squad.find((p) => sheetSpots[p.id] === position);
                 return (
                   <Pressable key={position} style={[styles.option, n > 0 && line]} onPress={() => place(sheet.player, position)}>

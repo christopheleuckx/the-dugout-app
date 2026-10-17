@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { useAuth } from './auth';
+import { asFormat, type Format } from './formats';
 import { logoUrl, supabase } from './supabase';
 
 export type Team = 'blue' | 'red';
@@ -117,6 +118,8 @@ export type Game = {
   scores: { team: Team; score: Score }[];
   // How many teams the game was set up for (1, or 2 for Blue and Red).
   numTeams: number;
+  // 8v8, 9v9 or 11v11; a game without a choice is 8v8.
+  format: Format;
   // Per player id: the team they are selected in, or why they are not selected.
   selection: Record<string, { team: Team | null; reason: string | null }>;
   // The teams playing this game, Blue first, each with its coaches' names
@@ -300,7 +303,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path'),
-    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
+    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id, format'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar, major_tactic_id, minor_tactic_id, basic_id'),
@@ -488,6 +491,7 @@ async function load(userId: string): Promise<Data> {
         .map((team) => ({ team, score: teamScore(g, team) }))
         .filter((s): s is { team: Team; score: Score } => s.score !== null),
       numTeams: g.num_teams === 1 ? 1 : 2,
+      format: asFormat(g.format),
       selection: Object.fromEntries(
         (squad.data ?? [])
           .filter((r) => r.game_id === g.id && (r.team || r.not_selected_reason !== null))

@@ -1,4 +1,5 @@
 import type { Player } from './data';
+import { positionsOf, type Format } from './formats';
 import { POSITION_GROUPS } from './selection';
 
 export type LineupParams = {
@@ -13,11 +14,10 @@ export type LineupParams = {
 // Player id -> field position, per quarter, at the start and after 10 minutes.
 export type GeneratedQuarter = { start: Record<string, string>; after: Record<string, string> };
 
-const SLOT_GROUPS = [['3', '4'], ['6', '10'], ['7', '11'], ['9']];
 const groupOf = (code: string) => POSITION_GROUPS.find((g) => g.positions.includes(code))?.label ?? null;
 
-// A player's "own" role: the same line (3/4, 6/10 and 7/11 each count as one
-// position), or a striker covering the 10.
+// A player's "own" role: the same line (defenders, midfielders and wingers
+// each count as one position), or a striker covering the 10.
 function isOwnRole(p: Player, code: string) {
   if (code === p.bestPosition) return true;
   const own = groupOf(p.bestPosition);
@@ -37,7 +37,8 @@ function shuffle<T>(list: T[]) {
 // The web app's line-up generator (computeGeneratedLineup): each quarter is
 // one shift, or two when a change after 10 minutes is allowed, and every
 // position goes to the best-fitting player who is furthest behind on minutes.
-export function generateLineups(squad: Player[], quarterCount: number, quarterLength: number, params: LineupParams): GeneratedQuarter[] {
+export function generateLineups(squad: Player[], quarterCount: number, quarterLength: number, params: LineupParams, format: Format): GeneratedQuarter[] {
+  const outfieldSpots = positionsOf(format).filter((code) => code !== 'K');
   const keepers = squad.filter((p) => p.bestPosition === 'K');
   const outfield = squad.filter((p) => p.bestPosition !== 'K');
 
@@ -52,8 +53,8 @@ export function generateLineups(squad: Player[], quarterCount: number, quarterLe
   }
   const total = shifts.reduce((n, s) => n + s.minutes, 0);
 
-  // Seven outfield spots share the minutes.
-  const equalShare = outfield.length ? (total * 7) / outfield.length : 0;
+  // The outfield spots share the minutes.
+  const equalShare = outfield.length ? (total * outfieldSpots.length) / outfield.length : 0;
   const target = new Map<string, number>();
   for (const p of outfield) {
     const high = params.highMinuteIds.includes(p.id);
@@ -86,7 +87,7 @@ export function generateLineups(squad: Player[], quarterCount: number, quarterLe
       used.add(keeper.id);
       minutes.set(keeper.id, minutes.get(keeper.id)! + shift.minutes);
     }
-    for (const code of SLOT_GROUPS.flat()) {
+    for (const code of outfieldSpots) {
       const candidates = shuffle(outfield.filter((p) => !used.has(p.id)));
       if (!candidates.length) break;
       candidates.sort((a, b) => {
