@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   // Edge to edge across the page, to set the league apart from the rest of Home.
   // The title's own line height adds room above its letters, so the top
   // padding is smaller to look the same as the bottom one.
-  block: { marginHorizontal: -16, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, marginTop: 12, gap: 10 },
+  block: { marginHorizontal: -16, paddingHorizontal: 16, paddingTop: 22, paddingBottom: 28, marginTop: 12, gap: 10 },
   title: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
   titleText: { color: LIGHT, fontFamily: fonts.semi, fontSize: 26, lineHeight: 32, letterSpacing: 0.3 },
   matchday: { color: '#fff', fontFamily: fonts.medium, fontSize: 16, marginTop: -4 },
