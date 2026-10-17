@@ -16,6 +16,8 @@ export type Player = {
   developingPosition: string;
   // The coach's 1 to 5 star rating, if set.
   qualityRating: number | null;
+  // The player's photo in the private photo folder, if there is one.
+  photoPath: string | null;
 };
 
 export type Score = { home: number; away: number; result: 'W' | 'D' | 'L' };
@@ -297,7 +299,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos] = await Promise.all([
-    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating'),
+    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path'),
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
@@ -413,6 +415,7 @@ async function load(userId: string): Promise<Data> {
       preferredFoot: r.preferred_foot,
       developingPosition: r.developing_position ?? '',
       qualityRating: r.quality_rating,
+      photoPath: r.photo_path ?? null,
     }))
     .sort((a, b) => a.firstName.localeCompare(b.firstName));
 

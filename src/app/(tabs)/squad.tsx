@@ -1,13 +1,26 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Empty, Screen, SectionTitle } from '../../components/ui';
 import { useData } from '../../lib/data';
 import { groupOf, POSITION_GROUPS } from '../../lib/selection';
+import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
 
 export default function Squad() {
   const c = useColors();
   const { players } = useData();
+  // The photos are private: the app asks for links that work for an hour,
+  // only for a signed-in coach.
+  const [photos, setPhotos] = useState<Record<string, string>>({});
+  const paths = players.map((p) => p.photoPath).filter((x): x is string => !!x).sort().join(',');
+  useEffect(() => {
+    if (!paths) return setPhotos({});
+    supabase.storage
+      .from('player-photos')
+      .createSignedUrls(paths.split(','), 3600)
+      .then(({ data }) => setPhotos(Object.fromEntries((data ?? []).flatMap((d) => (d.signedUrl && d.path ? [[d.path, d.signedUrl]] : [])))));
+  }, [paths]);
   // The same lines as on a game's selection: goalies first, attackers last,
   // and inside a line by position number, then by name.
   const lines = [...POSITION_GROUPS, { label: 'No position', positions: [] as string[] }]
@@ -28,10 +41,15 @@ export default function Squad() {
           {line.players.map((p) => (
             <Card key={p.id}>
               <View style={styles.row}>
-                <View style={[styles.number, { backgroundColor: c.pitch }]}>
-                  <Text style={[styles.numberText, { color: c.onPitch, fontSize: 16 }]}>
-                    {`${p.firstName.trim().charAt(0)}${p.lastName.trim().charAt(0)}`.toUpperCase()}
-                  </Text>
+                <View style={[styles.number, p.photoPath && photos[p.photoPath] ? { backgroundColor: c.surface2, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line } : { backgroundColor: c.pitch }]}>
+                  {/* The photo when there is one, otherwise the initials. */}
+                  {p.photoPath && photos[p.photoPath] ? (
+                    <Image source={{ uri: photos[p.photoPath] }} style={styles.photo} accessibilityLabel={`${p.firstName} ${p.lastName}`} />
+                  ) : (
+                    <Text style={[styles.numberText, { color: c.onPitch, fontSize: 16 }]}>
+                      {`${p.firstName.trim().charAt(0)}${p.lastName.trim().charAt(0)}`.toUpperCase()}
+                    </Text>
+                  )}
                 </View>
                 <Text style={[styles.name, { flex: 1, color: c.ink }]}>
                   {p.firstName} {p.lastName}
@@ -47,7 +65,9 @@ export default function Squad() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  number: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  // Zoomed in on the face: the photos show head and shoulders.
+  photo: { position: 'absolute', width: 54, height: 54, left: -7, top: -2 },
+  number: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   numberText: { fontFamily: fonts.display, fontSize: 20 },
   name: { fontSize: 16, fontWeight: '600' },
 });
