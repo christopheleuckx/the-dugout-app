@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { LeagueHome } from '../../components/LeagueHome';
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
@@ -197,6 +198,8 @@ export default function Dashboard() {
           </View>
         </View>
       ))}
+
+      <LeagueHome />
 
       <SectionTitle>Recent results</SectionTitle>
       {results.length ? (

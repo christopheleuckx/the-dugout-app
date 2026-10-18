@@ -8,9 +8,28 @@ const GUTTER = 16;
 
 // Horizontal, snapping row of equally wide cards with page dots underneath.
 // Bleeds through the page's side padding so cards scroll edge to edge.
-export function Swimlane({ cardWidth, children }: { cardWidth: number; children: ReactNode }) {
+// `initialIndex` is the card the lane opens on.
+// `lead` is an optional narrower tile in front of the cards, as tall as they are.
+export function Swimlane({
+  cardWidth,
+  initialIndex = 0,
+  lead,
+  leadWidth = 0,
+  dots,
+  children,
+}: {
+  cardWidth: number;
+  initialIndex?: number;
+  lead?: ReactNode;
+  leadWidth?: number;
+  // The page dots' colours, for a lane on a dark background.
+  dots?: { idle: string; active: string };
+  children: ReactNode;
+}) {
+  // How far the cards are pushed along by the tile in front of them.
+  const shift = lead ? leadWidth + GAP : 0;
   const c = useColors();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(initialIndex);
   const cards = Children.toArray(children);
 
   return (
@@ -18,16 +37,18 @@ export function Swimlane({ cardWidth, children }: { cardWidth: number; children:
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={cardWidth + GAP}
+        snapToOffsets={cards.map((_, i) => (i === 0 ? 0 : shift + i * (cardWidth + GAP)))}
         decelerationRate="fast"
+        contentOffset={{ x: initialIndex === 0 ? 0 : shift + initialIndex * (cardWidth + GAP), y: 0 }}
         contentContainerStyle={{ paddingHorizontal: GUTTER, gap: GAP }}
         scrollEventThrottle={32}
         onScroll={({ nativeEvent: e }) => {
           const atEnd = e.contentOffset.x + e.layoutMeasurement.width >= e.contentSize.width - 4;
-          const index = atEnd ? cards.length - 1 : Math.round(e.contentOffset.x / (cardWidth + GAP));
+          const index = atEnd ? cards.length - 1 : Math.round(Math.max(0, e.contentOffset.x - shift / 2) / (cardWidth + GAP));
           setActive(Math.max(0, Math.min(cards.length - 1, index)));
         }}
       >
+        {lead ? <View style={{ width: leadWidth }}>{lead}</View> : null}
         {cards.map((card, i) => (
           <View key={i} style={{ width: cardWidth }}>
             {card}
@@ -39,7 +60,7 @@ export function Swimlane({ cardWidth, children }: { cardWidth: number; children:
           {cards.map((_, i) => (
             <View
               key={i}
-              style={[styles.dot, { backgroundColor: c.line }, i === active && { width: 18, backgroundColor: c.pitch }]}
+              style={[styles.dot, { backgroundColor: dots?.idle ?? c.line }, i === active && { width: 18, backgroundColor: dots?.active ?? c.pitch }]}
             />
           ))}
         </View>
