@@ -186,10 +186,10 @@ export type Training = {
   cancelStatus: string | null;
   hiddenFromCalendar: boolean;
   absentCount: number;
-  // The training's themes: ids of a team tactic (major, minor) and a basic.
+  // The training's themes: ids of a team tactic (major, minor) and its basics, in order.
   majorTacticId: string | null;
   minorTacticId: string | null;
-  basicId: string | null;
+  basicIds: string[];
   // Per absent player id: the reason.
   absences: Record<string, string>;
   // Absences that count against attendance (not GK training etc.).
@@ -330,7 +330,7 @@ async function load(userId: string): Promise<Data> {
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id, format, league_match_id'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
-    supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar, major_tactic_id, minor_tactic_id, basic_id'),
+    supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar, major_tactic_id, minor_tactic_id, basic_id, basic_ids'),
     supabase.from('training_absences').select('training_id, player_id, reason'),
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('club_settings').select('logo_path').maybeSingle(),
@@ -577,7 +577,8 @@ async function load(userId: string): Promise<Data> {
       hiddenFromCalendar: t.hidden_from_calendar,
       majorTacticId: t.major_tactic_id,
       minorTacticId: t.minor_tactic_id,
-      basicId: t.basic_id,
+      // Older trainings (and the web app) only have the single basic_id.
+      basicIds: Array.isArray(t.basic_ids) && t.basic_ids.length ? (t.basic_ids as string[]) : t.basic_id ? [t.basic_id] : [],
       absentCount: absentByTraining.get(t.id) ?? 0,
       absences: Object.fromEntries((absences.data ?? []).filter((r) => r.training_id === t.id).map((r) => [r.player_id, r.reason ?? ''])),
       unexcusedCount: unexcusedByTraining.get(t.id) ?? 0,

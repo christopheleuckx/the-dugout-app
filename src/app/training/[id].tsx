@@ -56,12 +56,12 @@ export default function TrainingScreen() {
   // Player id -> reason, for absent players only.
   const [absent, setAbsent] = useState<Record<string, string>>(() => ({ ...(training?.absences ?? {}) }));
   const [choosing, setChoosing] = useState<string | null>(null);
-  // The three themes, and which one is being chosen.
+  // The themes (one major, one minor, any number of basics), and which one is being chosen.
   const [themes, setThemes] = useState({
     major: training?.majorTacticId ?? null,
     minor: training?.minorTacticId ?? null,
-    basic: training?.basicId ?? null,
   });
+  const [basicIds, setBasicIds] = useState<string[]>(training?.basicIds ?? []);
   const [choosingTheme, setChoosingTheme] = useState<ThemeKey | null>(null);
   const [pitch, setPitch] = useState(training?.location ?? '');
   const [choosingPitch, setChoosingPitch] = useState(false);
@@ -87,11 +87,16 @@ export default function TrainingScreen() {
     Object.keys(absent).length !== Object.keys(training.absences).length ||
     Object.entries(absent).some(([playerId, reason]) => training.absences[playerId] !== reason);
   const themesChanged =
-    themes.major !== training.majorTacticId || themes.minor !== training.minorTacticId || themes.basic !== training.basicId;
+    themes.major !== training.majorTacticId || themes.minor !== training.minorTacticId || basicIds.join() !== training.basicIds.join();
   const pitchChanged = pitch !== training.location;
   const changed = attendanceChanged || themesChanged || pitchChanged;
   const themeList = (key: ThemeKey) => (key === 'basic' ? basics : teamTactics);
-  const themeName = (key: ThemeKey) => themeList(key).find((x) => x.id === themes[key])?.name ?? 'Choose';
+  const chosen = (key: ThemeKey) => (key === 'basic' ? basicIds : [themes[key]].filter((x): x is string => !!x));
+  const themeName = (key: ThemeKey) =>
+    chosen(key)
+      .map((themeId) => themeList(key).find((x) => x.id === themeId)?.name)
+      .filter(Boolean)
+      .join('\n') || 'Choose';
 
   function choose(playerId: string, reason: string | null) {
     const next = { ...absent };
@@ -119,7 +124,7 @@ export default function TrainingScreen() {
       !upserted?.error && !removed?.error && (themesChanged || pitchChanged)
         ? await supabase
             .from('trainings')
-            .update({ major_tactic_id: themes.major, minor_tactic_id: themes.minor, basic_id: themes.basic, location: pitch })
+            .update({ major_tactic_id: themes.major, minor_tactic_id: themes.minor, basic_ids: basicIds, basic_id: basicIds[0] ?? null, location: pitch })
             .eq('id', training!.id)
         : null;
     const failed = upserted?.error ?? removed?.error ?? themed?.error;
@@ -203,14 +208,18 @@ export default function TrainingScreen() {
               <Pressable
                 style={styles.row}
                 onPress={() => {
-                  setThemes({ ...themes, [choosingTheme]: null });
+                  if (choosingTheme === 'basic') setBasicIds([]);
+                  else setThemes({ ...themes, [choosingTheme]: null });
                   setChoosingTheme(null);
                 }}
               >
                 <Text style={[styles.label, { color: c.ink }]}>None</Text>
-                {themes[choosingTheme] === null ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                {chosen(choosingTheme).length === 0 ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
               </Pressable>
             </View>
+            {choosingTheme === 'basic' ? (
+              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 4 }}>Tap every basic this training works on, then go back.</Text>
+            ) : null}
             {groupByCategory(themeList(choosingTheme)).map(([category, items]) => (
               <View key={category} style={{ gap: 8 }}>
                 <Text style={[styles.group, { color: c.inkSoft }]}>{category || 'Other'}</Text>
@@ -220,12 +229,17 @@ export default function TrainingScreen() {
                       key={item.id}
                       style={[styles.row, i > 0 && line]}
                       onPress={() => {
+                        // Basics: several can be on; a tap switches one on or off.
+                        if (choosingTheme === 'basic') {
+                          setBasicIds(basicIds.includes(item.id) ? basicIds.filter((x) => x !== item.id) : [...basicIds, item.id]);
+                          return;
+                        }
                         setThemes({ ...themes, [choosingTheme]: item.id });
                         setChoosingTheme(null);
                       }}
                     >
                       <Text style={[styles.label, { color: c.ink }]}>{item.name}</Text>
-                      {themes[choosingTheme] === item.id ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                      {chosen(choosingTheme).includes(item.id) ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
                     </Pressable>
                   ))}
                 </View>
@@ -280,8 +294,8 @@ export default function TrainingScreen() {
                 <Pressable key={key} style={[styles.row, i > 0 && line]} onPress={() => setChoosingTheme(key)}>
                   <Text style={{ width: 56, color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>{THEME_LABELS[key]}</Text>
                   <Text
-                    style={{ flex: 1, textAlign: 'right', color: themes[key] ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}
-                    numberOfLines={2}
+                    style={{ flex: 1, textAlign: 'right', color: chosen(key).length ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}
+                    numberOfLines={key === 'basic' ? 8 : 2}
                   >
                     {themeName(key)}
                   </Text>
