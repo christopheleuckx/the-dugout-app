@@ -150,8 +150,7 @@ export default function VideoAnalysisScreen() {
                     <Ionicons name={v.storageKey ? 'play' : 'link-outline'} size={17} color={v.storageKey ? c.onPitch : c.ink} />
                   </View>
                 )}
-                <View style={{ flex: 1, gap: 2 }}>
-                  {!v.storageKey && sourceOf(v.url) ? <SourceTag source={sourceOf(v.url)!} /> : null}
+                <View style={{ flex: 1 }}>
                   <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
                     {v.title}
                   </Text>
