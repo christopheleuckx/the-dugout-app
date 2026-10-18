@@ -257,26 +257,7 @@ export default function LeagueViewScreen() {
                 .
               </Text>
             </>
-          ) : (
-            <>
-              {/* Without standings: the clubs in the competition, by name. */}
-              <Text style={[styles.section, { color: c.ink }]}>Clubs</Text>
-              <View style={[styles.card, { backgroundColor: c.surface }]}>
-                {league.teams
-                  .slice()
-                  .sort((x, y) => x.name.localeCompare(y.name))
-                  .map((team, i) => (
-                    <View key={team.id} style={[styles.cellRow, { paddingHorizontal: 12, gap: 10 }, i > 0 && line]}>
-                      {team.own ? <View style={[styles.mark, { backgroundColor: c.pitch }]} /> : null}
-                      <Crest url={team.logoUrl} name={team.name} size={24} />
-                      <Text style={{ flex: 1, color: c.ink, fontFamily: team.own ? fonts.semi : fonts.medium, fontSize: 14 }} numberOfLines={1}>
-                        {team.name}
-                      </Text>
-                    </View>
-                  ))}
-              </View>
-            </>
-          )}
+          ) : null}
         </ScrollView>
       )}
     </View>
