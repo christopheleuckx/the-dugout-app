@@ -40,7 +40,7 @@ export default function NewGameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { competitors, refresh } = useData();
+  const { competitors, me, refresh } = useData();
 
   const [page, setPage] = useState<Page>(null);
   const [opponent, setOpponent] = useState('');
@@ -49,9 +49,11 @@ export default function NewGameScreen() {
   const [venue, setVenue] = useState('Home');
   const [competition, setCompetition] = useState('Competition');
   const [level, setLevel] = useState('IP3');
-  const [teams, setTeams] = useState(2);
-  // A new game is 8v8 unless another format is chosen.
-  const [format, setFormat] = useState<string>('8v8');
+  // An age group with a single team has no Blue and Red to choose from.
+  const oneTeam = (me?.activeAgeGroup?.teams.length ?? 2) < 2;
+  const [teams, setTeams] = useState(oneTeam ? 1 : 2);
+  // A new game starts with the age group's usual format.
+  const [format, setFormat] = useState<string>(me?.activeAgeGroup?.format ?? '8v8');
   const [quarters, setQuarters] = useState(4);
   const [minutes, setMinutes] = useState(20);
   // Custom names per quarter; an empty one falls back to Q1, Q2…
@@ -129,7 +131,7 @@ export default function NewGameScreen() {
         home_away: venue,
         quarters,
         quarter_length: minutes,
-        num_teams: teams,
+        num_teams: oneTeam ? 1 : teams,
         format,
         location: location.trim(),
         remarks,
@@ -360,7 +362,7 @@ export default function NewGameScreen() {
           {row('Venue', venue, 'venue', true)}
           {row('Competition', competition, 'competition')}
           {row('Level', level, 'level')}
-          {row('Teams', TEAMS.find((t) => t.value === teams)!.label, 'teams')}
+          {oneTeam ? null : row('Teams', TEAMS.find((t) => t.value === teams)!.label, 'teams')}
           {row('Format', format, 'format')}
           {row(titles.quarters, `${quarters} × ${minutes}'`, 'quarters')}
         </View>
