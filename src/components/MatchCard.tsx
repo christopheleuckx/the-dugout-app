@@ -4,8 +4,6 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { fmtDate, useData, type Game } from '../lib/data';
 import { brand, fonts, useColors } from '../lib/theme';
 
-// Same fixed club name as CLUB_NAME in the web app; it is not stored in the database.
-const CLUB = 'FCV Dender';
 const NOTCH = 26;
 const day = (iso: string) => new Date(iso + 'T00:00:00');
 
@@ -196,8 +194,8 @@ function FixtureCard({
   notched?: boolean;
 }) {
   const c = useColors();
-  const { clubLogoUrl } = useData();
-  const us = { name: CLUB, url: clubLogoUrl };
+  const { clubLogoUrl, clubName } = useData();
+  const us = { name: clubName, url: clubLogoUrl };
   const them = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const [home, away] = game.homeAway === 'Away' ? [them, us] : [us, them];
 

@@ -20,7 +20,7 @@ export default function GameScoresScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ game: string; team: Team; quarter?: string }>();
-  const { games, refresh } = useData();
+  const { games, clubName, refresh } = useData();
   const game = games.find((g) => g.id === params.game);
   const team = params.team;
 
@@ -128,7 +128,7 @@ export default function GameScoresScreen() {
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
-  const ours = game.teams.length > 1 ? `FCV Dender ${team === 'blue' ? 'Blue' : 'Red'}` : 'FCV Dender';
+  const ours = game.teams.length > 1 ? `${clubName} ${team === 'blue' ? 'Blue' : 'Red'}` : clubName;
   const stepper = (value: number, set: (n: number) => void) => (
     <View style={styles.stepper}>
       <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => set(Math.max(0, value - 1))} hitSlop={6} accessibilityLabel="One less">

@@ -57,7 +57,7 @@ export default function GameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { games, me, clubLogoUrl, videos } = useData();
+  const { games, me, clubLogoUrl, clubName, videos } = useData();
   const game = games.find((g) => g.id === id);
   const [picked, setPicked] = useState<Team | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -74,7 +74,7 @@ export default function GameScreen() {
   const tournament = game.competition === 'Tournament';
   const score = game.scores.find((s) => s.team === team)?.score;
   // Home team on the left, like the scoreline. With two teams our name says which one is open.
-  const us: Side = { name: 'FCV Dender', url: clubLogoUrl, team: game.teams.length > 1 ? team : undefined };
+  const us: Side = { name: clubName, url: clubLogoUrl, team: game.teams.length > 1 ? team : undefined };
   const them: Side = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
