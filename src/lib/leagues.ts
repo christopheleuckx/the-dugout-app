@@ -4,7 +4,8 @@ import { supabase } from './supabase';
 export type Team = { id: string; own: boolean; name: string; logoUrl: string | null };
 export type Match = { id: string; home: string; away: string; date: string | null; time: string | null; homeGoals: number | null; awayGoals: number | null };
 export type Matchday = { id: string; number: number; matches: Match[] };
-export type League = { id: string; name: string; win: number; draw: number; loss: number; ranking: string[]; teams: Team[]; days: Matchday[] };
+// Without standings (as in U12) only the matches and the clubs are shown.
+export type League = { id: string; name: string; showStandings: boolean; win: number; draw: number; loss: number; ranking: string[]; teams: Team[]; days: Matchday[] };
 export type Row = { team: Team; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; goal_difference: number; points: number };
 
 // The table: every played match counts for both clubs, and the clubs are
@@ -73,7 +74,7 @@ export async function loadLeagues(groupId: string, competitors: Club[], clubName
   let query = supabase
     .from('leagues')
     .select(
-      'id, name, points_win, points_draw, points_loss, ranking, league_teams(id, competitor_id, is_own_team), league_matchdays(id, number, league_matches(id, home_team_id, away_team_id, match_date, kickoff, home_goals, away_goals, position))',
+      'id, name, show_standings, points_win, points_draw, points_loss, ranking, league_teams(id, competitor_id, is_own_team), league_matchdays(id, number, league_matches(id, home_team_id, away_team_id, match_date, kickoff, home_goals, away_goals, position))',
     )
     .eq('age_group_id', groupId)
     .order('name');
@@ -83,6 +84,7 @@ export async function loadLeagues(groupId: string, competitors: Club[], clubName
   return (data ?? []).map((l) => ({
     id: l.id,
     name: l.name,
+    showStandings: l.show_standings ?? true,
     win: l.points_win,
     draw: l.points_draw,
     loss: l.points_loss,

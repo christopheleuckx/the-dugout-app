@@ -115,7 +115,7 @@ export default function LeagueViewScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {days.length === 0 ? <Text style={[styles.note, { color: c.inkSoft }]}>No matches yet. Add them with the gear in the top right.</Text> : null}
-          {own && form.length ? (
+          {own && form.length && league.showStandings ? (
             <View style={[styles.card, styles.form, { backgroundColor: c.surface }]}>
               <Crest url={own.logoUrl} name={own.name} size={40} />
               <View style={{ flex: 1 }}>
@@ -207,53 +207,76 @@ export default function LeagueViewScreen() {
             </>
           ) : null}
 
-          <Text style={[styles.section, { color: c.ink }]}>Standings</Text>
-          {/* The clubs stay put on the left; the figures scroll sideways. */}
-          <View style={[styles.card, styles.table, { backgroundColor: c.surface }]}>
-            <View style={{ flex: 1 }}>
-              <View style={[styles.cellRow, { paddingLeft: 12, gap: 8 }]}>
-                <Text style={[styles.th, { width: 26, textAlign: 'center', color: c.inkSoft }]}>Pos</Text>
-                <Text style={[styles.th, { color: c.inkSoft, marginLeft: 32 }]}>Team</Text>
-              </View>
-              {table.map((row, i) => (
-                <View key={row.team.id} style={[styles.cellRow, { paddingLeft: 12, gap: 8 }, line]}>
-                  {row.team.own ? <View style={[styles.mark, { backgroundColor: c.pitch }]} /> : null}
-                  <Text style={{ width: 26, textAlign: 'center', color: c.ink, fontFamily: fonts.semi, fontSize: 14 }}>{i + 1}</Text>
-                  <Crest url={row.team.logoUrl} name={row.team.name} size={24} />
-                  <Text style={{ flex: 1, color: c.ink, fontFamily: row.team.own ? fonts.semi : fonts.medium, fontSize: 14 }} numberOfLines={1}>
-                    {shortName(row.team.name)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: COL * 4, flexGrow: 0 }} bounces={false}>
-              <View>
-                <View style={styles.cellRow}>
-                  {COLUMNS.map((col) => (
-                    <Text key={col.key} style={[styles.th, styles.figure, { color: c.inkSoft }]}>
-                      {col.label}
-                    </Text>
+          {league.showStandings ? (
+            <>
+              <Text style={[styles.section, { color: c.ink }]}>Standings</Text>
+              {/* The clubs stay put on the left; the figures scroll sideways. */}
+              <View style={[styles.card, styles.table, { backgroundColor: c.surface }]}>
+                <View style={{ flex: 1 }}>
+                  <View style={[styles.cellRow, { paddingLeft: 12, gap: 8 }]}>
+                    <Text style={[styles.th, { width: 26, textAlign: 'center', color: c.inkSoft }]}>Pos</Text>
+                    <Text style={[styles.th, { color: c.inkSoft, marginLeft: 32 }]}>Team</Text>
+                  </View>
+                  {table.map((row, i) => (
+                    <View key={row.team.id} style={[styles.cellRow, { paddingLeft: 12, gap: 8 }, line]}>
+                      {row.team.own ? <View style={[styles.mark, { backgroundColor: c.pitch }]} /> : null}
+                      <Text style={{ width: 26, textAlign: 'center', color: c.ink, fontFamily: fonts.semi, fontSize: 14 }}>{i + 1}</Text>
+                      <Crest url={row.team.logoUrl} name={row.team.name} size={24} />
+                      <Text style={{ flex: 1, color: c.ink, fontFamily: row.team.own ? fonts.semi : fonts.medium, fontSize: 14 }} numberOfLines={1}>
+                        {shortName(row.team.name)}
+                      </Text>
+                    </View>
                   ))}
                 </View>
-                {table.map((row) => (
-                  <View key={row.team.id} style={[styles.cellRow, line]}>
-                    {COLUMNS.map((col) => (
-                      <Text key={col.key} style={[styles.figure, { color: c.ink, fontFamily: col.key === 'points' ? fonts.semi : fonts.regular, fontSize: 14 }]}>
-                        {col.value(row)}
-                      </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: COL * 4, flexGrow: 0 }} bounces={false}>
+                  <View>
+                    <View style={styles.cellRow}>
+                      {COLUMNS.map((col) => (
+                        <Text key={col.key} style={[styles.th, styles.figure, { color: c.inkSoft }]}>
+                          {col.label}
+                        </Text>
+                      ))}
+                    </View>
+                    {table.map((row) => (
+                      <View key={row.team.id} style={[styles.cellRow, line]}>
+                        {COLUMNS.map((col) => (
+                          <Text key={col.key} style={[styles.figure, { color: c.ink, fontFamily: col.key === 'points' ? fonts.semi : fonts.regular, fontSize: 14 }]}>
+                            {col.value(row)}
+                          </Text>
+                        ))}
+                      </View>
                     ))}
                   </View>
-                ))}
+                </ScrollView>
               </View>
-            </ScrollView>
-          </View>
-          <Text style={[styles.note, { color: c.inkSoft, textAlign: 'center' }]}>
-            Swipe the figures for{' '}
-            {COLUMNS.slice(4)
-              .map((col) => `${col.label} (${col.meaning})`)
-              .join(', ')}
-            .
-          </Text>
+              <Text style={[styles.note, { color: c.inkSoft, textAlign: 'center' }]}>
+                Swipe the figures for{' '}
+                {COLUMNS.slice(4)
+                  .map((col) => `${col.label} (${col.meaning})`)
+                  .join(', ')}
+                .
+              </Text>
+            </>
+          ) : (
+            <>
+              {/* Without standings: the clubs in the competition, by name. */}
+              <Text style={[styles.section, { color: c.ink }]}>Clubs</Text>
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
+                {league.teams
+                  .slice()
+                  .sort((x, y) => x.name.localeCompare(y.name))
+                  .map((team, i) => (
+                    <View key={team.id} style={[styles.cellRow, { paddingHorizontal: 12, gap: 10 }, i > 0 && line]}>
+                      {team.own ? <View style={[styles.mark, { backgroundColor: c.pitch }]} /> : null}
+                      <Crest url={team.logoUrl} name={team.name} size={24} />
+                      <Text style={{ flex: 1, color: c.ink, fontFamily: team.own ? fonts.semi : fonts.medium, fontSize: 14 }} numberOfLines={1}>
+                        {team.name}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            </>
+          )}
         </ScrollView>
       )}
     </View>

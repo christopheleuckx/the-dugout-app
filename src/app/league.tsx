@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Crest } from '../components/MatchCard';
@@ -25,7 +25,7 @@ const ROW = 54;
 type Team = { id: string; competitorId: string | null; own: boolean; name: string; logoUrl: string | null };
 type Match = { id: string; home: string; away: string; date: string | null; time: string | null; homeGoals: number | null; awayGoals: number | null };
 type Matchday = { id: string; number: number; matches: Match[] };
-type League = { id: string; name: string; win: number; draw: number; loss: number; ranking: string[] };
+type League = { id: string; name: string; showStandings: boolean; win: number; draw: number; loss: number; ranking: string[] };
 type View_ = 'main' | 'teams' | 'ranking' | { matchday: string; match?: string };
 
 // A row that is picked up by its handle. While it is held it follows the
@@ -120,7 +120,7 @@ export default function LeagueScreen() {
 
   const load = useCallback(async () => {
     const [l, t, d] = await Promise.all([
-      supabase.from('leagues').select('id, name, points_win, points_draw, points_loss, ranking').eq('id', id).maybeSingle(),
+      supabase.from('leagues').select('id, name, show_standings, points_win, points_draw, points_loss, ranking').eq('id', id).maybeSingle(),
       supabase.from('league_teams').select('id, competitor_id, is_own_team').eq('league_id', id),
       supabase.from('league_matchdays').select('id, number, league_matches(id, home_team_id, away_team_id, position, match_date, kickoff, home_goals, away_goals)').eq('league_id', id).order('number'),
     ]);
@@ -130,6 +130,7 @@ export default function LeagueScreen() {
     setLeague({
       id: l.data.id,
       name: l.data.name,
+      showStandings: l.data.show_standings ?? true,
       win: l.data.points_win,
       draw: l.data.points_draw,
       loss: l.data.points_loss,
@@ -300,8 +301,8 @@ export default function LeagueScreen() {
       <Crest url={t?.logoUrl ?? null} name={t?.name ?? '?'} size={size} />
     </View>
   );
-  const stepper = (label: string, key: 'points_win' | 'points_draw' | 'points_loss', value: number, first = false) => (
-    <View style={[styles.row, !first && line]}>
+  const stepper = (label: string, key: 'points_win' | 'points_draw' | 'points_loss', value: number) => (
+    <View style={[styles.row, line]}>
       <Text style={[styles.label, { color: c.ink }]}>{label}</Text>
       <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => setPoints(key, value - 1)} accessibilityLabel={`Less ${label.toLowerCase()}`} hitSlop={6}>
         <Ionicons name="remove" size={18} color={c.ink} />
@@ -567,18 +568,34 @@ export default function LeagueScreen() {
 
         <Text style={[styles.caption, { color: c.inkSoft }]}>Rules</Text>
         <View style={[styles.card, { backgroundColor: c.surface }]}>
-          {stepper('Points per win', 'points_win', league.win, true)}
-          {stepper('Points per draw', 'points_draw', league.draw)}
-          {stepper('Points per loss', 'points_loss', league.loss)}
-          <Pressable style={[styles.row, line]} onPress={() => setView('ranking')}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>Order of clubs</Text>
-              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={1}>
-                {league.ranking.map((k) => RANKING[k]).join(', ')}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-          </Pressable>
+          {/* Some age groups (U12) play without a table: then only the matches and the clubs show. */}
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: c.ink }]}>Show standings</Text>
+            <Switch
+              value={league.showStandings}
+              onValueChange={(on) => {
+                setLeague({ ...league, showStandings: on });
+                save(supabase.from('leagues').update({ show_standings: on }).eq('id', league.id));
+              }}
+              trackColor={{ true: c.pitch }}
+            />
+          </View>
+          {league.showStandings ? (
+            <>
+              {stepper('Points per win', 'points_win', league.win)}
+              {stepper('Points per draw', 'points_draw', league.draw)}
+              {stepper('Points per loss', 'points_loss', league.loss)}
+              <Pressable style={[styles.row, line]} onPress={() => setView('ranking')}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>Order of clubs</Text>
+                  <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={1}>
+                    {league.ranking.map((k) => RANKING[k]).join(', ')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
+            </>
+          ) : null}
         </View>
 
         <Pressable style={[styles.button, { backgroundColor: c.surface }]} onPress={remove}>

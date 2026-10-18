@@ -43,6 +43,8 @@ export function LeagueHome() {
           const shown = days[currentMatchday(days)];
           const isOurs = (m: Match) => !!(teamOf.get(m.home)?.own || teamOf.get(m.away)?.own);
           const table = standings(league);
+          // Without standings: the clubs in the competition, by name.
+          const clubs = league.teams.slice().sort((x, y) => x.name.localeCompare(y.name));
           const side = (id: string, goals: number | null, won: boolean) => {
             const team = teamOf.get(id);
             return (
@@ -99,23 +101,35 @@ export function LeagueHome() {
                   })}
               </Swimlane>
 
-              {/* The table opens the full league page as well. */}
-              <Pressable style={[styles.card, { backgroundColor: c.surface, marginTop: 6 }]} onPress={open} accessibilityLabel={`Standings of ${league.name}`}>
-                {table.map((row, i) => (
-                  <View key={row.team.id} style={[styles.tableRow, i > 0 && line, row.team.own && { backgroundColor: c.surface2 }]}>
-                    <Text style={[styles.pos, { color: c.ink }]}>{i + 1}</Text>
-                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Crest url={row.team.logoUrl} name={row.team.name} size={22} />
-                      <Text style={{ flex: 1, color: c.ink, fontFamily: row.team.own ? fonts.semi : fonts.regular, fontSize: 14 }} numberOfLines={1}>
-                        {row.team.name}
+              {/* The table, or the clubs when there is none; both open the full league page. */}
+              {league.showStandings ? (
+                <Pressable style={[styles.card, { backgroundColor: c.surface, marginTop: 6 }]} onPress={open} accessibilityLabel={`Standings of ${league.name}`}>
+                  {table.map((row, i) => (
+                    <View key={row.team.id} style={[styles.tableRow, i > 0 && line, row.team.own && { backgroundColor: c.surface2 }]}>
+                      <Text style={[styles.pos, { color: c.ink }]}>{i + 1}</Text>
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Crest url={row.team.logoUrl} name={row.team.name} size={22} />
+                        <Text style={{ flex: 1, color: c.ink, fontFamily: row.team.own ? fonts.semi : fonts.regular, fontSize: 14 }} numberOfLines={1}>
+                          {row.team.name}
+                        </Text>
+                      </View>
+                      <Text style={[styles.cell, { color: c.ink }]}>{row.played}</Text>
+                      <Text style={[styles.cell, { color: c.ink, fontFamily: fonts.semi }]}>{row.points}</Text>
+                    </View>
+                  ))}
+                </Pressable>
+              ) : (
+                <Pressable style={[styles.card, { backgroundColor: c.surface, marginTop: 6 }]} onPress={open} accessibilityLabel={`Clubs in ${league.name}`}>
+                  {clubs.map((team, i) => (
+                    <View key={team.id} style={[styles.tableRow, { gap: 10 }, i > 0 && line, team.own && { backgroundColor: c.surface2 }]}>
+                      <Crest url={team.logoUrl} name={team.name} size={22} />
+                      <Text style={{ flex: 1, color: c.ink, fontFamily: team.own ? fonts.semi : fonts.regular, fontSize: 14 }} numberOfLines={1}>
+                        {team.name}
                       </Text>
                     </View>
-                    <Text style={[styles.cell, { color: c.ink }]}>{row.played}</Text>
-                    <Text style={[styles.cell, { color: c.ink, fontFamily: fonts.semi }]}>{row.points}</Text>
-                  </View>
-                ))}
-              </Pressable>
-
+                  ))}
+                </Pressable>
+              )}
             </View>
           );
         })}
