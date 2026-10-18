@@ -119,10 +119,11 @@ export default function Dashboard() {
         kind: 'Game' as const,
         other: null as OtherGame | null,
       })),
+    // Right after a team switch the list may still hold games of the group now on show.
     ...other
-      .filter((g) => inWeek(g.date))
+      .filter((g) => inWeek(g.date) && g.ageGroupId !== groupId && !games.some((x) => x.id === g.id))
       .map((g) => ({
-        key: g.id,
+        key: `other-${g.id}`,
         gameId: null,
         trainingId: null,
         date: g.date,
