@@ -26,6 +26,13 @@ Status: **idea** (not yet worked out) · **ready** (clear what to build) · **pl
 - **What:** a button on the player page to take or choose a photo; 8 players still have no photo.
 - **Notes:** photos stay in the private bucket `player-photos`.
 
+## Trainings
+
+### Search in training themes
+- **Status:** idea
+- **Added:** 18 Oct 2026
+- **What:** a search field when choosing the themes of a training (team tactics and basics), to find a theme quickly instead of scrolling the list.
+
 ## Later
 
 ### Web app rebuilt from the app
