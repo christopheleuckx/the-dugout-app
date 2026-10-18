@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
 import { Crest } from '../components/MatchCard';
 import { useData, type Profile } from '../lib/data';
+import { setShowOtherGames, useShowOtherGames } from '../lib/otherGames';
 import { goBack } from '../lib/nav';
 import { logoUrl, supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -235,6 +236,8 @@ export default function ManageScreen() {
 
 
   const clubOpen = clubs.find((club) => club.id === clubId) ?? null;
+  const showOther = useShowOtherGames();
+  const otherGroups = (me?.ageGroups ?? []).filter((a) => a.id !== me?.activeAgeGroup?.id).map((a) => a.name);
   function newAgeGroup(club: Club) {
     setEditing(null);
     setGroupName('');
@@ -494,6 +497,17 @@ export default function ManageScreen() {
                         <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
                       </Pressable>
                     ))}
+                    {/* For a coach in more than one age group: the games of the others can join the week list on Home. */}
+                    {otherGroups.length ? (
+                      <View style={[styles.row, { minHeight: 62 }, line]}>
+                        <Ionicons name="calendar-outline" size={22} color={c.inkSoft} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>Show {otherGroups.join(' and ')} matches</Text>
+                          <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>In This week on Home</Text>
+                        </View>
+                        <Switch value={showOther} onValueChange={setShowOtherGames} trackColor={{ true: c.pitch }} />
+                      </View>
+                    ) : null}
                   </View>
                 )}
               </View>

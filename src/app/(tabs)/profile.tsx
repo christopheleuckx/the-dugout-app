@@ -2,14 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '../../components/Avatar';
 import { Screen } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
 import { useData } from '../../lib/data';
-import { setShowOtherGames, useShowOtherGames } from '../../lib/otherGames';
 import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
@@ -101,8 +100,6 @@ export default function Profile() {
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
-  const showOther = useShowOtherGames();
-  const others = (me?.ageGroups ?? []).filter((a) => a.id !== me?.activeAgeGroup?.id).map((a) => a.name);
 
   return (
     <Screen title="Profile">
@@ -136,17 +133,6 @@ export default function Profile() {
           </View>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
-        {/* Only for a coach in more than one age group. */}
-        {others.length ? (
-          <View style={[styles.row, line]}>
-            <Ionicons name="calendar-outline" size={22} color={c.inkSoft} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Show {others.join(' and ')} matches</Text>
-              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>In This week on Home</Text>
-            </View>
-            <Switch value={showOther} onValueChange={setShowOtherGames} trackColor={{ true: c.pitch }} />
-          </View>
-        ) : null}
         {me?.isAdmin ? (
           <>
             <Pressable style={[styles.row, line]} onPress={() => router.push('/cloudflare')}>
