@@ -57,7 +57,7 @@ export default function GameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { games, me, clubLogoUrl, clubName, videos } = useData();
+  const { games, me, clubLogoUrl, clubName, videos, videoEnabled } = useData();
   const game = games.find((g) => g.id === id);
   const [picked, setPicked] = useState<Team | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -288,6 +288,7 @@ export default function GameScreen() {
               <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
             </Pressable>
           ) : null}
+          {videoEnabled ? (
           <Pressable
             style={[styles.player, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
             onPress={() => router.push({ pathname: '/video-analysis', params: { game: game.id, team } })}
@@ -300,6 +301,7 @@ export default function GameScreen() {
             </Text>
             <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
           </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.sectionHead}>

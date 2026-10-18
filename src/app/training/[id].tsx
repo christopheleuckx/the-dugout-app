@@ -50,7 +50,7 @@ export default function TrainingScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trainings, players, teamTactics, basics, videos, refresh } = useData();
+  const { trainings, players, teamTactics, basics, videos, videoEnabled, refresh } = useData();
   const training = trainings.find((t) => t.id === id);
 
   // Player id -> reason, for absent players only.
@@ -290,6 +290,7 @@ export default function TrainingScreen() {
               ))}
             </View>
 
+            {videoEnabled ? (
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Pressable style={styles.row} onPress={() => router.push({ pathname: '/video-analysis', params: { training: training.id } })}>
                 <Ionicons name="videocam-outline" size={20} color={c.ink} />
@@ -299,6 +300,7 @@ export default function TrainingScreen() {
                 <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
               </Pressable>
             </View>
+            ) : null}
 
             <Text style={[styles.section, { color: c.ink }]}>Attendance</Text>
             <View style={[styles.toggle, { backgroundColor: c.surface2 }]}>
