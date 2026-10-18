@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Crest } from '../components/MatchCard';
 import { fmtDate, useData } from '../lib/data';
-import { currentMatchday, loadLeagues, standings, type League, type Row } from '../lib/leagues';
+import { currentMatchday, loadLeagues, standings, type League, type Match, type Row } from '../lib/leagues';
 import { goBack } from '../lib/nav';
 import { shortName } from '../lib/opponents';
+import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 
 // The figures of the table, in the order they scroll past: the first four
@@ -36,6 +37,32 @@ export default function LeagueViewScreen() {
   const { me, competitors, clubName, clubLogoUrl, games } = useData();
   const groupId = me?.activeAgeGroup?.id;
   const [league, setLeague] = useState<League | null | undefined>(undefined);
+
+  // The score of a match between two other clubs, filled in from this page.
+  // Our own matches open their game instead: the score entered there comes here by itself.
+  const [scoring, setScoring] = useState<Match | null>(null);
+  const [homeGoals, setHomeGoals] = useState(0);
+  const [awayGoals, setAwayGoals] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [scoreError, setScoreError] = useState('');
+  function openScore(m: Match) {
+    setHomeGoals(m.homeGoals ?? 0);
+    setAwayGoals(m.awayGoals ?? 0);
+    setScoreError('');
+    setScoring(m);
+  }
+  async function saveScore(clear = false) {
+    if (!scoring) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from('league_matches')
+      .update({ home_goals: clear ? null : homeGoals, away_goals: clear ? null : awayGoals })
+      .eq('id', scoring.id);
+    setSaving(false);
+    if (error) return setScoreError(`Could not save: ${error.message}`);
+    setScoring(null);
+    load();
+  }
 
   const load = useCallback(async () => {
     if (!groupId) return setLeague(null);
@@ -172,7 +199,13 @@ export default function LeagueViewScreen() {
                           const away = teamOf.get(m.away);
                           const game = home?.own || away?.own ? games.find((x) => x.leagueMatchId === m.id) : undefined;
                           return (
-                            <Pressable key={m.id} style={[styles.fixture, i > 0 && line]} disabled={!game} onPress={() => game && router.push(`/game/${game.id}`)}>
+                            <Pressable
+                              key={m.id}
+                              style={[styles.fixture, i > 0 && line]}
+                              disabled={!game && !league.showStandings}
+                              onPress={() => (game ? router.push(`/game/${game.id}`) : openScore(m))}
+                              accessibilityLabel={game ? 'Open the game' : 'Fill in the score'}
+                            >
                               <Text style={[styles.club, { textAlign: 'right', color: c.ink, fontFamily: home?.own ? fonts.semi : fonts.medium }]} numberOfLines={1}>
                                 {shortName(home?.name ?? '?')}
                               </Text>
@@ -260,12 +293,72 @@ export default function LeagueViewScreen() {
           ) : null}
         </ScrollView>
       )}
+
+      <Modal visible={!!scoring} transparent animationType="slide" onRequestClose={() => setScoring(null)}>
+        <Pressable style={{ flex: 1 }} onPress={() => setScoring(null)} accessibilityLabel="Close" />
+        <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.grabber, { backgroundColor: c.line }]} />
+          <Text style={[styles.sheetTitle, { color: c.ink }]}>Score</Text>
+          {scoring
+            ? (
+                [
+                  [scoring.home, homeGoals, setHomeGoals],
+                  [scoring.away, awayGoals, setAwayGoals],
+                ] as [string, number, (n: number) => void][]
+              ).map(([teamId, goals, setGoals], i) => {
+                const team = teamOf.get(teamId);
+                return (
+                  <View key={teamId} style={[styles.scoreRow, i > 0 && line]}>
+                    <Crest url={team?.logoUrl ?? null} name={team?.name ?? '?'} size={30} />
+                    <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.medium, fontSize: 16 }} numberOfLines={1}>
+                      {team?.name ?? '?'}
+                    </Text>
+                    <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => setGoals(Math.max(0, goals - 1))} accessibilityLabel={`One goal less for ${team?.name ?? '?'}`} hitSlop={6}>
+                      <Ionicons name="remove" size={18} color={c.ink} />
+                    </Pressable>
+                    <Text style={{ width: 30, textAlign: 'center', color: c.ink, fontFamily: fonts.semi, fontSize: 20 }}>{goals}</Text>
+                    <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => setGoals(goals + 1)} accessibilityLabel={`One goal more for ${team?.name ?? '?'}`} hitSlop={6}>
+                      <Ionicons name="add" size={18} color={c.ink} />
+                    </Pressable>
+                  </View>
+                );
+              })
+            : null}
+          {scoreError ? <Text style={{ color: c.danger, fontFamily: fonts.regular, fontSize: 13 }}>{scoreError}</Text> : null}
+          <Pressable style={[styles.save, { backgroundColor: c.pitch }, saving && { opacity: 0.6 }]} onPress={() => saveScore()} disabled={saving}>
+            <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save score</Text>
+          </Pressable>
+          {scoring && scoring.homeGoals !== null ? (
+            <Pressable style={styles.clear} onPress={() => saveScore(true)} disabled={saving}>
+              <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 15 }}>Remove score</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 6,
+    shadowColor: '#0E1320',
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 16,
+  },
+  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
+  sheetTitle: { fontFamily: fonts.medium, fontSize: 17, marginBottom: 4 },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60 },
+  step: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  save: { height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+  clear: { height: 44, alignItems: 'center', justifyContent: 'center' },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 17 },
