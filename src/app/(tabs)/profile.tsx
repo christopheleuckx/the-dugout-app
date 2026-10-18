@@ -133,27 +133,18 @@ export default function Profile() {
           </View>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
+        {/* The services the app runs on, for admins: Cloudflare and Supabase. */}
         {me?.isAdmin ? (
-          <>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/cloudflare')}>
-              <Ionicons name="cloud-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Cloudflare</Text>
-                <Text style={{ color: nearlyFull ? c.amber : c.inkSoft, fontFamily: nearlyFull ? fonts.medium : fonts.regular, fontSize: 13 }}>
-                  {nearlyFull ? `Video storage ${Math.min(100, Math.round(fill! * 100))}% full` : 'Video storage and usage'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-            <Pressable style={[styles.row, line]} onPress={() => router.push('/supabase-usage')}>
-              <Ionicons name="server-outline" size={22} color={c.inkSoft} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Supabase</Text>
-                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Database and pictures</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
-            </Pressable>
-          </>
+          <Pressable style={[styles.row, line]} onPress={() => router.push('/menu?section=tools')}>
+            <Ionicons name="construct-outline" size={22} color={c.inkSoft} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Tools & costs</Text>
+              <Text style={{ color: nearlyFull ? c.amber : c.inkSoft, fontFamily: nearlyFull ? fonts.medium : fonts.regular, fontSize: 13 }}>
+                {nearlyFull ? `Video storage ${Math.min(100, Math.round(fill! * 100))}% full` : 'Cloudflare and Supabase'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+          </Pressable>
         ) : null}
       </View>
 
