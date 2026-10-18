@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { LeagueHome } from '../../components/LeagueHome';
@@ -8,6 +8,8 @@ import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
 import { currentWeek, fmtDate, todayIso, useData, type Game } from '../../lib/data';
+import { loadOtherGames, useShowOtherGames, type OtherGame } from '../../lib/otherGames';
+import { supabase } from '../../lib/supabase';
 import { brand, fonts, useColors } from '../../lib/theme';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -56,13 +58,39 @@ function ResultCard({ game }: { game: Game }) {
 export default function Dashboard() {
   const c = useColors();
   const { width } = useWindowDimensions();
-  const { games, trainings, me } = useData();
+  const { games, trainings, me, competitors, refresh } = useData();
   const today = todayIso();
   const [weekOffset, setWeekOffset] = useState(0);
   const week = currentWeek(weekOffset);
   const weekLabel =
     weekOffset === 0 ? 'This week' : `${fmtDate(week[0]).slice(4)} – ${fmtDate(week[6]).slice(4)}`;
   const inWeek = (d: string | null) => !!d && d >= week[0] && d <= week[6];
+
+  // The games of the coach's other age groups, when that is switched on in the profile.
+  const showOther = useShowOtherGames();
+  const [other, setOther] = useState<OtherGame[]>([]);
+  const groupId = me?.activeAgeGroup?.id;
+  const many = (me?.ageGroups.length ?? 0) > 1;
+  useFocusEffect(
+    useCallback(() => {
+      if (!showOther || !many) return setOther([]);
+      let live = true;
+      loadOtherGames(week[0], week[6]).then((found) => live && setOther(found));
+      return () => {
+        live = false;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showOther, many, groupId, week[0]]),
+  );
+
+  // Such a game opens in its own age group, so the app switches there first.
+  async function openOther(g: OtherGame) {
+    if (!me) return;
+    const saved = await supabase.from('profiles').update({ active_age_group_id: g.ageGroupId }).eq('id', me.id);
+    if (saved.error) return;
+    await refresh();
+    router.push(`/game/${g.id}`);
+  }
 
   const upcoming = games
     .filter((g) => g.date && !g.cancelStatus && (g.date > today || (g.date === today && !g.scores.length)))
@@ -89,6 +117,22 @@ export default function Dashboard() {
         meta: g.cancelStatus ?? [g.time, g.homeAway].filter(Boolean).join(' · '),
         logoUrl: g.opponentLogoUrl,
         kind: 'Game' as const,
+        other: null as OtherGame | null,
+      })),
+    ...other
+      .filter((g) => inWeek(g.date))
+      .map((g) => ({
+        key: g.id,
+        gameId: null,
+        trainingId: null,
+        date: g.date,
+        sort: g.time ?? '99:99',
+        title: `${g.ageGroup} · ${g.opponent || 'TBD'}`,
+        crestName: g.opponent || 'TBD',
+        meta: g.cancelStatus ?? [g.time, g.homeAway].filter(Boolean).join(' · '),
+        logoUrl: competitors.find((x) => x.id === g.competitorId)?.logoUrl ?? null,
+        kind: 'Game' as const,
+        other: g as OtherGame | null,
       })),
     ...trainings
       .filter((t) => inWeek(t.date) && !t.hiddenFromCalendar)
@@ -103,6 +147,7 @@ export default function Dashboard() {
         meta: t.cancelStatus ?? [t.startTime, t.location].filter(Boolean).join(' · '),
         logoUrl: null,
         kind: 'Training' as const,
+        other: null as OtherGame | null,
       })),
   ].sort((a, b) => (a.date + a.sort).localeCompare(b.date + b.sort));
   // One card per day, so a game and a training on the same day sit together.
@@ -174,8 +219,8 @@ export default function Dashboard() {
               return (
                 <Pressable
                   key={it.key}
-                  disabled={!it.gameId && !it.trainingId}
-                  onPress={() => router.push(it.gameId ? `/game/${it.gameId}` : `/training/${it.trainingId}`)}
+                  disabled={!it.gameId && !it.trainingId && !it.other}
+                  onPress={() => (it.other ? openOther(it.other) : router.push(it.gameId ? `/game/${it.gameId}` : `/training/${it.trainingId}`))}
                   style={[styles.rowItem, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
                 >
                   {it.kind === 'Game' ? <Crest url={it.logoUrl} name={it.crestName} size={36} /> : null}
