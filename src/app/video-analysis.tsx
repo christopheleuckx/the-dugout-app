@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UndoToast } from '../components/UndoToast';
@@ -9,6 +9,9 @@ import { fmtDate, useData, type Video } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { SourceTag, sourceOf, type VideoSource } from '../components/SourceTag';
+
+const VEO_LOGO = require('../../assets/veo.png');
+const VEO_GREEN = '#0B3D18';
 import { fmtDay, fmtSize, saveVideoToPhone, siteOf } from '../lib/videos';
 import { goBack } from '../lib/nav';
 
@@ -133,9 +136,20 @@ export default function VideoAnalysisScreen() {
           <View style={[styles.card, { backgroundColor: c.surface }]}>
             {list.map((v, i) => (
               <Pressable key={v.id} style={[styles.row, i > 0 && line]} onPress={() => play(v)}>
-                <View style={[styles.thumb, { backgroundColor: v.storageKey ? c.pitchStrong : c.surface2 }]}>
-                  <Ionicons name={v.storageKey ? 'play' : 'link-outline'} size={17} color={v.storageKey ? c.onPitch : c.ink} />
-                </View>
+                {/* A stored file plays here; a link shows the site it opens on. */}
+                {!v.storageKey && sourceOf(v.url) === 'veo' ? (
+                  <View style={[styles.thumb, { backgroundColor: VEO_GREEN }]}>
+                    <Image source={VEO_LOGO} style={{ width: 36, height: 20 }} resizeMode="contain" accessibilityLabel="Veo" />
+                  </View>
+                ) : !v.storageKey && sourceOf(v.url) === 'youtube' ? (
+                  <View style={[styles.thumb, { backgroundColor: c.surface2 }]}>
+                    <Ionicons name="logo-youtube" size={22} color="#FF0000" accessibilityLabel="YouTube" />
+                  </View>
+                ) : (
+                  <View style={[styles.thumb, { backgroundColor: v.storageKey ? c.pitchStrong : c.surface2 }]}>
+                    <Ionicons name={v.storageKey ? 'play' : 'link-outline'} size={17} color={v.storageKey ? c.onPitch : c.ink} />
+                  </View>
+                )}
                 <View style={{ flex: 1, gap: 2 }}>
                   {!v.storageKey && sourceOf(v.url) ? <SourceTag source={sourceOf(v.url)!} /> : null}
                   <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
