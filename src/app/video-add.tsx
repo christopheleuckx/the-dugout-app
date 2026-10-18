@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { SourceTag, sourceOf, type VideoSource } from '../components/SourceTag';
 import {
   fileName,
   fmtDay,
@@ -28,10 +29,12 @@ import { goBack } from '../lib/nav';
 export default function VideoAddScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ game?: string; team?: string; training?: string; mode?: string; edit?: string }>();
+  const params = useLocalSearchParams<{ game?: string; team?: string; training?: string; mode?: string; edit?: string; source?: string }>();
   const { videos, refresh } = useData();
   const editing = videos.find((v) => v.id === params.edit);
   const linkMode = params.mode === 'link';
+  // Which site the link is for, chosen in the sheet: Veo or YouTube.
+  const source: VideoSource = params.source === 'veo' ? 'veo' : 'youtube';
   const uploadMode = params.mode === 'upload';
 
   const [title, setTitle] = useState(editing?.title ?? '');
@@ -81,6 +84,7 @@ export default function VideoAddScreen() {
     if (listing && !picked) return setError('Choose a video.');
     if (uploadMode && !editing && !chosen) return setError('Choose a video.');
     if (linkMode && !editing && !/^https?:\/\/\S+\.\S+/i.test(url)) return setError('Paste the full link, starting with https://');
+    if (linkMode && !editing && sourceOf(url) !== source) return setError(source === 'veo' ? 'This is not a Veo link. Paste the link from Veo (veo.co).' : 'This is not a YouTube link. Paste the link from YouTube.');
     setSaving(true);
     setError('');
     // An upload goes to the storage first; only then is the video attached.
@@ -152,13 +156,16 @@ export default function VideoAddScreen() {
 
         {linkMode && !editing ? (
           <>
+            <View style={styles.sourceHead}>
+              <SourceTag source={source} size="large" />
+            </View>
             <Text style={[styles.caption, { color: c.inkSoft }]}>Link</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <TextInput
                 style={[styles.input, { color: c.ink }]}
                 value={link}
                 onChangeText={setLink}
-                placeholder="https://youtu.be/…"
+                placeholder={source === 'veo' ? 'https://app.veo.co/matches/…' : 'https://youtu.be/…'}
                 placeholderTextColor={c.inkSoft}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -166,7 +173,9 @@ export default function VideoAddScreen() {
                 returnKeyType="done"
               />
             </View>
-            <Text style={[styles.note, { color: c.inkSoft }]}>Opens in YouTube or the browser.</Text>
+            <Text style={[styles.note, { color: c.inkSoft }]}>
+              {source === 'veo' ? 'Opens in the Veo app or the browser; Veo asks you to sign in if needed.' : 'Opens in YouTube or the browser.'}
+            </Text>
           </>
         ) : null}
 
@@ -270,6 +279,7 @@ function fmtDuration(ms: number) {
 }
 
 const styles = StyleSheet.create({
+  sourceHead: { alignItems: 'flex-start', marginLeft: 12, marginTop: 8 },
   page: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },

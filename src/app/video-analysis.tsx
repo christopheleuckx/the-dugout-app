@@ -8,6 +8,7 @@ import { UndoToast } from '../components/UndoToast';
 import { fmtDate, useData, type Video } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
+import { SourceTag, sourceOf, type VideoSource } from '../components/SourceTag';
 import { fmtDay, fmtSize, saveVideoToPhone, siteOf } from '../lib/videos';
 import { goBack } from '../lib/nav';
 
@@ -94,9 +95,9 @@ export default function VideoAnalysisScreen() {
     await refresh();
   }
 
-  function add(mode: 'upload' | 'file' | 'link') {
+  function add(mode: 'upload' | 'file' | 'link', source?: VideoSource) {
     setAdding(false);
-    router.push({ pathname: '/video-add', params: { ...owner, mode } });
+    router.push({ pathname: '/video-add', params: { ...owner, mode, ...(source ? { source } : {}) } });
   }
 
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
@@ -135,7 +136,8 @@ export default function VideoAnalysisScreen() {
                 <View style={[styles.thumb, { backgroundColor: v.storageKey ? c.pitchStrong : c.surface2 }]}>
                   <Ionicons name={v.storageKey ? 'play' : 'link-outline'} size={17} color={v.storageKey ? c.onPitch : c.ink} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  {!v.storageKey && sourceOf(v.url) ? <SourceTag source={sourceOf(v.url)!} /> : null}
                   <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
                     {v.title}
                   </Text>
@@ -177,9 +179,15 @@ export default function VideoAnalysisScreen() {
             <Ionicons name="film-outline" size={20} color={c.ink} />
             <Text style={[styles.sheetLabel, { color: c.ink }]}>Choose from your videos</Text>
           </Pressable>
-          <Pressable style={[styles.sheetRow, line]} onPress={() => add('link')}>
+          <Pressable style={[styles.sheetRow, line]} onPress={() => add('link', 'veo')}>
+            <Ionicons name="link-outline" size={20} color={c.ink} />
+            <Text style={[styles.sheetLabel, { color: c.ink }]}>Paste a Veo link</Text>
+            <SourceTag source="veo" size="large" />
+          </Pressable>
+          <Pressable style={[styles.sheetRow, line]} onPress={() => add('link', 'youtube')}>
             <Ionicons name="link-outline" size={20} color={c.ink} />
             <Text style={[styles.sheetLabel, { color: c.ink }]}>Paste a YouTube link</Text>
+            <SourceTag source="youtube" size="large" />
           </Pressable>
         </View>
       </Modal>

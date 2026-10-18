@@ -129,8 +129,6 @@ export type Game = {
   lineups: Partial<Record<Team, QuarterLineup[]>>;
   // Per team: its report, when at least one field has been filled in.
   reports: Partial<Record<Team, Report>>;
-  // Per team: the link to the game's recording on Veo, if added.
-  veoUrls: Partial<Record<Team, string>>;
   // Per player id: their rating, and where they played in each confirmed quarter.
   ratings: Record<string, Rating>;
   stints: Record<string, Stint[]>;
@@ -543,9 +541,6 @@ async function load(userId: string): Promise<Data> {
         (ratings.data ?? [])
           .filter((r) => r.game_id === g.id)
           .map((r) => [r.player_id, { score: r.score, comment: r.comment ?? '' }]),
-      ),
-      veoUrls: Object.fromEntries(
-        (['blue', 'red'] as Team[]).flatMap((team) => (g.lineups?.[team]?.veoUrl ? [[team, String(g.lineups[team].veoUrl)]] : [])),
       ),
       reports: Object.fromEntries(
         playingTeams(g.id)
