@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EditIcon } from '../components/Icons';
@@ -21,6 +21,9 @@ import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 
+const VEO_LOGO = require('../../assets/veo.png');
+const VEO_GREEN = '#0B3D18';
+
 // A text part of the report: a field of its own, or the note of one quarter.
 type Part = { key: string; title: string; text: string; field?: 'opponent' | 'summary' | 'wentWell' | 'toImprove'; quarter?: number };
 
@@ -29,7 +32,7 @@ type Scale = { kind: 'team' } | { kind: 'opponent' } | { kind: 'criterion'; key:
 
 // The page on top of the report: choosing a rating, the match report with its
 // summary and quarters, or writing one text (which returns to "back").
-type Page = null | { scale: Scale } | { match: true } | { edit: Part; back: Page };
+type Page = null | { scale: Scale } | { match: true } | { edit: Part; back: Page } | { veo: true };
 
 type Stored = {
   score: number | null;
@@ -79,6 +82,29 @@ export default function GameReportScreen() {
 
   // The report lives inside the team's line-up record, next to the line-ups
   // themselves, so the latest record is read first and only the report changes.
+  // The Veo link sits in the team's line-up record too, next to the report.
+  const veoUrl = game.veoUrls[team] ?? '';
+  async function saveVeo(url: string) {
+    if (saving) return;
+    const clean = url.trim();
+    if (clean && !/^https?:\/\/\S+$/i.test(clean)) return setError('Paste the full link, starting with https://');
+    setSaving(true);
+    setError('');
+    const fresh = await supabase.from('games').select('lineups').eq('id', game!.id).single();
+    const record = { ...(fresh.data?.lineups?.[team] ?? {}) };
+    if (clean) record.veoUrl = clean;
+    else delete record.veoUrl;
+    const saved = fresh.error ? fresh : await supabase.rpc('patch_game_team_lineup', { p_game_id: game!.id, p_team: team, p_value: record });
+    if (saved.error) {
+      setError(`Could not save the link: ${saved.error.message}`);
+      setSaving(false);
+      return;
+    }
+    await refresh();
+    setSaving(false);
+    setPage(null);
+  }
+
   async function save(change: (report: Stored) => void, then: Page) {
     if (saving) return;
     setSaving(true);
@@ -177,7 +203,37 @@ export default function GameReportScreen() {
 
   let title = 'Game report';
   let body;
-  if (page && 'scale' in page) {
+  if (page && 'veo' in page) {
+    title = 'Veo';
+    body = (
+      <>
+        <Image source={VEO_LOGO} style={styles.veoBig} accessibilityLabel="Veo" />
+        <View style={[styles.card, { backgroundColor: c.surface }]}>
+          <TextInput
+            style={[styles.veoInput, { color: c.ink }]}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="https://app.veo.co/matches/…"
+            placeholderTextColor={c.inkSoft}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            autoFocus
+          />
+        </View>
+        <Text style={[styles.guide, { color: c.inkSoft, marginHorizontal: 12 }]}>Paste the link of this game's recording on Veo. Tapping the Veo tag on the report then opens it.</Text>
+        {error ? <Text style={[styles.guide, { color: c.danger, marginHorizontal: 12 }]}>{error}</Text> : null}
+        <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={() => saveVeo(draft)}>
+          {saving ? <ActivityIndicator color={c.onPitch} /> : <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>Save link</Text>}
+        </Pressable>
+        {veoUrl ? (
+          <Pressable style={styles.button} onPress={() => saveVeo('')}>
+            <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Remove link</Text>
+          </Pressable>
+        ) : null}
+      </>
+    );
+  } else if (page && 'scale' in page) {
     const scale = scaleOf(page.scale);
     title = scale.title;
     body = (
@@ -228,6 +284,24 @@ export default function GameReportScreen() {
   } else {
     body = (
       <>
+        {/* The recording on Veo: tap to watch, or to add the link. */}
+        <View style={styles.veoRow}>
+          <Pressable
+            style={({ pressed }) => [styles.veoTag, pressed && { opacity: 0.8 }]}
+            onPress={() => (veoUrl ? Linking.openURL(veoUrl).catch(() => setError('Could not open the Veo link.')) : (setDraft(''), setError(''), setPage({ veo: true })))}
+            accessibilityLabel={veoUrl ? 'Watch this game on Veo' : 'Add the Veo link'}
+          >
+            <Image source={VEO_LOGO} style={styles.veoLogo} />
+            <Text style={styles.veoText}>{veoUrl ? 'Watch game' : 'Add link'}</Text>
+            <Ionicons name={veoUrl ? 'open-outline' : 'add'} size={15} color="#fff" />
+          </Pressable>
+          {veoUrl ? (
+            <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (setDraft(veoUrl), setError(''), setPage({ veo: true }))} accessibilityLabel="Change the Veo link" hitSlop={8}>
+              <EditIcon color={c.ink} />
+            </Pressable>
+          ) : null}
+        </View>
+
         <Text style={[styles.section, { color: c.ink, marginTop: 0 }]}>Team performance</Text>
         <Pressable style={[styles.card, styles.row, { backgroundColor: c.surface }]} onPress={() => setPage({ scale: { kind: 'team' } })}>
           {badge(report?.score ?? null, true)}
@@ -324,6 +398,12 @@ export default function GameReportScreen() {
 }
 
 const styles = StyleSheet.create({
+  veoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  veoTag: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: VEO_GREEN, borderRadius: 999, paddingLeft: 4, paddingRight: 12, height: 34 },
+  veoLogo: { width: 46, height: 26, borderRadius: 13 },
+  veoText: { color: '#fff', fontFamily: fonts.medium, fontSize: 14 },
+  veoBig: { width: 120, height: 66, borderRadius: 12, alignSelf: 'center', marginVertical: 8 },
+  veoInput: { fontFamily: fonts.regular, fontSize: 16, paddingVertical: 14 },
   page: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },

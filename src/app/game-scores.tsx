@@ -172,18 +172,15 @@ export default function GameScoresScreen() {
     body = (
       <>
         <View style={[styles.card, { backgroundColor: c.surface }]}>
-          <View style={styles.row}>
-            <Text style={[styles.label, { color: c.ink }]} numberOfLines={1}>
-              {ours}
-            </Text>
-            {stepper(entry.us, setUs)}
-          </View>
-          <View style={[styles.row, line]}>
-            <Text style={[styles.label, { color: c.ink }]} numberOfLines={1}>
-              {game.opponent && !/tournament/i.test(game.competition) ? game.opponent : 'Opponent'}
-            </Text>
-            {stepper(entry.them, (them) => setEntry({ ...entry, them }))}
-          </View>
+          {/* Home side first, as on the scoreboard: away games put the opponent on top. */}
+          {(game.homeAway === 'Away' ? ['them', 'us'] : ['us', 'them']).map((side, i) => (
+            <View key={side} style={[styles.row, i > 0 && line]}>
+              <Text style={[styles.label, { color: c.ink }]} numberOfLines={1}>
+                {side === 'us' ? ours : game.opponent && !/tournament/i.test(game.competition) ? game.opponent : 'Opponent'}
+              </Text>
+              {side === 'us' ? stepper(entry.us, setUs) : stepper(entry.them, (them) => setEntry({ ...entry, them }))}
+            </View>
+          ))}
         </View>
 
         {entry.us > 0 ? (
