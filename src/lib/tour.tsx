@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 
+import { SourceTag } from '../components/SourceTag';
 import { fonts } from './theme';
 
 // The walkthrough of the app. Each slide shows one or more small screens of
@@ -96,6 +97,28 @@ const Badge = ({ score, color }: { score: number; color: string }) => (
     <Text style={s.badgeText}>{score}</Text>
   </View>
 );
+// A club without a picture in the tour: its initials in a coloured circle.
+const Mark = ({ initials, color, size = 22 }: { initials: string; color: string; size?: number }) => (
+  <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+    <Text style={{ color: '#fff', fontFamily: fonts.semi, fontSize: size * 0.4 }}>{initials}</Text>
+  </View>
+);
+const Logo = ({ src, size = 22 }: { src: ImageSourcePropType; size?: number }) => (
+  <View style={[s.logoWrap, { width: size, height: size, borderRadius: size / 2 }]}>
+    <Image source={src} style={{ width: size - 4, height: size - 4 }} resizeMode="contain" />
+  </View>
+);
+const Switch = ({ on = true }: { on?: boolean }) => (
+  <View style={{ width: 30, height: 18, borderRadius: 9, backgroundColor: on ? blue : line, padding: 2, alignItems: on ? 'flex-end' : 'flex-start' }}>
+    <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff' }} />
+  </View>
+);
+const Step = ({ icon }: { icon: 'add' | 'remove' }) => (
+  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#EAEFF6', alignItems: 'center', justifyContent: 'center' }}>
+    <Ionicons name={icon} size={11} color={ink} />
+  </View>
+);
+const LIGHT = '#6CC6F5';
 const Chevron = () => <Ionicons name="chevron-forward" size={11} color={soft} />;
 const Bar = ({ title, sub }: { title: string; sub: string }) => (
   <View style={{ alignItems: 'center' }}>
@@ -465,12 +488,284 @@ export const TOUR_SLIDES: TourSlide[] = [
         { key: 'space', node: <View style={{ height: 96 }} /> },
         {
           key: 'add',
-          spot: 'Upload from your phone, or add a YouTube link',
+          spot: 'Upload from your phone, or add a Veo or YouTube link',
           node: (
             <View style={[s.card, s.inline, { backgroundColor: blue, justifyContent: 'center' }]}>
               <Ionicons name="add" size={13} color="#fff" />
               <Text style={[s.strong, { color: '#fff' }]}>Add video</Text>
             </View>
+          ),
+        },
+      ],
+    ],
+  },
+
+  {
+    since: 2,
+    title: 'Your teams',
+    text: 'Coach more than one team? Switch between them with the club logo, and see the matches of your other team in your week.',
+    scenes: [
+      [
+        {
+          key: 'header',
+          spot: 'Tap the logo to switch team',
+          node: (
+            <View style={[s.inline, { justifyContent: 'space-between' }]}>
+              <Text style={s.hello}>The Dugout</Text>
+              <View style={{ alignItems: 'center' }}>
+                <Logo src={BELGIUM} size={30} />
+                <View style={[s.pill, { backgroundColor: blue, marginTop: -5 }]}>
+                  <Text style={[s.pillText, { color: '#fff' }]}>U12</Text>
+                </View>
+              </View>
+            </View>
+          ),
+        },
+        {
+          key: 'sheet',
+          spot: 'Every team you coach, with its club',
+          node: (
+            <Card>
+              <Text style={[s.heading, { marginBottom: 2 }]}>Switch team</Text>
+              <Row first title="U12" sub="Belgium · 8v8" right={<Ionicons name="checkmark" size={14} color={blue} />} />
+              <Row title="U15" sub="Belgium · 11v11" />
+            </Card>
+          ),
+        },
+        { key: 'h1', node: <Heading>This week</Heading> },
+        {
+          key: 'week',
+          spot: 'Matches of your other team can show here too',
+          node: (
+            <Card>
+              <Row first title="Tactical Training" sub="Thu · 17:30 · Tubeke" right={<Pill label="Training" color={training} />} />
+              <Row title="U12 · France" sub="Sat · 10:00 · Home" right={<Pill label="Game" color={blue} />} />
+              <Row title="U15 · Spain" sub="Sat · 14:15 · Away" right={<Pill label="Game" color={blue} />} />
+            </Card>
+          ),
+        },
+        {
+          key: 'switch',
+          spot: 'Switch it on in Club management',
+          node: (
+            <Card>
+              <View style={s.inline}>
+                <Ionicons name="calendar-outline" size={14} color={soft} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.strong}>Show U15 matches</Text>
+                  <Text style={s.mute}>In This week on Home</Text>
+                </View>
+                <Switch />
+              </View>
+            </Card>
+          ),
+        },
+      ],
+    ],
+  },
+  {
+    since: 2,
+    title: 'Your league',
+    text: 'Follow the competition on Home: the matches of the matchday and the table. Your own score goes into the table by itself.',
+    scenes: [
+      [
+        {
+          key: 'title',
+          spot: 'Tap the title for the whole league',
+          node: (
+            <View style={[s.card, { backgroundColor: navy, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, paddingBottom: 2 }]}>
+              <View style={s.inline}>
+                <Text style={{ color: LIGHT, fontFamily: fonts.semi, fontSize: 17 }}>Nations League</Text>
+                <Ionicons name="chevron-forward" size={14} color={LIGHT} />
+              </View>
+              <Text style={[s.strong, { color: '#fff' }]}>Matchday 3</Text>
+            </View>
+          ),
+        },
+        {
+          key: 'matches',
+          joined: true,
+          spot: 'This matchday, swipe for the other matches',
+          node: (
+            <View style={[s.card, { backgroundColor: navy, borderRadius: 0, paddingVertical: 4 }]}>
+              <View style={[s.card, { gap: 4 }]}>
+                <View style={s.inline}>
+                  <Logo src={BELGIUM} />
+                  <Text style={[s.strong, { flex: 1 }]}>Belgium</Text>
+                  <Text style={s.strong}>2</Text>
+                </View>
+                <View style={s.inline}>
+                  <Logo src={SPAIN} />
+                  <Text style={[s.text, { flex: 1 }]}>Spain</Text>
+                  <Text style={s.text}>0</Text>
+                </View>
+              </View>
+            </View>
+          ),
+        },
+        {
+          key: 'table',
+          joined: true,
+          spot: 'The table, up to date with every score',
+          node: (
+            <View style={[s.card, { backgroundColor: navy, borderTopLeftRadius: 0, borderTopRightRadius: 0, paddingTop: 2 }]}>
+              <View style={[s.card, { paddingVertical: 2 }]}>
+                {(
+                  [
+                    ['1', <Logo key="b" src={BELGIUM} size={18} />, 'Belgium', '3', '9', true],
+                    ['2', <Logo key="f" src={FRANCE} size={18} />, 'France', '3', '6', false],
+                    ['3', <Mark key="n" initials="NL" color="#E07A1F" size={18} />, 'Netherlands', '3', '3', false],
+                    ['4', <Logo key="s" src={SPAIN} size={18} />, 'Spain', '3', '0', false],
+                  ] as [string, ReactNode, string, string, string, boolean][]
+                ).map(([pos, crest, name, played, points, ours], i) => (
+                  <View key={name} style={[s.row, i > 0 && s.rowLine, { paddingVertical: 4 }, ours && { backgroundColor: '#EEF2F8' }]}>
+                    <Text style={[s.mute, { width: 10 }]}>{pos}</Text>
+                    {crest}
+                    <Text style={[ours ? s.strong : s.text, { flex: 1 }]}>{name}</Text>
+                    <Text style={[s.text, { width: 18, textAlign: 'center' }]}>{played}</Text>
+                    <Text style={[s.strong, { width: 18, textAlign: 'center' }]}>{points}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ),
+        },
+      ],
+      [
+        { key: 'bar', node: <Bar title="Nations League" sub="Matchdays and table" /> },
+        {
+          key: 'days',
+          spot: 'Go from matchday to matchday',
+          node: (
+            <View style={[s.inline, { justifyContent: 'space-between', paddingHorizontal: 8 }]}>
+              <View style={s.icon}>
+                <Ionicons name="chevron-back" size={11} color={ink} />
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={s.heading}>Matchday 4</Text>
+                <Text style={s.mute}>Sat 24 Oct</Text>
+              </View>
+              <View style={s.icon}>
+                <Ionicons name="chevron-forward" size={11} color={ink} />
+              </View>
+            </View>
+          ),
+        },
+        {
+          key: 'fixtures',
+          spot: 'Tap a match to fill in its score',
+          node: (
+            <Card>
+              {(
+                [
+                  ['France', <Logo key="f" src={FRANCE} size={18} />, 'Netherlands', <Mark key="n" initials="NL" color="#E07A1F" size={18} />, '14:00'],
+                  ['Spain', <Logo key="s" src={SPAIN} size={18} />, 'Belgium', <Logo key="b" src={BELGIUM} size={18} />, '15:00'],
+                ] as [string, ReactNode, string, ReactNode, string][]
+              ).map(([home, homeCrest, away, awayCrest, time], i) => (
+                <View key={home} style={[s.row, i > 0 && s.rowLine]}>
+                  <Text style={[s.text, { flex: 1, textAlign: 'right' }]}>{home}</Text>
+                  {homeCrest}
+                  <Text style={[s.strong, { width: 38, textAlign: 'center' }]}>{time}</Text>
+                  {awayCrest}
+                  <Text style={[away === 'Belgium' ? s.strong : s.text, { flex: 1 }]}>{away}</Text>
+                </View>
+              ))}
+            </Card>
+          ),
+        },
+        {
+          key: 'score',
+          spot: 'Save it, and the table follows',
+          node: (
+            <Card>
+              <Text style={[s.heading, { marginBottom: 2 }]}>Score</Text>
+              {(
+                [
+                  [<Logo key="f" src={FRANCE} size={18} />, 'France', '2'],
+                  [<Mark key="n" initials="NL" color="#E07A1F" size={18} />, 'Netherlands', '1'],
+                ] as [ReactNode, string, string][]
+              ).map(([crest, name, goals], i) => (
+                <View key={name} style={[s.row, i > 0 && s.rowLine]}>
+                  {crest}
+                  <Text style={[s.strong, { flex: 1 }]}>{name}</Text>
+                  <Step icon="remove" />
+                  <Text style={[s.strong, { width: 16, textAlign: 'center' }]}>{goals}</Text>
+                  <Step icon="add" />
+                </View>
+              ))}
+              <View style={[s.card, { backgroundColor: blue, alignItems: 'center', marginTop: 4, paddingVertical: 5 }]}>
+                <Text style={[s.strong, { color: '#fff' }]}>Save score</Text>
+              </View>
+            </Card>
+          ),
+        },
+      ],
+    ],
+  },
+  {
+    since: 2,
+    title: 'Veo and YouTube',
+    text: 'Add the link of a match video on Veo or YouTube to a game, next to the videos you upload from your phone.',
+    scenes: [
+      [
+        { key: 'bar', node: <Bar title="Video analysis" sub="Spain · Sat 10 Oct" /> },
+        {
+          key: 'list',
+          spot: 'Links show with the logo of their site',
+          node: (
+            <Card>
+              <View style={s.row}>
+                <View style={[s.thumb, { backgroundColor: '#0B3D18' }]}>
+                  <SourceTag source="veo" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.strong}>Full match vs Spain</Text>
+                  <Text style={s.mute}>Veo · added today</Text>
+                </View>
+              </View>
+              <View style={[s.row, s.rowLine]}>
+                <View style={[s.thumb, { backgroundColor: '#fff', borderWidth: StyleSheet.hairlineWidth, borderColor: line }]}>
+                  <Ionicons name="logo-youtube" size={18} color="#FF0000" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.strong}>Highlights</Text>
+                  <Text style={s.mute}>YouTube · added today</Text>
+                </View>
+              </View>
+              <View style={[s.row, s.rowLine]}>
+                <View style={s.thumb}>
+                  <Ionicons name="play" size={11} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.strong}>Build-up, second half</Text>
+                  <Text style={s.mute}>12 MB · added today</Text>
+                </View>
+              </View>
+            </Card>
+          ),
+        },
+        { key: 'space', node: <View style={{ height: 24 }} /> },
+        {
+          key: 'add',
+          spot: 'Add video: upload, or paste a Veo or YouTube link',
+          node: (
+            <Card>
+              <Text style={[s.heading, { marginBottom: 2 }]}>Add video</Text>
+              <View style={s.row}>
+                <Ionicons name="phone-portrait-outline" size={14} color={soft} />
+                <Text style={[s.strong, { flex: 1 }]}>Upload from your phone</Text>
+              </View>
+              <View style={[s.row, s.rowLine]}>
+                <Ionicons name="link-outline" size={14} color={soft} />
+                <Text style={[s.strong, { flex: 1 }]}>Paste a Veo link</Text>
+                <SourceTag source="veo" />
+              </View>
+              <View style={[s.row, s.rowLine]}>
+                <Ionicons name="link-outline" size={14} color={soft} />
+                <Text style={[s.strong, { flex: 1 }]}>Paste a YouTube link</Text>
+                <SourceTag source="youtube" />
+              </View>
+            </Card>
           ),
         },
       ],
