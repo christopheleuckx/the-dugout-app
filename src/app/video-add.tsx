@@ -141,6 +141,12 @@ export default function VideoAddScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {/* For a link: the site's tag on top, the same as in the Add video sheet. */}
+        {linkMode && !editing ? (
+          <View style={styles.sourceHead}>
+            <SourceTag source={source} size="large" />
+          </View>
+        ) : null}
         <Text style={[styles.caption, { color: c.inkSoft }]}>Title</Text>
         <View style={[styles.card, { backgroundColor: c.surface }]}>
           <TextInput
@@ -156,9 +162,6 @@ export default function VideoAddScreen() {
 
         {linkMode && !editing ? (
           <>
-            <View style={styles.sourceHead}>
-              <SourceTag source={source} size="large" />
-            </View>
             <Text style={[styles.caption, { color: c.inkSoft }]}>Link</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <TextInput
@@ -279,7 +282,7 @@ function fmtDuration(ms: number) {
 }
 
 const styles = StyleSheet.create({
-  sourceHead: { alignItems: 'flex-start', marginLeft: 12, marginTop: 8 },
+  sourceHead: { alignItems: 'flex-start', marginLeft: 4, marginBottom: 4 },
   page: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
