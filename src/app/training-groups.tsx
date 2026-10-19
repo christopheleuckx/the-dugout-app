@@ -54,7 +54,8 @@ export default function TrainingGroupsScreen() {
   async function store(next: TrainingGroups | null) {
     setError('');
     setGroups(next);
-    const { error: failed } = await supabase.from('trainings').update({ groups: next }).eq('id', training!.id);
+    // A training without groups keeps an empty object, as the database and the web app expect.
+    const { error: failed } = await supabase.from('trainings').update({ groups: next ?? {} }).eq('id', training!.id);
     if (failed) setError(`Could not save the groups: ${failed.message}`);
     refresh();
   }
