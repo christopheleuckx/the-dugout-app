@@ -13,6 +13,15 @@ import type { BasePlayer } from './age-group-players';
 // The positions as the rest of the app knows them: keeper, then the numbers.
 const POSITIONS = ['K', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'];
 const FEET = ['Right', 'Left', 'Both'];
+// The fields chosen from a list, each opening its own list of options.
+type Choice = 'preferred_position_1' | 'best_position' | 'developing_position' | 'preferred_foot';
+const CHOICES: { key: Choice; label: string; options: string[] }[] = [
+  { key: 'preferred_position_1', label: 'Preferred position', options: POSITIONS },
+  { key: 'best_position', label: 'Best position', options: POSITIONS },
+  { key: 'developing_position', label: 'Developing position', options: POSITIONS },
+  { key: 'preferred_foot', label: 'Preferred foot', options: FEET },
+];
+const positionName = (p: string) => (p === 'K' ? 'K (keeper)' : p);
 const EMPTY = { first_name: '', last_name: '', preferred_position_1: '', best_position: '', developing_position: '', preferred_foot: '', strengths: '', primary_focus: '', remarks: '' };
 type Form = typeof EMPTY;
 
@@ -27,6 +36,7 @@ export default function AgeGroupPlayerScreen() {
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [choosing, setChoosing] = useState<Choice | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -100,32 +110,15 @@ export default function AgeGroupPlayerScreen() {
       />
     </View>
   );
-  // One choice from a row of chips; tapping the chosen one clears it.
-  const chips = (label: string, key: keyof Form, options: string[]) => (
-    <View style={{ gap: 8 }}>
-      <Text style={[styles.caption, { color: c.inkSoft }]}>{label}</Text>
-      <View style={styles.chips}>
-        {options.map((o) => {
-          const on = form[key] === o;
-          return (
-            <Pressable key={o} style={[styles.chip, { backgroundColor: on ? c.pitch : c.surface }]} onPress={() => set(key, on ? '' : o)}>
-              <Text style={{ color: on ? c.onPitch : c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{o}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: c.chalk }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={goBack} accessibilityLabel="Back" hitSlop={8}>
+        <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => (choosing ? setChoosing(null) : goBack())} accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={c.ink} />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
-            {id ? `${form.first_name} ${form.last_name}`.trim() || 'Player' : 'New player'}
+            {choosing ? CHOICES.find((x) => x.key === choosing)!.label : id ? `${form.first_name} ${form.last_name}`.trim() || 'Player' : 'New player'}
           </Text>
           <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{name}</Text>
         </View>
@@ -134,16 +127,43 @@ export default function AgeGroupPlayerScreen() {
 
       {loading ? (
         <ActivityIndicator color={c.pitch} style={{ marginTop: 24 }} />
+      ) : choosing ? (
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
+            {['', ...CHOICES.find((x) => x.key === choosing)!.options].map((o, i) => (
+              <Pressable
+                key={o || 'none'}
+                style={[styles.field, i > 0 && line]}
+                onPress={() => {
+                  set(choosing, o);
+                  setChoosing(null);
+                }}
+              >
+                <Text style={[styles.label, { flex: 1, width: undefined, color: o ? c.ink : c.inkSoft }]}>
+                  {o ? (choosing === 'preferred_foot' ? o : positionName(o)) : 'None'}
+                </Text>
+                {form[choosing] === o ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={[styles.card, { backgroundColor: c.surface }]}>
             {text('First name', 'first_name', 'Required', true)}
             {text('Last name', 'last_name', 'Required')}
           </View>
-          {chips('Preferred position', 'preferred_position_1', POSITIONS)}
-          {chips('Best position', 'best_position', POSITIONS)}
-          {chips('Developing position', 'developing_position', POSITIONS)}
-          {chips('Preferred foot', 'preferred_foot', FEET)}
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
+            {CHOICES.map((choice, i) => (
+              <Pressable key={choice.key} style={[styles.field, i > 0 && line]} onPress={() => setChoosing(choice.key)}>
+                <Text style={[styles.label, { flex: 1, width: undefined, color: c.ink }]}>{choice.label}</Text>
+                <Text style={{ color: form[choice.key] ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 16 }}>
+                  {form[choice.key] ? (choice.key === 'preferred_foot' ? form[choice.key] : positionName(form[choice.key])) : 'Choose'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
+            ))}
+          </View>
           {long('Strengths', 'strengths', 'What the player is good at')}
           {long('Primary focus for improvement', 'primary_focus', 'What to work on first')}
           {long('Remarks', 'remarks', 'Anything else')}
@@ -173,8 +193,6 @@ const styles = StyleSheet.create({
   label: { width: 96, fontFamily: fonts.regular, fontSize: 16 },
   input: { flex: 1, fontFamily: fonts.regular, fontSize: 16, textAlign: 'right', paddingVertical: 12 },
   caption: { fontFamily: fonts.medium, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.4, marginHorizontal: 4 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { minWidth: 46, height: 40, borderRadius: 12, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   area: { minHeight: 84, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, fontFamily: fonts.regular, fontSize: 15, textAlignVertical: 'top' },
   button: { height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });
