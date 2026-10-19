@@ -67,10 +67,10 @@ export default function TrainingGroupsScreen() {
   }
 
   function remove() {
-    Alert.alert('Delete the groups?', 'The groups of this training are removed. You can create new ones at any time.', [
+    Alert.alert('Remove the groups?', 'The groups of this training are removed. You can create new ones at any time.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Remove',
         style: 'destructive',
         onPress: () => {
           setEditing(false);
@@ -202,7 +202,7 @@ export default function TrainingGroupsScreen() {
             </Pressable>
             <Pressable style={[styles.button, { backgroundColor: c.surface }]} onPress={remove}>
               <Ionicons name="trash-outline" size={18} color={c.danger} />
-              <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Delete groups</Text>
+              <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Remove groups</Text>
             </Pressable>
           </>
         )}
