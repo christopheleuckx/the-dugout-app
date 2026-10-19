@@ -260,18 +260,25 @@ export default function GameScreen() {
           </Pressable>
         ) : null}
 
-        {/* The last game against this club; it opens every earlier one. */}
+        {/* The last game against this club, which opens that game. "See all"
+            lists every earlier one, so this page stays short. */}
         {history.length ? (
           <>
-            <Text style={[styles.section, { color: c.ink }]}>History</Text>
-            <HistoryCard game={history[0]} clubName={clubName} clubLogoUrl={clubLogoUrl} onPress={() => router.push({ pathname: '/game-history', params: { game: game.id } })} />
-            {history.length > 1 ? (
-              <Pressable onPress={() => router.push({ pathname: '/game-history', params: { game: game.id } })} hitSlop={6}>
-                <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' }}>
-                  All {history.length} games against {game.opponent}
-                </Text>
-              </Pressable>
-            ) : null}
+            <View style={styles.sectionHead}>
+              <Text style={[styles.section, { color: c.ink, marginTop: 0 }]}>History</Text>
+              {history.length > 1 ? (
+                <Pressable
+                  style={styles.seeAll}
+                  onPress={() => router.push({ pathname: '/game-history', params: { game: game.id } })}
+                  accessibilityLabel={`All ${history.length} games against ${game.opponent}`}
+                  hitSlop={8}
+                >
+                  <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>See all ({history.length})</Text>
+                  <Ionicons name="chevron-forward" size={15} color={c.pitch} />
+                </Pressable>
+              ) : null}
+            </View>
+            <HistoryCard game={history[0]} clubName={clubName} clubLogoUrl={clubLogoUrl} onPress={() => router.push(`/game/${history[0].id}`)} />
           </>
         ) : null}
 
@@ -415,6 +422,7 @@ const styles = StyleSheet.create({
   host: { fontFamily: fonts.semi, fontSize: 24 },
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   player: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   number: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   playerName: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
