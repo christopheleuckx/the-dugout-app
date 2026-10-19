@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fmtDate, useData, type Theme } from '../../lib/data';
+import { fmtDate, injuryOn, useData, type Theme } from '../../lib/data';
 import { groupOf, POSITION_GROUPS } from '../../lib/selection';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
@@ -98,12 +98,56 @@ export default function TrainingScreen() {
       .filter(Boolean)
       .join('\n') || 'Choose';
 
-  function choose(playerId: string, reason: string | null) {
-    const next = { ...absent };
-    if (reason === null) delete next[playerId];
-    else next[playerId] = reason;
-    setAbsent(next);
+  function apply(playerId: string, reason: string | null) {
+    setAbsent((now) => {
+      const next = { ...now };
+      if (reason === null) delete next[playerId];
+      else next[playerId] = reason;
+      return next;
+    });
     setChoosing(null);
+  }
+
+  // Choosing for a player also keeps their injury in step: an injured player
+  // set to anything else may be taken out of injury, and a player set to
+  // 'Injured' without an injury may get one from this training's day on.
+  function choose(playerId: string, reason: string | null) {
+    const p = players.find((x) => x.id === playerId);
+    const injury = p ? injuryOn(p, training!.date) : null;
+    if (p && injury && reason !== 'Injured') {
+      setChoosing(null);
+      Alert.alert(`Take ${p.firstName} out of injury?`, `${p.firstName} is injured since ${fmtDate(injury.startDate)}. Yes marks the injury as recovered from ${fmtDate(training!.date)} on.`, [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            const endedOn = training!.date < injury.startDate ? injury.startDate : training!.date;
+            const { error: failed } = await supabase.from('player_injuries').update({ ended_on: endedOn }).eq('id', injury.id);
+            if (failed) return setError(`Could not end the injury: ${failed.message}`);
+            apply(playerId, reason);
+            refresh();
+          },
+        },
+      ]);
+      return;
+    }
+    if (p && !injury && reason === 'Injured') {
+      setChoosing(null);
+      Alert.alert(`Add an injury for ${p.firstName}?`, `${p.firstName} then counts as injured from ${fmtDate(training!.date)} on, in every training and game, until marked recovered on the player page.`, [
+        { text: 'No', style: 'cancel', onPress: () => apply(playerId, reason) },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            const { error: failed } = await supabase.from('player_injuries').insert({ player_id: playerId, start_date: training!.date });
+            if (failed) return setError(`Could not add the injury: ${failed.message}`);
+            apply(playerId, reason);
+            refresh();
+          },
+        },
+      ]);
+      return;
+    }
+    apply(playerId, reason);
   }
 
   async function save() {
@@ -252,18 +296,12 @@ export default function TrainingScreen() {
           </>
         ) : player ? (
           <>
-            {training.injured.includes(player.id) ? (
-              <Text style={[styles.sub, { color: c.inkSoft, marginHorizontal: 4 }]}>
-                {player.firstName} is injured on this day, so absent in every training until the injury ends. End or change the injury on the player page in the Squad.
-              </Text>
-            ) : (
-              <View style={[styles.card, { backgroundColor: c.surface }]}>
-                <Pressable style={styles.row} onPress={() => choose(player.id, null)}>
-                  <Text style={[styles.label, { color: c.ink }]}>Present</Text>
-                  {!(player.id in absent) ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
-                </Pressable>
-              </View>
-            )}
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Pressable style={styles.row} onPress={() => choose(player.id, null)}>
+                <Text style={[styles.label, { color: c.ink }]}>Present</Text>
+                {!(player.id in absent) ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+              </Pressable>
+            </View>
             <Text style={[styles.group, { color: c.inkSoft }]}>Absent</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {REASONS.map((reason, i) => (
