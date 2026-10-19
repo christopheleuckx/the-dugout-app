@@ -286,6 +286,14 @@ export default function TrainingScreen() {
                 <Text style={{ color: pitch ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}>{pitch || 'Choose'}</Text>
                 <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
               </Pressable>
+              {/* The players divided into groups for the session. */}
+              <Pressable style={[styles.row, line]} onPress={() => router.push({ pathname: '/training-groups', params: { id: training.id } })}>
+                <Text style={[styles.label, { color: c.ink }]}>Training groups</Text>
+                <Text style={{ color: training.groups ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}>
+                  {training.groups ? `${training.groups.groupIds.length} ${training.groups.groupIds.length === 1 ? 'group' : 'groups'}` : 'Create'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+              </Pressable>
             </View>
 
             <Text style={[styles.section, { color: c.ink }]}>Training themes</Text>

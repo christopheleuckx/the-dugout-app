@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DragRow } from '../components/DragRow';
 import { Crest } from '../components/MatchCard';
 import { fmtDate, toIso, useData } from '../lib/data';
 import { goBack } from '../lib/nav';
@@ -27,65 +28,6 @@ type Match = { id: string; home: string; away: string; date: string | null; time
 type Matchday = { id: string; number: number; matches: Match[] };
 type League = { id: string; name: string; showStandings: boolean; win: number; draw: number; loss: number; ranking: string[] };
 type View_ = 'main' | 'teams' | 'ranking' | { matchday: string; match?: string };
-
-// A row that is picked up by its handle. While it is held it follows the
-// finger; on release the page decides what the drop means.
-function DragRow({
-  children,
-  onStart,
-  onDrop,
-  background,
-  handleColor,
-}: {
-  children: ReactNode;
-  onStart: () => void;
-  onDrop: (dy: number, pageY: number) => void;
-  background: string;
-  handleColor: string;
-}) {
-  const move = useRef(new Animated.Value(0)).current;
-  const [held, setHeld] = useState(false);
-  // The latest callbacks, so the gesture never works with an old list.
-  const latest = useRef({ onStart, onDrop });
-  latest.current = { onStart, onDrop };
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: () => {
-        setHeld(true);
-        latest.current.onStart();
-      },
-      onPanResponderMove: (_, g) => move.setValue(g.dy),
-      onPanResponderRelease: (_, g) => {
-        setHeld(false);
-        move.setValue(0);
-        latest.current.onDrop(g.dy, g.moveY);
-      },
-      onPanResponderTerminate: () => {
-        setHeld(false);
-        move.setValue(0);
-        latest.current.onDrop(0, -1);
-      },
-    }),
-  ).current;
-
-  return (
-    <Animated.View
-      style={[
-        styles.dragRow,
-        { backgroundColor: background, transform: [{ translateY: move }] },
-        held && styles.held,
-      ]}
-    >
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>{children}</View>
-      <View {...pan.panHandlers} style={styles.handle} accessibilityLabel="Drag">
-        <Ionicons name="reorder-three" size={24} color={handleColor} />
-      </View>
-    </Animated.View>
-  );
-}
 
 // One competition: its name, its teams, its matchdays with their matches,
 // and the rules for the table. Everything saves as it is changed.
@@ -643,7 +585,4 @@ const styles = StyleSheet.create({
   badge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   step: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, marginTop: 6 },
-  dragRow: { height: ROW, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, borderRadius: 14 },
-  handle: { width: 56, height: ROW, alignItems: 'center', justifyContent: 'center' },
-  held: { zIndex: 5, shadowColor: '#0E1320', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
 });
