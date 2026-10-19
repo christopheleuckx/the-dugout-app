@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -64,6 +64,8 @@ export default function ManageScreen() {
   const [clubName, setClubName] = useState('');
   // The age group being changed with that same form, instead of a new one.
   const [editing, setEditing] = useState<AgeGroup | null>(null);
+  // Per age group: how many players it has (an admin sees every group).
+  const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
   const [groupName, setGroupName] = useState('');
   const [format, setFormat] = useState('8v8');
   const [twoTeams, setTwoTeams] = useState(true);
@@ -129,11 +131,22 @@ export default function ManageScreen() {
             .sort((x, y) => x.name.localeCompare(y.name)),
         })),
       );
+      const groupIds = (structure.data ?? []).flatMap((club) => (club.age_groups ?? []).map((a) => a.id));
+      const counted = await Promise.all(
+        groupIds.map(async (groupId) => {
+          const { data } = await supabase.rpc('age_group_players', { p_group: groupId });
+          return [groupId, Array.isArray(data) ? data.length : 0] as const;
+        }),
+      );
+      setPlayerCounts(Object.fromEntries(counted));
     }
   }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Again whenever the page comes back on show, after players were added.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   function show(coach: Coach | 'new') {
     const existing = coach === 'new' ? null : coach;
@@ -407,6 +420,24 @@ export default function ManageScreen() {
               {editing ? `An age group of ${adding.name}.` : `A new age group of ${adding.name}, with its own players, games and trainings.`}
             </Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>{field('Name', groupName, setGroupName, { placeholder: 'U13' }, true)}</View>
+            {/* The players of this age group, used in its selections and trainings. */}
+            {editing ? (
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
+                <Pressable
+                  style={[styles.row, { minHeight: 62 }]}
+                  onPress={() => router.push({ pathname: '/age-group-players', params: { group: editing.id, name: editing.name, club: adding.name } })}
+                >
+                  <Ionicons name="people-outline" size={22} color={c.inkSoft} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>Players</Text>
+                    <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                      {playerCounts[editing.id] ? `${playerCounts[editing.id]} ${playerCounts[editing.id] === 1 ? 'player' : 'players'} created` : 'No players created'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+                </Pressable>
+              </View>
+            ) : null}
             <Text style={[styles.caption, { color: c.inkSoft }]}>Usual format</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {FORMATS.map((f, i) => (
