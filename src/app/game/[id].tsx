@@ -265,7 +265,7 @@ export default function GameScreen() {
         {history.length ? (
           <>
             <View style={styles.sectionHead}>
-              <Text style={[styles.section, { color: c.ink, marginTop: 0 }]}>History</Text>
+              <Text style={[styles.section, { color: c.ink, marginTop: 0 }]}>Previous games</Text>
               {history.length > 1 ? (
                 <Pressable
                   style={styles.seeAll}
