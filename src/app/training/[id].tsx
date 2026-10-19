@@ -110,8 +110,12 @@ export default function TrainingScreen() {
     if (saving) return;
     setSaving(true);
     setError('');
-    const back = Object.keys(training!.absences).filter((playerId) => !(playerId in absent));
-    const rows = Object.entries(absent).map(([playerId, reason]) => ({ training_id: training!.id, player_id: playerId, reason }));
+    // Injured players are absent by their injury and are not stored per training.
+    const byInjury = (playerId: string, reason: string) => training!.injured.includes(playerId) && reason === 'Injured';
+    const back = Object.keys(training!.absences).filter((playerId) => !training!.injured.includes(playerId) && !(playerId in absent));
+    const rows = Object.entries(absent)
+      .filter(([playerId, reason]) => !byInjury(playerId, reason))
+      .map(([playerId, reason]) => ({ training_id: training!.id, player_id: playerId, reason }));
     const upserted = rows.length
       ? await supabase.from('training_absences').upsert(rows, { onConflict: 'training_id,player_id' })
       : null;
@@ -248,12 +252,18 @@ export default function TrainingScreen() {
           </>
         ) : player ? (
           <>
-            <View style={[styles.card, { backgroundColor: c.surface }]}>
-              <Pressable style={styles.row} onPress={() => choose(player.id, null)}>
-                <Text style={[styles.label, { color: c.ink }]}>Present</Text>
-                {!(player.id in absent) ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
-              </Pressable>
-            </View>
+            {training.injured.includes(player.id) ? (
+              <Text style={[styles.sub, { color: c.inkSoft, marginHorizontal: 4 }]}>
+                {player.firstName} is injured on this day, so absent in every training until the injury ends. End or change the injury on the player page in the Squad.
+              </Text>
+            ) : (
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
+                <Pressable style={styles.row} onPress={() => choose(player.id, null)}>
+                  <Text style={[styles.label, { color: c.ink }]}>Present</Text>
+                  {!(player.id in absent) ? <Ionicons name="checkmark" size={20} color={c.pitch} /> : null}
+                </Pressable>
+              </View>
+            )}
             <Text style={[styles.group, { color: c.inkSoft }]}>Absent</Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {REASONS.map((reason, i) => (

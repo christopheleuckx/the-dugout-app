@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Empty, Screen, SectionTitle } from '../../components/ui';
-import { useData } from '../../lib/data';
+import { injuryOn, todayIso, useData } from '../../lib/data';
 import { groupOf, POSITION_GROUPS } from '../../lib/selection';
 import { supabase } from '../../lib/supabase';
 import { fonts, useColors } from '../../lib/theme';
@@ -39,7 +41,8 @@ export default function Squad() {
         <View key={line.label} style={{ gap: 10 }}>
           <SectionTitle>{line.label}</SectionTitle>
           {line.players.map((p) => (
-            <Card key={p.id}>
+            <Pressable key={p.id} onPress={() => router.push({ pathname: '/squad-player', params: { id: p.id } })} accessibilityLabel={`${p.firstName} ${p.lastName}`}>
+            <Card>
               <View style={styles.row}>
                 <View style={[styles.number, p.photoPath && photos[p.photoPath] ? { backgroundColor: c.surface2, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line } : { backgroundColor: c.pitch }]}>
                   {/* The photo when there is one, otherwise the initials. */}
@@ -54,8 +57,16 @@ export default function Squad() {
                 <Text style={[styles.name, { flex: 1, color: c.ink }]}>
                   {p.firstName} {p.lastName}
                 </Text>
+                {injuryOn(p, todayIso()) ? (
+                  <View style={[styles.injured, { backgroundColor: c.danger + '22' }]}>
+                    <Ionicons name="medkit" size={11} color={c.danger} />
+                    <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 12 }}>Injured</Text>
+                  </View>
+                ) : null}
+                <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
               </View>
             </Card>
+            </Pressable>
           ))}
         </View>
       ))}
@@ -70,4 +81,5 @@ const styles = StyleSheet.create({
   number: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   numberText: { fontFamily: fonts.display, fontSize: 20 },
   name: { fontSize: 16, fontWeight: '600' },
+  injured: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
 });

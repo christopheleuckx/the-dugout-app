@@ -19,7 +19,27 @@ export type Player = {
   qualityRating: number | null;
   // The player's photo in the private photo folder, if there is one.
   photoPath: string | null;
+  preferredPosition: string;
+  strengths: string;
+  primaryFocus: string;
+  remarks: string;
+  // Every injury, newest first.
+  injuries: Injury[];
 };
+
+// An injury: from the start date until the day before the expected return,
+// or until a coach ends it.
+export type Injury = { id: string; startDate: string; expectedReturn: string | null; endedOn: string | null; note: string };
+
+// The injury that keeps the player out on a day (an ISO date), if any.
+export function injuryOn(player: Player, date: string | null) {
+  if (!date) return null;
+  return (
+    player.injuries.find(
+      (i) => i.startDate <= date && (!i.expectedReturn || date < i.expectedReturn) && (!i.endedOn || date < i.endedOn),
+    ) ?? null
+  );
+}
 
 export type Score = { home: number; away: number; result: 'W' | 'D' | 'L' };
 
@@ -196,8 +216,10 @@ export type Training = {
   basicIds: string[];
   // The training groups, in the web app's format: player ids per group, and how they were made.
   groups: TrainingGroups | null;
-  // Per absent player id: the reason.
+  // Per absent player id: the reason; injured players are in it as 'Injured'.
   absences: Record<string, string>;
+  // The players absent only because of an injury (not entered for this training).
+  injured: string[];
   // Absences that count against attendance (not GK training etc.).
   unexcusedCount: number;
 };
@@ -331,8 +353,8 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 }
 
 async function load(userId: string): Promise<Data> {
-  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos] = await Promise.all([
-    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path'),
+  const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos, injuries] = await Promise.all([
+    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path, preferred_position_1, strengths, primary_focus, remarks'),
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id, format, league_match_id'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
@@ -352,6 +374,7 @@ async function load(userId: string): Promise<Data> {
     supabase.from('team_tactics').select('id, name, category').order('created_at'),
     supabase.from('basics').select('id, name, category').order('created_at'),
     supabase.from('videos').select('id, game_id, team, training_id, title, storage_key, url, size_bytes, views, created_at').order('created_at'),
+    supabase.from('player_injuries').select('id, player_id, start_date, expected_return, ended_on, note').order('start_date', { ascending: false }),
   ]);
 
   // The age groups the coach is linked to, with their club and teams.
@@ -471,8 +494,25 @@ async function load(userId: string): Promise<Data> {
       developingPosition: r.developing_position ?? '',
       qualityRating: r.quality_rating,
       photoPath: r.photo_path ?? null,
+      preferredPosition: r.preferred_position_1 ?? '',
+      strengths: r.strengths ?? '',
+      primaryFocus: r.primary_focus ?? '',
+      remarks: r.remarks ?? '',
+      injuries: (injuries.data ?? [])
+        .filter((i) => i.player_id === r.id)
+        .map((i) => ({ id: i.id, startDate: i.start_date, expectedReturn: i.expected_return, endedOn: i.ended_on, note: i.note ?? '' })),
     }))
     .sort((a, b) => a.firstName.localeCompare(b.firstName));
+
+  // A training's absences: those entered, plus every player injured on its
+  // day (not stored; they follow the injury when it changes or ends).
+  const trainingAbsences = (t: { id: string; date: string }) => {
+    const entered: Record<string, string> = Object.fromEntries(
+      (absences.data ?? []).filter((r) => r.training_id === t.id).map((r) => [r.player_id, r.reason ?? '']),
+    );
+    const injured = playerList.filter((pl) => !(pl.id in entered) && injuryOn(pl, t.date)).map((pl) => pl.id);
+    return { all: { ...entered, ...Object.fromEntries(injured.map((id) => [id, 'Injured'])) } as Record<string, string>, injured };
+  };
 
   // Line-ups are stored per team and quarter as { playerId: { starting, after10 } };
   // like the web app, only quarters whose line-up was confirmed count.
@@ -587,8 +627,9 @@ async function load(userId: string): Promise<Data> {
       // Older trainings (and the web app) only have the single basic_id.
       groups: t.groups && Array.isArray(t.groups.groupIds) && t.groups.groupIds.length ? (t.groups as TrainingGroups) : null,
       basicIds: Array.isArray(t.basic_ids) && t.basic_ids.length ? (t.basic_ids as string[]) : t.basic_id ? [t.basic_id] : [],
-      absentCount: absentByTraining.get(t.id) ?? 0,
-      absences: Object.fromEntries((absences.data ?? []).filter((r) => r.training_id === t.id).map((r) => [r.player_id, r.reason ?? ''])),
+      absentCount: (absentByTraining.get(t.id) ?? 0) + trainingAbsences(t).injured.length,
+      absences: trainingAbsences(t).all,
+      injured: trainingAbsences(t).injured,
       unexcusedCount: unexcusedByTraining.get(t.id) ?? 0,
     })),
     u15Fixtures,

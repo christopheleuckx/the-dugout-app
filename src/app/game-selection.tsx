@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UndoToast } from '../components/UndoToast';
-import { useData, type Team } from '../lib/data';
+import { injuryOn, useData, type Team } from '../lib/data';
 import { generateSelection, groupOf, NOT_SELECTED_REASONS, POSITION_GROUPS, type Draft } from '../lib/selection';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -23,7 +23,12 @@ export default function GameSelectionScreen() {
   const game = games.find((g) => g.id === params.game);
 
   const [page, setPage] = useState<Page>(null);
-  const [draft, setDraft] = useState<Draft>(() => ({ ...(game?.selection ?? {}) }));
+  // Players injured on the game day and not chosen yet start as 'Injured', so
+  // the automatic selection leaves them out.
+  const [draft, setDraft] = useState<Draft>(() => ({
+    ...Object.fromEntries(players.filter((p) => !game?.selection[p.id] && injuryOn(p, game?.date ?? null)).map((p) => [p.id, { team: null, reason: 'Injured' }])),
+    ...(game?.selection ?? {}),
+  }));
   const [numTeams, setNumTeams] = useState(game?.numTeams ?? 2);
   const [perTeam, setPerTeam] = useState(11);
   const [rotation, setRotation] = useState(false);
@@ -229,6 +234,8 @@ export default function GameSelectionScreen() {
                     <Text style={[styles.label, { color: c.ink }]} numberOfLines={1}>
                       {p.firstName} {p.lastName}
                     </Text>
+                    {/* Selected although injured on the game day: a warning. */}
+                    {choice?.team && injuryOn(p, game.date) ? <Ionicons name="medkit" size={16} color={c.danger} accessibilityLabel="Injured" /> : null}
                     {choice?.team ? (
                       <View style={[styles.pill, { backgroundColor: teamColor(choice.team) }]}>
                         <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 12.5 }}>
