@@ -9,6 +9,7 @@ import { fmtDate, TEAM_RATING_LABELS, todayIso, useData, type Game, type Profile
 import { fonts, useColors } from '../../lib/theme';
 import { goBack } from '../../lib/nav';
 import { EditIcon, SwitchIcon } from '../../components/Icons';
+import { HistoryCard, pastMeetings } from '../../components/HistoryCard';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -71,6 +72,7 @@ export default function GameScreen() {
   }
 
   const team = picked ?? defaultTeam(game, me);
+  const history = pastMeetings(games, game);
   const tournament = game.competition === 'Tournament';
   const score = game.scores.find((s) => s.team === team)?.score;
   // Home team on the left, like the scoreline. With two teams our name says which one is open.
@@ -256,6 +258,21 @@ export default function GameScreen() {
             <Ionicons name="football-outline" size={18} color={c.pitch} />
             <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 15 }}>Add goals and scores</Text>
           </Pressable>
+        ) : null}
+
+        {/* The last game against this club; it opens every earlier one. */}
+        {history.length ? (
+          <>
+            <Text style={[styles.section, { color: c.ink }]}>History</Text>
+            <HistoryCard game={history[0]} clubName={clubName} clubLogoUrl={clubLogoUrl} onPress={() => router.push({ pathname: '/game-history', params: { game: game.id } })} />
+            {history.length > 1 ? (
+              <Pressable onPress={() => router.push({ pathname: '/game-history', params: { game: game.id } })} hitSlop={6}>
+                <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' }}>
+                  All {history.length} games against {game.opponent}
+                </Text>
+              </Pressable>
+            ) : null}
+          </>
         ) : null}
 
         <Text style={[styles.section, { color: c.ink }]}>Game report</Text>

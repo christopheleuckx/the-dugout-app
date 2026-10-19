@@ -122,6 +122,8 @@ export type Game = {
   format: Format;
   // The league match this game was made from, if any.
   leagueMatchId: string | null;
+  // The opponent in the shared list, to find earlier games against the same club.
+  competitorId: string | null;
   // Per player id: the team they are selected in, or why they are not selected.
   selection: Record<string, { team: Team | null; reason: string | null }>;
   // The teams playing this game, Blue first, each with its coaches' names
@@ -539,6 +541,7 @@ async function load(userId: string): Promise<Data> {
       numTeams: g.num_teams === 1 ? 1 : 2,
       format: asFormat(g.format ?? usualFormat),
       leagueMatchId: g.league_match_id ?? null,
+      competitorId: g.competitor_id ?? null,
       selection: Object.fromEntries(
         (squad.data ?? [])
           .filter((r) => r.game_id === g.id && (r.team || r.not_selected_reason !== null))

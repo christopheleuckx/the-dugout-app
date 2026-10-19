@@ -54,6 +54,7 @@ function RootNavigator() {
         <Stack.Screen name="leagues" />
         <Stack.Screen name="league" />
         <Stack.Screen name="league-view" />
+        <Stack.Screen name="game-history" />
         <Stack.Screen name="supabase-usage" />
         <Stack.Screen name="pin" />
         <Stack.Screen name="video-limits" />
