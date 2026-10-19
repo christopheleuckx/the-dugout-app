@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useData } from '../lib/data';
@@ -37,18 +38,50 @@ export default function AgeGroupPlayerScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [choosing, setChoosing] = useState<Choice | null>(null);
+  // The photo: the stored one, and a new pick or a removal that waits for Save.
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ uri: string; base64: string } | 'remove' | null>(null);
 
   useEffect(() => {
     if (!id) return;
     supabase.rpc('age_group_players', { p_group: group }).then(({ data, error: failed }) => {
       const found = ((data ?? []) as BasePlayer[]).find((p) => p.id === id);
       if (failed || !found) setError(failed ? `Could not load the player: ${failed.message}` : 'This player no longer exists.');
-      else setForm(Object.fromEntries(Object.keys(EMPTY).map((k) => [k, (found as Record<string, string>)[k] ?? ''])) as Form);
+      else {
+        setForm(Object.fromEntries(Object.keys(EMPTY).map((k) => [k, (found as Record<string, string>)[k] ?? ''])) as Form);
+        const path = (found as BasePlayer & { photo_path: string | null }).photo_path;
+        setPhotoPath(path);
+        // The photos are private: a link that works for an hour.
+        if (path) supabase.storage.from('player-photos').createSignedUrl(path, 3600).then(({ data: signed }) => setPhotoUrl(signed?.signedUrl ?? null));
+      }
       setLoading(false);
     });
   }, [group, id]);
 
   const set = (key: keyof Form, value: string) => setForm({ ...form, [key]: value });
+
+  async function pickPhoto() {
+    setError('');
+    try {
+      // Square, so the face fits the round photo everywhere in the app.
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true });
+      if (result.canceled || !result.assets[0].base64) return;
+      setPending({ uri: result.assets[0].uri, base64: result.assets[0].base64 });
+    } catch (e) {
+      setError(`Could not open your photos: ${(e as { message?: string })?.message ?? 'unknown error'}`);
+    }
+  }
+  const shown = pending === 'remove' ? null : pending ? pending.uri : photoUrl;
+  function photoMenu() {
+    if (!shown) return pickPhoto();
+    Alert.alert('Photo', undefined, [
+      { text: 'Choose another photo', onPress: pickPhoto },
+      { text: 'Remove photo', style: 'destructive', onPress: () => setPending(photoPath ? 'remove' : null) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+  const initials = `${form.first_name.trim()[0] ?? ''}${form.last_name.trim()[0] ?? ''}`.toUpperCase();
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
 
   async function save() {
@@ -56,9 +89,30 @@ export default function AgeGroupPlayerScreen() {
     if (!form.first_name.trim() || !form.last_name.trim()) return setError('First and last name are required.');
     setSaving(true);
     setError('');
-    const { error: failed } = await supabase.rpc('save_age_group_player', { p_group: group, p_id: id ?? null, p: form });
+    const { data: savedId, error: failed } = await supabase.rpc('save_age_group_player', { p_group: group, p_id: id ?? null, p: form });
+    if (failed) {
+      setSaving(false);
+      return setError(`Could not save the player: ${failed.message}`);
+    }
+    if (pending) {
+      try {
+        let path = '';
+        if (pending !== 'remove') {
+          const bytes = Uint8Array.from(atob(pending.base64), (ch) => ch.charCodeAt(0)).buffer;
+          path = `${savedId}-${new Date().getTime()}.jpg`;
+          const uploaded = await supabase.storage.from('player-photos').upload(path, bytes, { contentType: 'image/jpeg' });
+          if (uploaded.error) throw uploaded.error;
+        }
+        const { data: old, error: photoFailed } = await supabase.rpc('set_age_group_player_photo', { p_group: group, p_id: savedId, p_path: path });
+        if (photoFailed) throw photoFailed;
+        if (old && old !== path) await supabase.storage.from('player-photos').remove([old as string]);
+      } catch (e) {
+        setSaving(false);
+        // The player itself is saved; only the photo failed.
+        return setError(`The player is saved, but the photo could not be: ${(e as { message?: string })?.message ?? 'unknown error'}`);
+      }
+    }
     setSaving(false);
-    if (failed) return setError(`Could not save the player: ${failed.message}`);
     // The squad, selections and trainings of the team on show may use this player.
     refresh();
     goBack();
@@ -76,6 +130,7 @@ export default function AgeGroupPlayerScreen() {
           onPress: async () => {
             const { error: failed } = await supabase.rpc('delete_age_group_player', { p_group: group, p_id: id });
             if (failed) return setError(`Could not remove the player: ${failed.message}`);
+            if (photoPath) await supabase.storage.from('player-photos').remove([photoPath]);
             refresh();
             goBack();
           },
@@ -149,6 +204,24 @@ export default function AgeGroupPlayerScreen() {
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* The photo in a circle, or the initials; tap to add or change it. */}
+          <Pressable style={styles.photoWrap} onPress={photoMenu} accessibilityLabel={shown ? 'Change photo' : 'Add photo'}>
+            <View>
+              <View style={[styles.photo, { backgroundColor: shown ? c.surface2 : c.pitch }]}>
+                {shown ? (
+                  <Image source={{ uri: shown }} style={styles.photoImage} />
+                ) : initials ? (
+                  <Text style={{ color: c.onPitch, fontFamily: fonts.semi, fontSize: 32 }}>{initials}</Text>
+                ) : (
+                  <Ionicons name="person" size={40} color={c.onPitch} />
+                )}
+              </View>
+              <View style={[styles.camera, { backgroundColor: c.surface, borderColor: c.chalk }]}>
+                <Ionicons name="camera-outline" size={16} color={c.ink} />
+              </View>
+            </View>
+            <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 14 }}>{shown ? 'Change photo' : 'Add photo'}</Text>
+          </Pressable>
           <View style={[styles.card, { backgroundColor: c.surface }]}>
             {text('First name', 'first_name', 'Required', true)}
             {text('Last name', 'last_name', 'Required')}
@@ -189,6 +262,11 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.medium, fontSize: 17 },
   content: { padding: 16, gap: 14, paddingBottom: 60 },
   card: { borderRadius: 14 },
+  photoWrap: { alignItems: 'center', gap: 8, marginBottom: 4 },
+  photo: { width: 104, height: 104, borderRadius: 52, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  // Zoomed in on the face, like the small photos elsewhere in the app.
+  photoImage: { position: 'absolute', width: 140, height: 140, left: -18, top: -5 },
+  camera: { position: 'absolute', right: 0, bottom: 2, width: 32, height: 32, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   field: { flexDirection: 'row', alignItems: 'center', minHeight: 54, paddingHorizontal: 16, gap: 12 },
   label: { width: 96, fontFamily: fonts.regular, fontSize: 16 },
   input: { flex: 1, fontFamily: fonts.regular, fontSize: 16, textAlign: 'right', paddingVertical: 12 },

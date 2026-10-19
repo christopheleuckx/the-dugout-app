@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { goBack } from '../lib/nav';
@@ -20,6 +20,7 @@ export type BasePlayer = {
   strengths: string;
   primary_focus: string;
   remarks: string;
+  photo_path: string | null;
 };
 
 // The players of one age group, by line, as an admin manages them from Club
@@ -30,12 +31,23 @@ export default function AgeGroupPlayersScreen() {
   const { group, name, club } = useLocalSearchParams<{ group: string; name: string; club?: string }>();
   const [players, setPlayers] = useState<BasePlayer[] | null>(null);
   const [error, setError] = useState('');
+  // Photo path -> a link that works for an hour (the photos are private).
+  const [photos, setPhotos] = useState<Record<string, string>>({});
 
   useFocusEffect(
     useCallback(() => {
       supabase.rpc('age_group_players', { p_group: group }).then(({ data, error: failed }) => {
         if (failed) setError(`Could not load the players: ${failed.message}`);
-        else setPlayers((data ?? []) as BasePlayer[]);
+        else {
+          const list = (data ?? []) as BasePlayer[];
+          setPlayers(list);
+          const paths = list.map((p) => p.photo_path).filter((x): x is string => !!x);
+          if (paths.length)
+            supabase.storage
+              .from('player-photos')
+              .createSignedUrls(paths, 3600)
+              .then(({ data: signed }) => setPhotos(Object.fromEntries((signed ?? []).filter((x) => x.signedUrl).map((x) => [x.path!, x.signedUrl as string]))));
+        }
       });
     }, [group]),
   );
@@ -74,16 +86,21 @@ export default function AgeGroupPlayersScreen() {
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               {l.players.map((p, i) => (
                 <Pressable key={p.id} style={[styles.row, i > 0 && line]} onPress={() => open(p.id)}>
-                  <View style={[styles.badge, { backgroundColor: c.surface2 }]}>
-                    <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 13 }}>{p.best_position || '–'}</Text>
+                  {/* The photo when there is one, otherwise the initials. */}
+                  <View style={[styles.badge, p.photo_path && photos[p.photo_path] ? { backgroundColor: c.surface2, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line } : { backgroundColor: c.pitch }]}>
+                    {p.photo_path && photos[p.photo_path] ? (
+                      <Image source={{ uri: photos[p.photo_path] }} style={styles.photo} />
+                    ) : (
+                      <Text style={{ color: c.onPitch, fontFamily: fonts.semi, fontSize: 13 }}>{`${p.first_name[0] ?? ''}${p.last_name[0] ?? ''}`.toUpperCase()}</Text>
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
                       {`${p.first_name} ${p.last_name}`.trim()}
                     </Text>
-                    {p.preferred_foot || p.developing_position ? (
+                    {p.best_position || p.preferred_foot || p.developing_position ? (
                       <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={1}>
-                        {[p.preferred_foot ? `${p.preferred_foot} foot` : null, p.developing_position ? `Developing ${p.developing_position}` : null].filter(Boolean).join(' · ')}
+                        {[p.best_position || null, p.preferred_foot ? `${p.preferred_foot} foot` : null, p.developing_position ? `Developing ${p.developing_position}` : null].filter(Boolean).join(' · ')}
                       </Text>
                     ) : null}
                   </View>
@@ -116,7 +133,9 @@ const styles = StyleSheet.create({
   group: { fontFamily: fonts.medium, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.4, marginHorizontal: 4 },
   card: { borderRadius: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingHorizontal: 16 },
-  badge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  badge: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  // Zoomed in on the face, as on the squad: the photos show head and shoulders.
+  photo: { position: 'absolute', width: 54, height: 54, left: -7, top: -2 },
   add: {
     position: 'absolute',
     right: 16,
