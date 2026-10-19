@@ -69,12 +69,15 @@ export function HistoryCard({ game, clubName, clubLogoUrl, onPress }: { game: Ga
               </Text>
               <ResultBadge result={score.result} colors={resultColor} />
               <View style={{ flex: 1 }} />
-              <View style={[styles.rating, { backgroundColor: rating ? c.rating[rating - 1] : c.surface2 }]}>
-                <Text style={{ color: rating ? '#fff' : c.inkSoft, fontFamily: fonts.semi, fontSize: 12 }}>{rating ?? '–'}</Text>
+              {/* A fixed column, so every rating starts at the same place. */}
+              <View style={styles.ratingColumn}>
+                <View style={[styles.rating, { backgroundColor: rating ? c.rating[rating - 1] : c.surface2 }]}>
+                  <Text style={{ color: rating ? '#fff' : c.inkSoft, fontFamily: fonts.semi, fontSize: 12 }}>{rating ?? '–'}</Text>
+                </View>
+                <Text style={{ flex: 1, color: rating ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }} numberOfLines={2}>
+                  {rating ? TEAM_RATING_LABELS[rating - 1] : 'Not rated'}
+                </Text>
               </View>
-              <Text style={{ color: rating ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 13, maxWidth: 150 }} numberOfLines={2}>
-                {rating ? TEAM_RATING_LABELS[rating - 1] : 'Not rated'}
-              </Text>
             </View>
           );
         })
@@ -89,5 +92,6 @@ const styles = StyleSheet.create({
   team: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48 },
   teamName: { flexDirection: 'row', alignItems: 'center', gap: 6, width: 52 },
   dot: { width: 8, height: 8, borderRadius: 4 },
+  ratingColumn: { width: 158, flexDirection: 'row', alignItems: 'center', gap: 8 },
   rating: { width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
 });
