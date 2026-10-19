@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DragRow } from '../components/DragRow';
@@ -64,6 +64,20 @@ export default function TrainingGroupsScreen() {
     await store({ numGroups: count, splitGoalies, mixed: true, groupIds: makeGroups(present, count, splitGoalies) });
     setSaving(false);
     setSheet(false);
+  }
+
+  function remove() {
+    Alert.alert('Delete the groups?', 'The groups of this training are removed. You can create new ones at any time.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setEditing(false);
+          store(null);
+        },
+      },
+    ]);
   }
 
   // A dropped player goes to the group under the finger, at the end of it.
@@ -185,6 +199,10 @@ export default function TrainingGroupsScreen() {
             <Pressable style={[styles.button, { backgroundColor: c.surface, marginTop: 8 }]} onPress={() => setSheet(true)}>
               <Ionicons name="shuffle" size={18} color={c.pitch} />
               <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 16 }}>Regenerate</Text>
+            </Pressable>
+            <Pressable style={[styles.button, { backgroundColor: c.surface }]} onPress={remove}>
+              <Ionicons name="trash-outline" size={18} color={c.danger} />
+              <Text style={{ color: c.danger, fontFamily: fonts.medium, fontSize: 16 }}>Delete groups</Text>
             </Pressable>
           </>
         )}

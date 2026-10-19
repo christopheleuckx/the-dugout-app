@@ -290,7 +290,7 @@ export default function TrainingScreen() {
               <Pressable style={[styles.row, line]} onPress={() => router.push({ pathname: '/training-groups', params: { id: training.id } })}>
                 <Text style={[styles.label, { color: c.ink }]}>Training groups</Text>
                 <Text style={{ color: training.groups ? c.ink : c.inkSoft, fontFamily: fonts.regular, fontSize: 15 }}>
-                  {training.groups ? `${training.groups.groupIds.length} ${training.groups.groupIds.length === 1 ? 'group' : 'groups'}` : 'Create'}
+                  {training.groups ? `${training.groups.groupIds.length} ${training.groups.groupIds.length === 1 ? 'group' : 'groups'}` : 'No groups created'}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
               </Pressable>
