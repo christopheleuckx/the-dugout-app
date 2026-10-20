@@ -89,7 +89,8 @@ export default function GameScreen() {
   // selected ones, and those not selected follow in their own card with the
   // reason. Players of the other team are on that team's view.
   const unchosen = selection.length ? players.filter((p) => !game.selection[p.id]).sort(byLine) : [];
-  const notSelected = selection.length ? players.filter((p) => game.selection[p.id] && !game.selection[p.id].team).sort(byLine) : [];
+  // Players marked not selected show even before anyone is selected.
+  const notSelected = players.filter((p) => game.selection[p.id] && !game.selection[p.id].team).sort(byLine);
   const shown = [...selection, ...unchosen].sort(byLine);
   // Above the score or kick-off time: End once played, else the countdown.
   const today = todayIso();
@@ -373,6 +374,17 @@ export default function GameScreen() {
             ))}
           </View>
         ) : null}
+        {selection.length ? null : (
+          <View style={[styles.card, { backgroundColor: c.surface, alignItems: 'center', gap: 12 }]}>
+            <Text style={[styles.sub, { color: c.inkSoft }]}>No players selected yet.</Text>
+            <Pressable
+              style={[styles.cta, { backgroundColor: c.pitch }]}
+              onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })}
+            >
+              <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 15 }}>Create selection</Text>
+            </Pressable>
+          </View>
+        )}
         {notSelected.length ? (
           <>
             <Text style={[styles.group, { color: c.inkSoft }]}>Not selected</Text>
@@ -395,17 +407,6 @@ export default function GameScreen() {
             </View>
           </>
         ) : null}
-        {selection.length ? null : (
-          <View style={[styles.card, { backgroundColor: c.surface, alignItems: 'center', gap: 12 }]}>
-            <Text style={[styles.sub, { color: c.inkSoft }]}>No players selected yet.</Text>
-            <Pressable
-              style={[styles.cta, { backgroundColor: c.pitch }]}
-              onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })}
-            >
-              <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 15 }}>Create selection</Text>
-            </Pressable>
-          </View>
-        )}
       </ScrollView>
 
       <Modal visible={choosing} transparent animationType="slide" onRequestClose={() => setChoosing(false)}>
