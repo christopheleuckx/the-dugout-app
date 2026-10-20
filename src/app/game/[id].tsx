@@ -5,7 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { countdown, Crest, ResultBadge } from '../../components/MatchCard';
-import { fmtDate, TEAM_RATING_LABELS, todayIso, useData, type Game, type Profile, type Team } from '../../lib/data';
+import { fmtDate, TEAM_RATING_LABELS, todayIso, useData, type Game, type Player, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 import { goBack } from '../../lib/nav';
 import { EditIcon, SwitchIcon } from '../../components/Icons';
@@ -58,7 +58,7 @@ export default function GameScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { games, me, clubLogoUrl, clubName, videos, videoEnabled } = useData();
+  const { games, players, me, clubLogoUrl, clubName, videos, videoEnabled } = useData();
   const game = games.find((g) => g.id === id);
   const [picked, setPicked] = useState<Team | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -83,9 +83,14 @@ export default function GameScreen() {
   const report = game.reports[team];
   const lineups = game.lineups[team] ?? [];
   const videoCount = videos.filter((v) => v.gameId === game.id && v.team === team).length;
-  const selection = (game.teams.find((t) => t.team === team)?.players ?? [])
-    .slice()
-    .sort((a, b) => lineOf(a.bestPosition) - lineOf(b.bestPosition) || a.firstName.localeCompare(b.firstName));
+  const byLine = (a: Player, b: Player) => lineOf(a.bestPosition) - lineOf(b.bestPosition) || a.firstName.localeCompare(b.firstName);
+  const selection = (game.teams.find((t) => t.team === team)?.players ?? []).slice().sort(byLine);
+  // Once there is a selection: the players without a choice yet join the
+  // selected ones, and those not selected follow in their own card with the
+  // reason. Players of the other team are on that team's view.
+  const unchosen = selection.length ? players.filter((p) => !game.selection[p.id]).sort(byLine) : [];
+  const notSelected = selection.length ? players.filter((p) => game.selection[p.id] && !game.selection[p.id].team).sort(byLine) : [];
+  const shown = [...selection, ...unchosen].sort(byLine);
   // Above the score or kick-off time: End once played, else the countdown.
   const today = todayIso();
   const status = game.cancelStatus
@@ -344,7 +349,7 @@ export default function GameScreen() {
         {selection.length ? (
           <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
             {/* The badge is the player's best position (7, 10, K), as the squad has no shirt numbers. */}
-            {selection.map((pl, i) => (
+            {shown.map((pl, i) => (
               <Pressable
                 key={pl.id}
                 onPress={() => router.push({ pathname: '/game-player', params: { game: game.id, player: pl.id } })}
@@ -357,6 +362,7 @@ export default function GameScreen() {
                   {pl.firstName} {pl.lastName}
                 </Text>
                 {pl.number != null ? <Text style={[styles.sub, { color: c.inkSoft }]}>#{pl.number}</Text> : null}
+                {!game.selection[pl.id] ? <Text style={[styles.sub, { color: c.inkSoft }]}>No choice yet</Text> : null}
                 {game.ratings[pl.id]?.score ? (
                   <View style={[styles.rating, { backgroundColor: c.rating[game.ratings[pl.id].score! - 1] }]}>
                     <Text style={{ color: '#fff', fontFamily: fonts.semi, fontSize: 13 }}>{game.ratings[pl.id].score}</Text>
@@ -366,7 +372,30 @@ export default function GameScreen() {
               </Pressable>
             ))}
           </View>
-        ) : (
+        ) : null}
+        {notSelected.length ? (
+          <>
+            <Text style={[styles.group, { color: c.inkSoft }]}>Not selected</Text>
+            <View style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}>
+              {notSelected.map((pl, i) => (
+                <Pressable
+                  key={pl.id}
+                  onPress={() => router.push({ pathname: '/game-selection', params: { game: game.id } })}
+                  style={[styles.player, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+                >
+                  <View style={[styles.number, { backgroundColor: c.surface2 }]}>
+                    <Text style={{ color: c.inkSoft, fontFamily: fonts.semi, fontSize: 13 }}>{pl.bestPosition || '–'}</Text>
+                  </View>
+                  <Text style={[styles.playerName, { color: c.inkSoft }]} numberOfLines={1}>
+                    {pl.firstName} {pl.lastName}
+                  </Text>
+                  <Text style={[styles.sub, { color: game.selection[pl.id]?.reason === 'Injured' ? c.danger : c.inkSoft }]}>{game.selection[pl.id]?.reason || 'Not selected'}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
+        {selection.length ? null : (
           <View style={[styles.card, { backgroundColor: c.surface, alignItems: 'center', gap: 12 }]}>
             <Text style={[styles.sub, { color: c.inkSoft }]}>No players selected yet.</Text>
             <Pressable
@@ -421,6 +450,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, padding: 18, gap: 2 },
   host: { fontFamily: fonts.semi, fontSize: 24 },
   section: { fontFamily: fonts.medium, fontSize: 19, marginTop: 12 },
+  group: { fontFamily: fonts.medium, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.4, marginHorizontal: 4, marginTop: 8 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   player: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
