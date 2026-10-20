@@ -279,6 +279,8 @@ type Data = {
   // Known opponent clubs, by name.
   competitors: { id: string; name: string; logoPath: string | null; logoUrl: string | null }[];
   videos: Video[];
+  // Every goal in the goal log: its game and who scored.
+  goals: { gameId: string; scorerId: string }[];
 };
 
 type DataValue = Data & {
@@ -287,7 +289,7 @@ type DataValue = Data & {
   refresh: () => Promise<void>;
 };
 
-const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, clubName: '', videoEnabled: false, competitors: [], teamTactics: [], basics: [], videos: [] };
+const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me: null, clubLogoUrl: null, clubName: '', videoEnabled: false, competitors: [], teamTactics: [], basics: [], videos: [], goals: [] };
 
 const DataContext = createContext<DataValue | null>(null);
 
@@ -660,6 +662,7 @@ async function load(userId: string): Promise<Data> {
     competitors: (competitors.data ?? [])
       .map((c) => ({ id: c.id, name: c.name, logoPath: c.logo_path ?? null, logoUrl: logoUrl(c.logo_path) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
+    goals: (goals.data ?? []).map((x) => ({ gameId: x.game_id, scorerId: x.scorer_id })),
     videos: (videos.data ?? []).map((v) => ({
       id: v.id,
       gameId: v.game_id,

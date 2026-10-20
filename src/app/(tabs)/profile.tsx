@@ -120,6 +120,17 @@ export default function Profile() {
       {error ? <Text style={[styles.sub, { color: c.danger, marginHorizontal: 12 }]}>{error}</Text> : null}
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
+        <Pressable style={styles.row} onPress={() => router.push('/player-stats')}>
+          <Ionicons name="stats-chart-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Player statistics</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Games, rotation and goals per player</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+        </Pressable>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/account')}>
           <Ionicons name="person-circle-outline" size={22} color={c.inkSoft} />
           <Text style={[styles.label, { color: c.ink }]}>Account details</Text>
