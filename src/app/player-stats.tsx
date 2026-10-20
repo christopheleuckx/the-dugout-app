@@ -74,13 +74,6 @@ export default function PlayerStatsScreen() {
             ? `Total number of trainings: ${trainingCount}`
             : `Total number of rotations: ${total}`;
 
-  // Equal values share a rank.
-  const ranks = shown.map((s, i) => {
-    let r = i;
-    while (r > 0 && valueOf(shown[r - 1], stat) === valueOf(s, stat)) r--;
-    return r + 1;
-  });
-
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
@@ -105,7 +98,7 @@ export default function PlayerStatsScreen() {
         ) : (
           <View style={[styles.list, { backgroundColor: c.surface }]}>
             {shown.map((s, i) => {
-              return <Row key={s.player.id} s={s} stat={stat} rank={ranks[i]} first={i === 0} c={c} photo={s.player.photoPath ? photos[s.player.photoPath] : undefined} />;
+              return <Row key={s.player.id} s={s} stat={stat} first={i === 0} c={c} photo={s.player.photoPath ? photos[s.player.photoPath] : undefined} />;
             })}
             {zero.length ? (
               <Pressable style={[styles.zero, { borderTopColor: c.line }]} onPress={() => setZeroOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: zeroOpen }}>
@@ -176,7 +169,7 @@ function subText(s: PlayerStat, stat: Stat, gameCount: number): string {
   return `${s.games ? (s.goals / s.games).toFixed(2) : '0.00'} per game played`;
 }
 
-function Row({ s, stat, rank, first, c, photo }: { s: PlayerStat; stat: Stat; rank: number; first: boolean; c: Colors; photo?: string }) {
+function Row({ s, stat, first, c, photo }: { s: PlayerStat; stat: Stat; first: boolean; c: Colors; photo?: string }) {
   const name = `${s.player.firstName} ${s.player.lastName}`.trim();
   const initials = `${s.player.firstName[0] ?? ''}${s.player.lastName[0] ?? ''}`.toUpperCase();
   const v = valueOf(s, stat);
@@ -186,7 +179,6 @@ function Row({ s, stat, rank, first, c, photo }: { s: PlayerStat; stat: Stat; ra
       onPress={() => router.push({ pathname: '/squad-player', params: { id: s.player.id } })}
       accessibilityLabel={`${name}, ${v} ${STAT_UNIT[stat]}`}
     >
-      <Text style={[styles.rank, { color: c.inkSoft }]}>{rank}</Text>
       {/* The photo when there is one, otherwise the initials. */}
       <View style={[styles.avatar, { backgroundColor: c.surface2 }, photo ? { borderWidth: StyleSheet.hairlineWidth, borderColor: c.line } : null]}>
         {photo ? (
@@ -231,7 +223,6 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.regular, fontSize: 13, marginTop: -4 },
   list: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  rank: { width: 20, textAlign: 'center', fontFamily: fonts.display, fontSize: 16 },
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   // Zoomed in on the face, like the Squad (54 in a 40 circle).
   photo: { position: 'absolute', width: 49, height: 49, left: -6, top: -2 },
