@@ -15,9 +15,11 @@ import {
   valueOf,
   type PlayerStat,
   type Stat,
-  type Status,
 } from '../lib/playerStats';
 import { fonts, useColors, type Colors } from '../lib/theme';
+
+// How many of the latest games the strip under Games played shows.
+const RECENT = 5;
 
 const ICON: Record<Stat, keyof typeof Ionicons.glyphMap> = {
   games: 'trophy-outline',
@@ -26,9 +28,8 @@ const ICON: Record<Stat, keyof typeof Ionicons.glyphMap> = {
   rotation: 'sync-outline',
 };
 
-// Player statistics: one statistic at a time, chosen from the title. Each row
-// shows the player and a strip of blocks, one per game, lighting up where the
-// statistic applies.
+// Player statistics: one statistic at a time, chosen from the title. Under
+// Games played each row also shows the last five games, lit where he played.
 export default function PlayerStatsScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
@@ -57,15 +58,6 @@ export default function PlayerStatsScreen() {
           ? `Total times not selected: ${total}`
           : `Total number of rotations: ${total}`;
 
-  const legend: { color: string; label: string }[] =
-    stat === 'games'
-      ? [{ color: c.pitch, label: 'Played' }, { color: c.surface2, label: 'Not selected' }]
-      : stat === 'none'
-        ? [{ color: c.danger, label: 'Injured' }, { color: c.amber, label: 'Rotation' }, { color: c.inkSoft, label: 'Other' }]
-        : stat === 'rotation'
-          ? [{ color: c.amber, label: 'Rotation' }]
-          : [];
-
   // Equal values share a rank.
   const ranks = shown.map((s, i) => {
     let r = i;
@@ -91,17 +83,6 @@ export default function PlayerStatsScreen() {
           </View>
         </Pressable>
         <Text style={[styles.sub, { color: c.inkSoft }]}>{subtitle}</Text>
-
-        {legend.length ? (
-          <View style={styles.legend}>
-            {legend.map((l) => (
-              <View key={l.label} style={styles.legendItem}>
-                <View style={[styles.swatch, { backgroundColor: l.color }]} />
-                <Text style={[styles.legendText, { color: c.inkSoft }]}>{l.label}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
 
         {shown.length === 0 ? (
           <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14, paddingVertical: 8 }}>Nothing to show yet.</Text>
@@ -165,13 +146,6 @@ export default function PlayerStatsScreen() {
   );
 }
 
-function cellColor(status: Status | null, stat: Stat, c: Colors): string {
-  if (stat === 'games') return status === 'played' ? c.pitch : c.surface2;
-  if (stat === 'none') return status === 'injured' ? c.danger : status === 'rotation' ? c.amber : status === 'other' ? c.inkSoft : c.surface2;
-  if (stat === 'rotation') return status === 'rotation' ? c.amber : c.surface2;
-  return c.surface2;
-}
-
 function subText(s: PlayerStat, stat: Stat, gameCount: number): string {
   if (stat === 'games') return `of ${gameCount} games`;
   if (stat === 'none') {
@@ -203,19 +177,14 @@ function Row({ s, stat, rank, first, c }: { s: PlayerStat; stat: Stat; rank: num
         <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
           {name}
         </Text>
-        {stat === 'goals' ? (
-          <View style={styles.balls}>
-            {Array.from({ length: s.goals }, (_, i) => (
-              <View key={i} style={[styles.ball, { backgroundColor: c.pitch }]} />
-            ))}
-          </View>
-        ) : (
+        {/* Games played only: the last five games, oldest first, lit where he played. */}
+        {stat === 'games' ? (
           <View style={styles.strip}>
-            {s.strip.map((status, i) => (
-              <View key={i} style={[styles.cell, { backgroundColor: cellColor(status, stat, c) }]} />
+            {s.strip.slice(-RECENT).map((status, i) => (
+              <View key={i} style={[styles.cell, { backgroundColor: status === 'played' ? c.pitch : c.surface2 }]} />
             ))}
           </View>
-        )}
+        ) : null}
         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }} numberOfLines={1}>
           {subText(s, stat, s.strip.length)}
         </Text>
@@ -238,18 +207,12 @@ const styles = StyleSheet.create({
   statTitle: { fontFamily: fonts.medium, fontSize: 22 },
   arrow: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   sub: { fontFamily: fonts.regular, fontSize: 13, marginTop: -4 },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 2 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  swatch: { width: 9, height: 9, borderRadius: 2 },
-  legendText: { fontFamily: fonts.regular, fontSize: 11.5 },
   list: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   rank: { width: 20, textAlign: 'center', fontFamily: fonts.display, fontSize: 16 },
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   strip: { flexDirection: 'row', gap: 2 },
   cell: { flex: 1, height: 8, borderRadius: 2 },
-  balls: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
-  ball: { width: 9, height: 9, borderRadius: 5 },
   value: { fontFamily: fonts.display, fontSize: 28, lineHeight: 30 },
   zero: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, paddingBottom: 12 },
   hint: { fontFamily: fonts.regular, fontSize: 11.5, textAlign: 'center' },
