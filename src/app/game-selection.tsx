@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PlayerPhoto, usePlayerPhotos } from '../components/PlayerPhoto';
 import { UndoToast } from '../components/UndoToast';
 import { injuryOn, useData, type Team } from '../lib/data';
 import { generateSelection, groupOf, NOT_SELECTED_REASONS, POSITION_GROUPS, type Draft } from '../lib/selection';
@@ -21,6 +22,7 @@ export default function GameSelectionScreen() {
   const params = useLocalSearchParams<{ game: string }>();
   const { games, players, clubName, refresh } = useData();
   const game = games.find((g) => g.id === params.game);
+  const photos = usePlayerPhotos(players);
 
   const [page, setPage] = useState<Page>(null);
   // Players injured on the game day and not chosen yet start as 'Injured', so
@@ -228,9 +230,8 @@ export default function GameSelectionScreen() {
                 const choice = draft[p.id];
                 return (
                   <Pressable key={p.id} style={[styles.row, i > 0 && line]} onPress={() => setPage({ player: p.id })}>
-                    <View style={[styles.badge, { backgroundColor: c.surface2 }]}>
-                      <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 13 }}>{p.bestPosition || '–'}</Text>
-                    </View>
+                    {/* The photo (or initials), with the best position on its corner. */}
+                    <PlayerPhoto player={p} url={p.photoPath ? photos[p.photoPath] : undefined} badge={p.bestPosition || undefined} />
                     <Text style={[styles.label, { color: c.ink }]} numberOfLines={1}>
                       {p.firstName} {p.lastName}
                     </Text>
@@ -318,7 +319,6 @@ const styles = StyleSheet.create({
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
   group: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 12, marginTop: 4 },
   hint: { fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12, marginTop: -4 },
-  badge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   tertiary: { alignItems: 'center', paddingVertical: 10 },
