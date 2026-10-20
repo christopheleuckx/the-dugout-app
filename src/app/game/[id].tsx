@@ -5,7 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { countdown, Crest, ResultBadge } from '../../components/MatchCard';
-import { fmtDate, TEAM_RATING_LABELS, todayIso, useData, type Game, type Player, type Profile, type Team } from '../../lib/data';
+import { fmtDate, injuryOn, TEAM_RATING_LABELS, todayIso, useData, type Game, type Player, type Profile, type Team } from '../../lib/data';
 import { fonts, useColors } from '../../lib/theme';
 import { goBack } from '../../lib/nav';
 import { EditIcon, SwitchIcon } from '../../components/Icons';
@@ -88,9 +88,16 @@ export default function GameScreen() {
   // Once there is a selection: the players without a choice yet join the
   // selected ones, and those not selected follow in their own card with the
   // reason. Players of the other team are on that team's view.
-  const unchosen = selection.length ? players.filter((p) => !game.selection[p.id]).sort(byLine) : [];
-  // Players marked not selected show even before anyone is selected.
-  const notSelected = players.filter((p) => game.selection[p.id] && !game.selection[p.id].team).sort(byLine);
+  // Why a player is not selected: the reason entered for this game, or, when
+  // nothing was entered, an injury on the game day. Players without either
+  // have no reason and stay out of the Not selected card.
+  const reasonOf = (p: Player) => {
+    const entered = game.selection[p.id];
+    if (entered) return entered.team ? null : entered.reason || 'Not selected';
+    return injuryOn(p, game.date) ? 'Injured' : null;
+  };
+  const notSelected = players.filter((p) => reasonOf(p)).sort(byLine);
+  const unchosen = selection.length ? players.filter((p) => !game.selection[p.id] && !reasonOf(p)).sort(byLine) : [];
   const shown = [...selection, ...unchosen].sort(byLine);
   // Above the score or kick-off time: End once played, else the countdown.
   const today = todayIso();
@@ -401,7 +408,7 @@ export default function GameScreen() {
                   <Text style={[styles.playerName, { color: c.inkSoft }]} numberOfLines={1}>
                     {pl.firstName} {pl.lastName}
                   </Text>
-                  <Text style={[styles.sub, { color: game.selection[pl.id]?.reason === 'Injured' ? c.danger : c.inkSoft }]}>{game.selection[pl.id]?.reason || 'Not selected'}</Text>
+                  <Text style={[styles.sub, { color: reasonOf(pl) === 'Injured' ? c.danger : c.inkSoft }]}>{reasonOf(pl)}</Text>
                 </Pressable>
               ))}
             </View>
