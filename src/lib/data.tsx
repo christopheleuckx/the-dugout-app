@@ -294,7 +294,7 @@ const empty: Data = { players: [], games: [], trainings: [], u15Fixtures: [], me
 const DataContext = createContext<DataValue | null>(null);
 
 // Same list as the web app: these absences don't count against attendance.
-const EXCUSED_TRAINING_ABSENCE_REASONS = ['GK Training', 'Training with another team'];
+export const EXCUSED_TRAINING_ABSENCE_REASONS = ['GK Training', 'Training with another team'];
 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : null);
 

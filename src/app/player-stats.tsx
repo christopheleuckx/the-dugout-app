@@ -26,6 +26,7 @@ const ICON: Record<Stat, keyof typeof Ionicons.glyphMap> = {
   goals: 'football-outline',
   none: 'close-circle-outline',
   rotation: 'sync-outline',
+  attendance: 'checkmark-done-outline',
 };
 
 // Player statistics: one statistic at a time, chosen from the title. Under
@@ -33,12 +34,12 @@ const ICON: Record<Stat, keyof typeof Ionicons.glyphMap> = {
 export default function PlayerStatsScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { players, games, goals } = useData();
+  const { players, games, goals, trainings } = useData();
   const [stat, setStat] = useState<Stat>('games');
   const [choosing, setChoosing] = useState(false);
   const [zeroOpen, setZeroOpen] = useState(false);
 
-  const { stats, gameCount } = useMemo(() => playerStats(players, games, goals), [players, games, goals]);
+  const { stats, gameCount, trainingCount } = useMemo(() => playerStats(players, games, goals, trainings), [players, games, goals, trainings]);
   const sorted = useMemo(
     () =>
       stats
@@ -46,8 +47,10 @@ export default function PlayerStatsScreen() {
         .sort((a, b) => valueOf(b, stat) - valueOf(a, stat) || `${a.player.firstName} ${a.player.lastName}`.localeCompare(`${b.player.firstName} ${b.player.lastName}`)),
     [stats, stat],
   );
-  const shown = stat === 'games' ? sorted : sorted.filter((s) => valueOf(s, stat) > 0);
-  const zero = stat === 'games' ? [] : sorted.filter((s) => valueOf(s, stat) === 0);
+  // Games and attendance list everyone; the others hide the players at 0.
+  const all = stat === 'games' || stat === 'attendance';
+  const shown = all ? sorted : sorted.filter((s) => valueOf(s, stat) > 0);
+  const zero = all ? [] : sorted.filter((s) => valueOf(s, stat) === 0);
   const total = stats.reduce((a, s) => a + valueOf(s, stat), 0);
   const subtitle =
     stat === 'games'
@@ -56,7 +59,9 @@ export default function PlayerStatsScreen() {
         ? `Total number of goals: ${total}`
         : stat === 'none'
           ? `Total times not selected: ${total}`
-          : `Total number of rotations: ${total}`;
+          : stat === 'attendance'
+            ? `Total number of trainings: ${trainingCount}`
+            : `Total number of rotations: ${total}`;
 
   // Equal values share a rank.
   const ranks = shown.map((s, i) => {
@@ -156,6 +161,7 @@ function subText(s: PlayerStat, stat: Stat, gameCount: number): string {
     return parts.join(' · ');
   }
   if (stat === 'rotation') return `of ${s.notSelected} not selected`;
+  if (stat === 'attendance') return `${s.attended} of ${s.trainings} trainings`;
   return `${s.games ? (s.goals / s.games).toFixed(2) : '0.00'} per game played`;
 }
 
@@ -190,7 +196,7 @@ function Row({ s, stat, rank, first, c }: { s: PlayerStat; stat: Stat; rank: num
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end', minWidth: 46 }}>
-        <Text style={[styles.value, { color: c.ink }]}>{v}</Text>
+        <Text style={[styles.value, { color: c.ink }]}>{stat === 'attendance' ? `${v}%` : v}</Text>
         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 10.5 }}>{STAT_UNIT[stat]}</Text>
       </View>
     </Pressable>
