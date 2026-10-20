@@ -20,6 +20,23 @@ export function appVersion() {
 // top with every release.
 export const RELEASE_NOTES: { version: string; title: string; items: { title: string; text: string }[] }[] = [
   {
+    version: 'Late October 2026 updates',
+    title: "What's new",
+    items: [
+      { title: 'Injuries', text: 'Open a player from the Squad to add an injury with a start and an expected return. The player is absent in trainings and left out of selections until then, or until you mark him recovered.' },
+      { title: 'Player page', text: 'Tap a player in the Squad to see his positions and preferred foot, and to write his strengths, focus for development and remarks.' },
+      { title: 'Player statistics', text: 'Games played (with the last five games), goals, times not selected, rotation and training attendance, per player, under Player statistics in the profile.' },
+      { title: 'Training groups', text: 'Divide the players who are present into one to six groups, with or without spreading the goalkeepers. Drag players to another group, regenerate or remove the groups.' },
+      { title: 'More than one basic', text: 'A training can now work on several basics. Tap every basic that applies.' },
+      { title: 'Previous games', text: 'A game shows the last game against the same club, with the score and rating per team. See all opens every earlier game.' },
+      { title: 'Selection at a glance', text: 'On a game, the players not selected are in their own card with the reason, below the selected players.' },
+      { title: 'Your league', text: 'Home shows the matchday and the table of your competition. Tap the title for every matchday, and fill in the scores of the other matches there. Your own score goes into the table by itself.' },
+      { title: 'More than one team', text: 'Coach several teams? Switch with the club logo at the top right, and show the matches of your other team in This week.' },
+      { title: 'Veo and YouTube links', text: 'Add the link of a match video on Veo or YouTube to a game, next to the videos you upload from your phone.' },
+      { title: 'Players and photos', text: 'Admins add the players of every age group, with their positions and photo, under Configure and manage, Club management.' },
+    ],
+  },
+  {
     version: 'October 2026 updates',
     title: "What's new",
     items: [
