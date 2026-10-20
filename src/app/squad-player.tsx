@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EditIcon } from '../components/Icons';
 import { fmtDate, injuryOn, toIso, todayIso, useData, type Injury } from '../lib/data';
 import { goBack } from '../lib/nav';
+import { attendanceOf, playerStats } from '../lib/playerStats';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 
@@ -27,8 +28,14 @@ export default function SquadPlayerScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { players, me, refresh } = useData();
+  const { players, games, goals, trainings, me, refresh } = useData();
   const player = players.find((p) => p.id === id);
+  // His numbers, counted the same way as in Player statistics.
+  const stat = useMemo(() => {
+    if (!player) return null;
+    const { stats, gameCount } = playerStats([player], games, goals, trainings);
+    return { ...stats[0], gameCount };
+  }, [player, games, goals, trainings]);
   const [photo, setPhoto] = useState<string | null>(null);
   const [error, setError] = useState('');
   // The note being written, and the injury being added (no id) or changed.
@@ -182,6 +189,29 @@ export default function SquadPlayerScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* Games played, training attendance and goals, as in Player statistics. */}
+        {stat ? (
+          <View style={styles.tiles}>
+            {(
+              [
+                [String(stat.games), 'Games played', `of ${stat.gameCount}`],
+                [`${attendanceOf(stat)}%`, 'Trainings', `${stat.attended} of ${stat.trainings}`],
+                [String(stat.goals), 'Goals', stat.games ? `${(stat.goals / stat.games).toFixed(2)} per game` : '–'],
+              ] as [string, string, string][]
+            ).map(([value, label, sub]) => (
+              <View key={label} style={[styles.tile, { backgroundColor: c.surface }]}>
+                <Text style={[styles.tileValue, { color: c.ink }]}>{value}</Text>
+                <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 12.5 }} numberOfLines={1}>
+                  {label}
+                </Text>
+                <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 11.5 }} numberOfLines={1}>
+                  {sub}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <View style={[styles.card, { backgroundColor: c.surface }]}>
           {(
@@ -346,6 +376,9 @@ const styles = StyleSheet.create({
   photoImage: { position: 'absolute', width: 130, height: 130, left: -17, top: -5 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   card: { borderRadius: 14 },
+  tiles: { flexDirection: 'row', gap: 8 },
+  tile: { flex: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 6, alignItems: 'center', gap: 1 },
+  tileValue: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingHorizontal: 16 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
   note: { padding: 16, gap: 8 },
