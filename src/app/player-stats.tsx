@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useData } from '../lib/data';
 import { goBack } from '../lib/nav';
+import { supabase } from '../lib/supabase';
 import {
   playerStats,
   STAT_ABOUT,
@@ -38,6 +39,16 @@ export default function PlayerStatsScreen() {
   const [stat, setStat] = useState<Stat>('games');
   const [choosing, setChoosing] = useState(false);
   const [zeroOpen, setZeroOpen] = useState(false);
+  // The photos are private: links that work for an hour, as on the Squad.
+  const [photos, setPhotos] = useState<Record<string, string>>({});
+  const paths = players.map((p) => p.photoPath).filter((x): x is string => !!x).sort().join(',');
+  useEffect(() => {
+    if (!paths) return;
+    supabase.storage
+      .from('player-photos')
+      .createSignedUrls(paths.split(','), 3600)
+      .then(({ data }) => setPhotos(Object.fromEntries((data ?? []).flatMap((d) => (d.signedUrl && d.path ? [[d.path, d.signedUrl]] : [])))));
+  }, [paths]);
 
   const { stats, gameCount, trainingCount } = useMemo(() => playerStats(players, games, goals, trainings), [players, games, goals, trainings]);
   const sorted = useMemo(
@@ -94,7 +105,7 @@ export default function PlayerStatsScreen() {
         ) : (
           <View style={[styles.list, { backgroundColor: c.surface }]}>
             {shown.map((s, i) => {
-              return <Row key={s.player.id} s={s} stat={stat} rank={ranks[i]} first={i === 0} c={c} />;
+              return <Row key={s.player.id} s={s} stat={stat} rank={ranks[i]} first={i === 0} c={c} photo={s.player.photoPath ? photos[s.player.photoPath] : undefined} />;
             })}
             {zero.length ? (
               <Pressable style={[styles.zero, { borderTopColor: c.line }]} onPress={() => setZeroOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: zeroOpen }}>
@@ -165,7 +176,7 @@ function subText(s: PlayerStat, stat: Stat, gameCount: number): string {
   return `${s.games ? (s.goals / s.games).toFixed(2) : '0.00'} per game played`;
 }
 
-function Row({ s, stat, rank, first, c }: { s: PlayerStat; stat: Stat; rank: number; first: boolean; c: Colors }) {
+function Row({ s, stat, rank, first, c, photo }: { s: PlayerStat; stat: Stat; rank: number; first: boolean; c: Colors; photo?: string }) {
   const name = `${s.player.firstName} ${s.player.lastName}`.trim();
   const initials = `${s.player.firstName[0] ?? ''}${s.player.lastName[0] ?? ''}`.toUpperCase();
   const v = valueOf(s, stat);
@@ -176,8 +187,13 @@ function Row({ s, stat, rank, first, c }: { s: PlayerStat; stat: Stat; rank: num
       accessibilityLabel={`${name}, ${v} ${STAT_UNIT[stat]}`}
     >
       <Text style={[styles.rank, { color: c.inkSoft }]}>{rank}</Text>
-      <View style={[styles.avatar, { backgroundColor: c.surface2 }]}>
-        <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 12.5 }}>{initials}</Text>
+      {/* The photo when there is one, otherwise the initials. */}
+      <View style={[styles.avatar, { backgroundColor: c.surface2 }, photo ? { borderWidth: StyleSheet.hairlineWidth, borderColor: c.line } : null]}>
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.photo} />
+        ) : (
+          <Text style={{ color: c.pitch, fontFamily: fonts.medium, fontSize: 12.5 }}>{initials}</Text>
+        )}
       </View>
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
@@ -216,7 +232,9 @@ const styles = StyleSheet.create({
   list: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   rank: { width: 20, textAlign: 'center', fontFamily: fonts.display, fontSize: 16 },
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  // Zoomed in on the face, like the Squad (54 in a 40 circle).
+  photo: { position: 'absolute', width: 49, height: 49, left: -6, top: -2 },
   strip: { flexDirection: 'row', gap: 2 },
   cell: { flex: 1, height: 8, borderRadius: 2 },
   value: { fontFamily: fonts.display, fontSize: 28, lineHeight: 30 },
