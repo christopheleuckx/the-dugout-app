@@ -127,19 +127,25 @@ export function SportWeek({
                   <Pressable key={it.key} disabled={!it.onPress} onPress={it.onPress ?? undefined} style={[styles.item, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border }]}>
                     <View style={[styles.bar, { backgroundColor: bar }]} />
                     {it.kind === 'Game' ? <Crest url={it.logoUrl} name={it.crestName} size={30} /> : null}
-                    {/* Home or away (or the pitch) above; the tag, name and time on one centred line. */}
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={[styles.small, { color: it.cancelled ? p.loss : p.soft, textTransform: it.cancelled ? 'capitalize' : 'none' }]} numberOfLines={1}>
-                        {it.cancelled ?? it.place}
-                      </Text>
+                    {/* The name and time on one centred line; below it the age group and home/away (or the pitch) as tags. */}
+                    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                       <View style={styles.nameLine}>
-                        <View style={[styles.tag, { backgroundColor: it.own ? p.ownTag : p.pill }]}>
-                          <Text style={[styles.tagText, { color: it.own ? p.onOwnTag : p.soft }]}>{it.group}</Text>
-                        </View>
                         <Text style={[styles.italic, { flex: 1, fontSize: 18, color: p.ink }]} numberOfLines={1}>
                           {it.name.toUpperCase()}
                         </Text>
                         <Text style={[styles.italic, { fontSize: 20, color: fg }]}>{it.time ?? ''}</Text>
+                      </View>
+                      <View style={styles.nameLine}>
+                        <View style={[styles.tag, { backgroundColor: it.own ? p.ownTag : p.pill }]}>
+                          <Text style={[styles.tagText, { color: it.own ? p.onOwnTag : p.soft }]}>{it.group}</Text>
+                        </View>
+                        {it.cancelled || it.place ? (
+                          <View style={[styles.tag, { flexShrink: 1, backgroundColor: it.cancelled ? p.loss + '22' : p.pill }]}>
+                            <Text style={[styles.tagText, { color: it.cancelled ? p.loss : p.soft, textTransform: it.cancelled ? 'capitalize' : 'none' }]} numberOfLines={1}>
+                              {it.cancelled ?? it.place}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     </View>
                   </Pressable>
