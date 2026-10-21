@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/Avatar';
 import { Screen } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
-import { setTheme, useTheme, type ThemeName } from '../../lib/appTheme';
 import { useData } from '../../lib/data';
 import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
@@ -21,7 +20,6 @@ export default function Profile() {
   const { signOut } = useAuth();
   const { me, refresh } = useData();
   const [choosing, setChoosing] = useState(false);
-  const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // For the admin: how full the free video storage is, to warn in time.
@@ -161,35 +159,6 @@ export default function Profile() {
         ) : null}
       </View>
 
-      {/* The look of the app on this phone; Classic brings the current design back at once. */}
-      <View style={[styles.card, { backgroundColor: c.surface }]}>
-        <View style={styles.row}>
-          <Ionicons name="color-palette-outline" size={22} color={c.inkSoft} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Theme</Text>
-            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Only on this phone</Text>
-          </View>
-          <View style={[styles.segment, { backgroundColor: c.surface2 }]}>
-            {(
-              [
-                ['classic', 'Classic'],
-                ['sport', 'Sport (beta)'],
-              ] as [ThemeName, string][]
-            ).map(([key, label]) => (
-              <Pressable
-                key={key}
-                onPress={() => setTheme(key)}
-                style={[styles.segmentItem, theme === key && { backgroundColor: c.surface }]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: theme === key }}
-              >
-                <Text style={{ color: theme === key ? c.ink : c.inkSoft, fontFamily: theme === key ? fonts.medium : fonts.regular, fontSize: 13 }}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      </View>
-
       <View style={[styles.card, { backgroundColor: c.surface }]}>
         <Pressable style={styles.row} onPress={() => router.push('/about')}>
           <Ionicons name="information-circle-outline" size={22} color={c.inkSoft} />
@@ -236,8 +205,6 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.regular, fontSize: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
-  segment: { flexDirection: 'row', borderRadius: 999, padding: 3 },
-  segmentItem: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

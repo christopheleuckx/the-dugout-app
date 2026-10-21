@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { setTheme, useTheme, type ThemeName } from '../lib/appTheme';
 import { useData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -16,6 +17,7 @@ const AGE_GROUPS = ['U12', 'U15'];
 // login and stays fixed, as on the web.
 export default function AccountScreen() {
   const c = useColors();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { me, refresh } = useData();
   const [firstName, setFirstName] = useState(me?.firstName ?? '');
@@ -105,6 +107,33 @@ export default function AccountScreen() {
                 <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
               </Pressable>
             </View>
+            {/* The look of the app on this phone; Classic brings the current design back at once. */}
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: c.ink }]}>Theme</Text>
+                <View style={[styles.segment, { backgroundColor: c.surface2 }]}>
+                  {(
+                    [
+                      ['classic', 'Classic'],
+                      ['sport', 'Sport (beta)'],
+                    ] as [ThemeName, string][]
+                  ).map(([key, label]) => (
+                    <Pressable
+                      key={key}
+                      onPress={() => setTheme(key)}
+                      style={[styles.segmentItem, theme === key && { backgroundColor: c.surface }]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: theme === key }}
+                    >
+                      <Text style={{ color: theme === key ? c.ink : c.inkSoft, fontFamily: theme === key ? fonts.medium : fonts.regular, fontSize: 13 }}>{label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12, marginTop: -6 }}>
+              Only on this phone. Sport is the new design, rolled out screen by screen.
+            </Text>
             {error ? <Text style={{ color: c.danger, fontFamily: fonts.regular, fontSize: 13, marginHorizontal: 12 }}>{error}</Text> : null}
             {changed ? (
               <Pressable style={[styles.button, { backgroundColor: c.pitch }]} onPress={save}>
@@ -128,6 +157,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
   value: { fontFamily: fonts.regular, fontSize: 16 },
+  segment: { flexDirection: 'row', borderRadius: 999, padding: 3 },
+  segmentItem: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   input: { flex: 1, textAlign: 'right', fontFamily: fonts.regular, fontSize: 16, paddingVertical: 0 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
 });
