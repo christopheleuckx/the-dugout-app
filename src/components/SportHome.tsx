@@ -49,8 +49,7 @@ const dayOf = (iso: string) => new Date(iso + 'T00:00:00');
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const shortDate = (iso: string) => dayOf(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-// The week as a strip of seven days (today highlighted, a dot per kind of
-// activity), then a card per day with a row per game or training.
+// The week as a card per day, with a row per game or training.
 export function SportWeek({
   week,
   items,
@@ -90,24 +89,6 @@ export function SportWeek({
         <Pressable style={round} onPress={onNext} accessibilityLabel="Next week" hitSlop={6}>
           <Ionicons name="chevron-forward" size={18} color={p.ink} />
         </Pressable>
-      </View>
-
-      <View style={[styles.strip, { backgroundColor: p.card }]}>
-        {days.map(({ date, items: on }) => {
-          const isToday = date === today;
-          const kinds = [on.some((it) => it.kind === 'Game') && p.game, on.some((it) => it.kind === 'Training') && p.training].filter(Boolean) as string[];
-          return (
-            <View key={date} style={[styles.stripDay, isToday && { backgroundColor: p.feature }]}>
-              <Text style={[styles.small, { fontSize: 11, color: isToday ? p.featureSoft : p.soft }]}>{WEEKDAYS[dayOf(date).getDay()]}</Text>
-              <Text style={[styles.italic, { fontSize: 20, color: isToday ? '#fff' : p.ink }]}>{dayOf(date).getDate()}</Text>
-              <View style={styles.dots}>
-                {kinds.map((color) => (
-                  <View key={color} style={[styles.dot, { backgroundColor: isToday ? '#fff' : color }]} />
-                ))}
-              </View>
-            </View>
-          );
-        })}
       </View>
 
       {items.length === 0 ? <Text style={[styles.small, { color: p.soft, textAlign: 'center', paddingVertical: 12 }]}>Nothing scheduled this week.</Text> : null}
@@ -164,10 +145,6 @@ const styles = StyleSheet.create({
   greeting: { fontFamily: sportFonts.display, fontSize: 40, lineHeight: 40, marginTop: 4 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   round: { width: 34, height: 34, borderRadius: sportShape.pill, alignItems: 'center', justifyContent: 'center' },
-  strip: { flexDirection: 'row', borderRadius: 18, padding: 6, gap: 4 },
-  stripDay: { flex: 1, alignItems: 'center', borderRadius: 14, paddingTop: 6, paddingBottom: 7 },
-  dots: { flexDirection: 'row', gap: 3, height: 5, marginTop: 3 },
-  dot: { width: 5, height: 5, borderRadius: 3 },
   day: { flexDirection: 'row', gap: 12, borderRadius: sportShape.card, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 14 },
   dayNumber: { width: 44, alignItems: 'center', paddingTop: 8 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 },
