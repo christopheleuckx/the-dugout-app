@@ -1,5 +1,8 @@
 {
-  "club": { "name": "FCV Dender", "federationClubId": "1663" },
+  "club": {
+    "name": "FCV Dender",
+    "federationClubId": "1663"
+  },
   "ageGroups": [
     {
       "name": "U12",
@@ -58,5 +61,24 @@
       "ownScores": "sync"
     }
   ],
-  "aliases": {}
+  "aliases": {
+    "FCV DENDER EH": "FCV Dender",
+    "FC.V.DENDER E.H.": "FCV Dender",
+    "FCV Dender EH 3": "FCV Dender",
+    "KAA GENT": "KAA Gent",
+    "R.UNION ST.-GILLOISE": "Union SG",
+    "R.FC.MEUX": "RFC Meux",
+    "CERCLE BRUGGE K.S.V.": "Cercle Brugge",
+    "RFC WETTEREN": "RFC Wetteren",
+    "K. BERCHEM SP. 2004": "Berchem Sport",
+    "R.A.E.C. MONS": "RAEC Mons",
+    "K.R.C. WAREGEM": "K Racing Waregem",
+    "Olsa Brakel 3": "Olsa Brakel",
+    "FC Lebbeke A 3": "FC Lebbeke",
+    "VK Ninove 3-2": "KVK Ninove",
+    "HO.Wolvertem Merchtem A 3": "KHO Wolvertem Merchtem",
+    "KSK.Londerzeel A 3": "Londerzeel SK",
+    "TK Meldert A 3": "TK Meldert",
+    "Koninklijke Eendracht Aalst Lede 3": "Eendracht Aalst Lede"
+  }
 }
