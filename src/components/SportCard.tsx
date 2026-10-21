@@ -123,73 +123,48 @@ export function SportUpcomingCard({ game }: { game: Game }) {
   );
 }
 
-// A played game as compact rows with only the final score. One team: a row per
-// club. Blue and Red: the opponent once, then a row per team.
+// A played game with only the final score: both clubs on top (home first, like
+// the score), then a row per team. Blue and Red each get their own row.
 export function SportResultCard({ game }: { game: Game }) {
   const p = usePalette();
   const { clubLogoUrl, clubName } = useData();
   const colorOf = { W: p.win, D: p.draw, L: p.loss };
   const multi = game.numTeams > 1 || game.scores.length > 1;
-  const footer = (result?: 'W' | 'D' | 'L') => (
-    <View style={styles.footer}>
-      {[game.competition, game.scores.length ? 'Full time' : 'No score', game.homeAway].map((t, i) => (
-        <Text key={i} style={[styles.small, i > 0 && styles.sep, { color: i === 0 && t === 'Cup' ? p.cup : p.soft, borderLeftColor: p.border }]}>
-          {t}
-        </Text>
-      ))}
-      {result ? <Text style={[styles.small, styles.sep, { color: colorOf[result], fontFamily: fonts.medium, borderLeftColor: p.border }]}>{RESULT[result]}</Text> : null}
+  const [home, away] = sides(game, { name: clubName, url: clubLogoUrl });
+  const club = (c: { name: string; url: string | null }, right = false) => (
+    <View style={[styles.club, right && { flexDirection: 'row-reverse' }]}>
+      <Crest url={c.url} name={c.name} size={34} />
+      <Text style={[styles.italic, styles.clubName, { color: p.ink, textAlign: right ? 'right' : 'left' }]} numberOfLines={2}>
+        {c.name.toUpperCase()}
+      </Text>
     </View>
   );
+  const rows = multi
+    ? game.scores.map(({ team, score }) => ({ key: team, label: `TEAM ${team === 'blue' ? 'BLUE' : 'RED'}`, color: team === 'blue' ? blue : red, score }))
+    : [{ key: 'blue', label: 'FINAL SCORE', color: blue, score: game.scores[0]?.score }];
 
-  if (multi) {
-    return (
-      <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
-        <View style={styles.row}>
-          <Crest url={game.opponentLogoUrl} name={game.opponent || 'TBD'} size={30} />
-          <Text style={[styles.italic, styles.rowName, { color: p.ink }]} numberOfLines={1}>
-            VS {(game.opponent || 'TBD').toUpperCase()}
-          </Text>
-        </View>
-        {game.scores.map(({ team, score }) => (
-          <View key={team} style={[styles.row, styles.teamRow, { borderTopColor: p.border }]}>
-            <View style={[styles.bar, { backgroundColor: team === 'blue' ? blue : red }]} />
-            <Text style={[styles.italic, styles.rowName, { color: p.ink }]}>TEAM {team === 'blue' ? 'BLUE' : 'RED'}</Text>
-            <Text style={[styles.italic, styles.goals, { color: p.ink }]}>
-              {score.home} - {score.away}
-            </Text>
-            <Text style={[styles.result, { color: colorOf[score.result] }]}>{RESULT[score.result]}</Text>
-          </View>
-        ))}
-        {footer()}
-      </View>
-    );
-  }
-
-  const score = game.scores[0]?.score;
-  const ours = game.homeAway === 'Away' ? 'away' : 'home';
-  const lines = [
-    { side: 'home' as const, ...sides(game, { name: clubName, url: clubLogoUrl })[0] },
-    { side: 'away' as const, ...sides(game, { name: clubName, url: clubLogoUrl })[1] },
-  ];
   return (
     <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
-      {lines.map((l, i) => {
-        const goals = score ? score[l.side] : null;
-        const won = !!score && score.result !== 'D' && (score.result === 'W') === (l.side === ours);
-        const lost = !!score && score.result !== 'D' && !won;
-        return (
-          <View key={l.side} style={[styles.row, i > 0 && { marginTop: 10 }]}>
-            <View style={[styles.bar, { backgroundColor: l.side === ours ? blue : p.draw }]} />
-            <Crest url={l.url} name={l.name} size={30} />
-            <Text style={[styles.italic, styles.rowName, { color: lost ? p.soft : p.ink }]} numberOfLines={1}>
-              {l.name.toUpperCase()}
-            </Text>
-            {won ? <Ionicons name="caret-forward" size={12} color={p.ink} /> : null}
-            <Text style={[styles.italic, styles.goals, { color: lost ? p.soft : p.ink }]}>{goals ?? '–'}</Text>
-          </View>
-        );
-      })}
-      {footer(score?.result)}
+      <View style={styles.row}>
+        {club(home)}
+        <Text style={[styles.vs, { color: p.faint }]}>V/S</Text>
+        {club(away, true)}
+      </View>
+      {rows.map((r) => (
+        <View key={r.key} style={[styles.row, styles.teamRow, { borderTopColor: p.border }]}>
+          <View style={[styles.bar, { backgroundColor: r.color }]} />
+          <Text style={[styles.italic, styles.rowName, { color: p.ink }]}>{r.label}</Text>
+          <Text style={[styles.italic, styles.goals, { color: p.ink }]}>{r.score ? `${r.score.home} - ${r.score.away}` : '–'}</Text>
+          <Text style={[styles.result, { color: r.score ? colorOf[r.score.result] : p.soft }]}>{r.score ? RESULT[r.score.result] : ''}</Text>
+        </View>
+      ))}
+      <View style={styles.footer}>
+        {[game.competition, game.scores.length ? 'Full time' : 'No score', game.homeAway].map((t, i) => (
+          <Text key={i} style={[styles.small, i > 0 && styles.sep, { color: i === 0 && t === 'Cup' ? p.cup : p.soft, borderLeftColor: p.border }]}>
+            {t}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
@@ -210,6 +185,8 @@ const styles = StyleSheet.create({
   names: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 12 },
   name: { flex: 1, fontSize: 17 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  club: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+  clubName: { flex: 1, fontSize: 18, lineHeight: 19 },
   teamRow: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingTop: 12 },
   bar: { width: 3, height: 26, borderRadius: 2 },
   rowName: { flex: 1, fontSize: 20 },
