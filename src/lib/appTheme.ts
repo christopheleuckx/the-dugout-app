@@ -57,6 +57,11 @@ const sportLight = {
   countdown: '#C8323C',
   teamBlue: '#2E86DE',
   teamRed: '#C81E2E',
+  // Games and trainings in the week list, and the tag of the age group on show.
+  game: '#3B4FB8',
+  training: '#1E7D82',
+  ownTag: '#1F2A5C',
+  onOwnTag: '#FFFFFF',
 };
 const sportDark: typeof sportLight = {
   page: '#0B1020',
@@ -76,6 +81,10 @@ const sportDark: typeof sportLight = {
   countdown: '#C8323C',
   teamBlue: '#2E86DE',
   teamRed: '#C81E2E',
+  game: '#9FAEF2',
+  training: '#4FC4C9',
+  ownTag: '#9FAEF2',
+  onOwnTag: '#0B1020',
 };
 export type SportColors = typeof sportLight;
 

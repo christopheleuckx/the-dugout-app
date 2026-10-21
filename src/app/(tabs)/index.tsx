@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { LeagueHome } from '../../components/LeagueHome';
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { useTheme } from '../../lib/appTheme';
+import { SportGreeting, SportSectionTitle, SportWeek } from '../../components/SportHome';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
 import { currentWeek, fmtDate, todayIso, useData, type Game } from '../../lib/data';
@@ -127,6 +128,12 @@ export default function Dashboard() {
         logoUrl: g.opponentLogoUrl,
         kind: 'Game' as const,
         other: null as OtherItem | null,
+        group: me?.activeAgeGroup?.name ?? '',
+        own: true,
+        name: g.opponent || 'TBD',
+        time: g.time,
+        place: g.homeAway,
+        cancelled: g.cancelStatus,
       })),
     // Right after a team switch the list may still hold items of the group now on show.
     ...shown.map((x) => ({
@@ -141,6 +148,12 @@ export default function Dashboard() {
       logoUrl: x.kind === 'game' ? (competitors.find((c) => c.id === x.competitorId)?.logoUrl ?? null) : null,
       kind: (x.kind === 'game' ? 'Game' : 'Training') as 'Game' | 'Training',
       other: x as OtherItem | null,
+      group: x.ageGroup,
+      own: false,
+      name: x.title || (x.kind === 'game' ? 'TBD' : 'Training'),
+      time: x.time,
+      place: (x.kind === 'game' ? x.homeAway : x.location) ?? '',
+      cancelled: x.cancelStatus,
     })),
     ...trainings
       .filter((t) => inWeek(t.date) && !t.hiddenFromCalendar)
@@ -156,6 +169,12 @@ export default function Dashboard() {
         logoUrl: null,
         kind: 'Training' as const,
         other: null as OtherItem | null,
+        group: me?.activeAgeGroup?.name ?? '',
+        own: true,
+        name: t.label,
+        time: t.startTime,
+        place: t.location ?? '',
+        cancelled: t.cancelStatus,
       })),
   ].sort((a, b) => (a.date + a.sort).localeCompare(b.date + b.sort));
   // One card per day, so a game and a training on the same day sit together.
@@ -165,6 +184,9 @@ export default function Dashboard() {
 
   return (
     <Screen title="The Dugout">
+      {sport ? (
+        <SportGreeting greeting={greeting()} firstName={me?.firstName} />
+      ) : (
       <View>
         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14 }}>
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -174,8 +196,9 @@ export default function Dashboard() {
           <Text style={[styles.greeting, { color: c.pitch, fontFamily: fonts.semi }]}>{me.firstName}</Text>
         ) : null}
       </View>
+      )}
 
-      <SectionTitle>Upcoming games</SectionTitle>
+      {sport ? <SportSectionTitle>Upcoming games</SportSectionTitle> : <SectionTitle>Upcoming games</SectionTitle>}
       {upcoming.length ? (
         <Swimlane cardWidth={upcoming.length > 1 ? Math.round(width * 0.78) : width - 32}>
           {upcoming.map((g, i) => (
@@ -188,6 +211,21 @@ export default function Dashboard() {
         <Empty>No games planned.</Empty>
       )}
 
+      {sport ? (
+        <SportWeek
+          week={week}
+          today={today}
+          offset={weekOffset}
+          onPrev={() => setWeekOffset(weekOffset - 1)}
+          onNext={() => setWeekOffset(weekOffset + 1)}
+          onToday={() => setWeekOffset(0)}
+          items={agenda.map((it) => ({
+            ...it,
+            onPress: it.other ? () => openOther(it.other!) : it.gameId ? () => router.push(`/game/${it.gameId}`) : it.trainingId ? () => router.push(`/training/${it.trainingId}`) : null,
+          }))}
+        />
+      ) : (
+        <>
       <View style={styles.weekHead}>
         <Text style={[styles.weekTitle, { color: c.ink }]}>{weekLabel}</Text>
         {weekOffset !== 0 ? (
@@ -252,9 +290,12 @@ export default function Dashboard() {
         </View>
       ))}
 
+        </>
+      )}
+
       <LeagueHome />
 
-      <SectionTitle>Recent results</SectionTitle>
+      {sport ? <SportSectionTitle>Recent results</SportSectionTitle> : <SectionTitle>Recent results</SectionTitle>}
       {results.length ? (
         <Swimlane cardWidth={Math.round(width * (sport ? 0.84 : 0.62))}>
           {results.map((g) => (
