@@ -24,6 +24,7 @@ export const RELEASE_NOTES: { version: string; title: string; items: { title: st
     title: "What's new",
     items: [
       { title: 'Game length per age group', text: 'Set the number of halves or quarters and their minutes per age group in Club management. New games start with them; a game can still choose otherwise.' },
+      { title: 'Sport theme (beta)', text: 'Try the new design in Account details → Theme. It starts with the game cards; Classic brings the current look back at once. Only on your phone.' },
       { title: 'Cleaner game page', text: 'The score per half or quarter only shows when it is filled in. Tap the score to change it.' },
       { title: 'Cup games', text: 'A game can now be a Cup game, next to Friendly, Tournament and Competition.' },
       { title: 'Injuries', text: 'Open a player from the Squad to add an injury with a start and an expected return. The player is absent in trainings and left out of selections until then, or until you mark him recovered.' },
