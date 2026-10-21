@@ -22,9 +22,9 @@ import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
 import { showUndo } from '../lib/undo';
 
-// Same choices as the web app's new-game form.
+// The web app's choices, plus Cup: a cup game is played like any other game.
 const VENUES = ['Home', 'Away'];
-const COMPETITIONS = ['Friendly', 'Tournament', 'Competition'];
+const COMPETITIONS = ['Friendly', 'Tournament', 'Competition', 'Cup'];
 const LEVELS = ['Elite', 'IP3', 'Other'];
 const TEAMS = [
   { value: 1, label: '1 team' },
