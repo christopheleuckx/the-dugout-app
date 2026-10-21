@@ -1,0 +1,62 @@
+{
+  "club": { "name": "FCV Dender", "federationClubId": "1663" },
+  "ageGroups": [
+    {
+      "name": "U12",
+      "ageGroupId": "4e8e3e9e-b02a-4cbc-9986-2eb32c39b4dc",
+      "teamId": "379784",
+      "seriesId": "CHP_134483",
+      "leagueId": "a6efe3ce-e4c9-4943-aeaa-9058e5a36482",
+      "ownScores": "manual"
+    },
+    {
+      "name": "U13",
+      "ageGroupId": "81f7c06f-0877-4fb1-86c1-9d283b982944",
+      "teamId": "379782",
+      "seriesId": "CHP_132800",
+      "leagueId": null,
+      "ownScores": "sync"
+    },
+    {
+      "name": "U14",
+      "ageGroupId": "2a1a5496-2e79-4078-8cef-a15b605b49e3",
+      "teamId": "379780",
+      "seriesId": "CHP_130345",
+      "leagueId": "59281de9-0cf0-4bf3-940f-e85bb1a76b4c",
+      "ownScores": "sync"
+    },
+    {
+      "name": "U15",
+      "ageGroupId": "35e92581-5a6e-4ec5-861b-02e0da347847",
+      "teamId": "379779",
+      "seriesId": "CHP_134755",
+      "leagueId": "50f5119a-8217-46b7-b2bd-70e961b8a306",
+      "ownScores": "sync"
+    },
+    {
+      "name": "U16",
+      "ageGroupId": "c2dd41d5-cdb4-4e25-8a9c-2989e13f2053",
+      "teamId": "379778",
+      "seriesId": "CHP_134745",
+      "leagueId": "9b5138ae-3714-4ba2-9d1b-d48f153a3d30",
+      "ownScores": "sync"
+    },
+    {
+      "name": "U17",
+      "ageGroupId": "1900c022-87c3-4330-86b6-48b79f611201",
+      "teamId": "379777",
+      "seriesId": "CHP_133283",
+      "leagueId": "edc75c7b-1afd-4cd4-882d-221b912e2589",
+      "ownScores": "sync"
+    },
+    {
+      "name": "U19",
+      "ageGroupId": "f866e6ce-b446-42d7-8d50-378c8f896932",
+      "teamId": "379776",
+      "seriesId": "CHP_133274",
+      "leagueId": "47c5c86f-8411-48b6-b5eb-77e1de913eee",
+      "ownScores": "sync"
+    }
+  ],
+  "aliases": {}
+}
