@@ -80,6 +80,11 @@ export default function GameScreen() {
   const them: Side = { name: game.opponent || 'TBD', url: game.opponentLogoUrl };
   const sides = game.homeAway === 'Away' ? [them, us] : [us, them];
   const quarters = game.quarters[team] ?? [];
+  // Mostly only the final score is known, kept in the first part. The score
+  // per half or quarter only shows once more than one part has a score.
+  const filled = quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length);
+  const byPart = quarters.filter((q) => q.home !== null && q.away !== null).length > 1;
+  const scorers = quarters.flatMap((q) => q.scorers);
   const report = game.reports[team];
   const lineups = game.lineups[team] ?? [];
   const videoCount = videos.filter((v) => v.gameId === game.id && v.team === team).length;
@@ -215,7 +220,12 @@ export default function GameScreen() {
             })}
           </>
         ) : (
-          <View style={[styles.card, styles.result, { backgroundColor: c.surface }]}>
+          <Pressable
+            style={[styles.card, styles.result, { backgroundColor: c.surface }]}
+            disabled={!filled}
+            onPress={() => router.push({ pathname: '/game-scores', params: { game: game.id, team } })}
+            accessibilityLabel="Change goals and scores"
+          >
             {teamSide(sides[0])}
             <View style={styles.middle}>
               <Text style={[styles.end, { color: c.inkSoft }]}>{status}</Text>
@@ -224,10 +234,10 @@ export default function GameScreen() {
               </Text>
             </View>
             {teamSide(sides[1])}
-          </View>
+          </Pressable>
         )}
 
-        {!tournament && quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
+        {!tournament && byPart ? (
           <Pressable
             style={[styles.card, { backgroundColor: c.surface, gap: 0, paddingVertical: 6 }]}
             onPress={() => router.push({ pathname: '/game-scores', params: { game: game.id, team } })}
@@ -262,7 +272,23 @@ export default function GameScreen() {
               </View>
             ))}
           </Pressable>
-        ) : quarters.length && !!game.date && game.date <= today && !game.cancelStatus && !quarters.some((q) => q.home !== null || q.away !== null || q.scorers.length) ? (
+        ) : !tournament && scorers.length ? (
+          // Only the final score is known: the goals without the parts.
+          <Pressable
+            style={[styles.card, { backgroundColor: c.surface, gap: 2 }]}
+            onPress={() => router.push({ pathname: '/game-scores', params: { game: game.id, team } })}
+            accessibilityLabel="Change goals and scores"
+          >
+            {scorers.map((name, n) => (
+              <View key={n} style={styles.scorer}>
+                <Ionicons name="football-outline" size={14} color={c.inkSoft} />
+                <Text style={[styles.sub, { color: c.ink }]} numberOfLines={1}>
+                  {name}
+                </Text>
+              </View>
+            ))}
+          </Pressable>
+        ) : quarters.length && !!game.date && game.date <= today && !game.cancelStatus && !filled ? (
           // Played, or being played today, and nothing filled in yet.
           <Pressable
             style={[styles.card, styles.addScores, { backgroundColor: c.surface }]}
