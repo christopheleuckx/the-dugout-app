@@ -27,7 +27,7 @@ import { fonts, useColors } from '../lib/theme';
 const FORMATS = ['8v8', '9v9', '11v11'];
 
 // A club with its age groups, as the structure of version 2 stores them.
-type AgeGroup = { id: string; name: string; format: string; teams: string[]; coaches: number; video: boolean };
+type AgeGroup = { id: string; name: string; format: string; quarters: number; quarterLength: number; teams: string[]; coaches: number; video: boolean };
 // Videos (watching and uploading) are on per club, for all its age groups or the chosen ones.
 type Club = { id: string; name: string; logoPath: string | null; video: boolean; videoAll: boolean; ageGroups: AgeGroup[] };
 
@@ -68,6 +68,9 @@ export default function ManageScreen() {
   const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
   const [groupName, setGroupName] = useState('');
   const [format, setFormat] = useState('8v8');
+  // The parts of a game and their minutes that new games of the age group start with.
+  const [parts, setParts] = useState(4);
+  const [partMinutes, setPartMinutes] = useState(20);
   const [twoTeams, setTwoTeams] = useState(true);
   const [saveVideos, setSaveVideos] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -110,7 +113,7 @@ export default function ManageScreen() {
     // Clubs, their age groups and teams, with how many coaches and players each has.
     const structure = await supabase
       .from('clubs')
-      .select('id, name, logo_path, video_enabled, video_all_age_groups, age_groups(id, name, default_format, video_enabled, teams(key, name), age_group_members(user_id))')
+      .select('id, name, logo_path, video_enabled, video_all_age_groups, age_groups(id, name, default_format, default_quarters, default_quarter_length, video_enabled, teams(key, name), age_group_members(user_id))')
       .order('name');
     if (!structure.error) {
       setClubs(
@@ -125,6 +128,8 @@ export default function ManageScreen() {
               id: a.id,
               name: a.name,
               format: a.default_format,
+              quarters: a.default_quarters ?? 4,
+              quarterLength: a.default_quarter_length ?? 20,
               teams: (a.teams ?? []).sort((x, y) => x.key.localeCompare(y.key)).map((t) => t.name),
               coaches: (a.age_group_members ?? []).length,
               video: !!a.video_enabled,
@@ -225,7 +230,7 @@ export default function ManageScreen() {
     setError('');
     try {
       if (editing) {
-        const changed = await supabase.from('age_groups').update({ name: groupName.trim(), default_format: format }).eq('id', editing.id);
+        const changed = await supabase.from('age_groups').update({ name: groupName.trim(), default_format: format, default_quarters: parts, default_quarter_length: partMinutes }).eq('id', editing.id);
         if (changed.error) throw new Error(/duplicate/i.test(changed.error.message) ? 'This club already has an age group with that name.' : changed.error.message);
         await Promise.all([load(), refresh()]);
         setAdding(null);
@@ -233,7 +238,7 @@ export default function ManageScreen() {
         setSaving(false);
         return;
       }
-      const made = await supabase.from('age_groups').insert({ club_id: adding.id, name: groupName.trim(), default_format: format }).select('id').single();
+      const made = await supabase.from('age_groups').insert({ club_id: adding.id, name: groupName.trim(), default_format: format, default_quarters: parts, default_quarter_length: partMinutes }).select('id').single();
       if (made.error) throw new Error(/duplicate/i.test(made.error.message) ? 'This club already has an age group with that name.' : made.error.message);
       const teams = twoTeams
         ? [
@@ -271,6 +276,8 @@ export default function ManageScreen() {
     setEditing(null);
     setGroupName('');
     setFormat('8v8');
+    setParts(4);
+    setPartMinutes(20);
     setTwoTeams(true);
     setError('');
     setAdding(club);
@@ -351,6 +358,17 @@ export default function ManageScreen() {
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
   const isNew = open === 'new';
   const admin = open !== null && open !== 'new' && open.isAdmin;
+  const stepper = (value: number, set: (n: number) => void, min: number, max: number) => (
+    <View style={styles.stepper}>
+      <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => set(Math.max(min, value - 1))} hitSlop={6} accessibilityLabel="Less">
+        <Ionicons name="remove" size={18} color={c.ink} />
+      </Pressable>
+      <Text style={[styles.stepValue, { color: c.ink }]}>{value}</Text>
+      <Pressable style={[styles.step, { backgroundColor: c.surface2 }]} onPress={() => set(Math.min(max, value + 1))} hitSlop={6} accessibilityLabel="More">
+        <Ionicons name="add" size={18} color={c.ink} />
+      </Pressable>
+    </View>
+  );
   const field = (label: string, value: string, set: (v: string) => void, props: object = {}, first = false) => (
     <View style={[styles.row, !first && line]}>
       <Text style={[styles.label, { color: c.ink }]}>{label}</Text>
@@ -490,9 +508,20 @@ export default function ManageScreen() {
                 </Pressable>
               ))}
             </View>
+            <Text style={[styles.caption, { color: c.inkSoft }]}>Game length</Text>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: c.ink }]}>{parts === 2 ? 'Halves' : parts === 4 ? 'Quarters' : 'Parts'}</Text>
+                {stepper(parts, setParts, 1, 6)}
+              </View>
+              <View style={[styles.row, line]}>
+                <Text style={[styles.label, { color: c.ink }]}>Minutes each</Text>
+                {stepper(partMinutes, setPartMinutes, 1, 45)}
+              </View>
+            </View>
             {editing ? (
               <Text style={[styles.note, { color: c.inkSoft }]}>
-                New games start in this format; a game can still choose another one. Teams: {editing.teams.join(' and ')}.
+                New games start in this format and length ({parts} × {partMinutes}'); a game can still choose otherwise. Teams: {editing.teams.join(' and ')}.
               </Text>
             ) : (
               <>
@@ -642,6 +671,8 @@ export default function ManageScreen() {
                         onPress={() => {
                           setGroupName(group.name);
                           setFormat(group.format);
+                          setParts(group.quarters);
+                          setPartMinutes(group.quarterLength);
                           setError('');
                           setEditing(group);
                           setAdding(clubOpen);
@@ -650,7 +681,7 @@ export default function ManageScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>{group.name}</Text>
                           <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
-                            {[group.format, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
+                            {[group.format, `${group.quarters} × ${group.quarterLength}'`, group.teams.join(' and '), `${group.coaches} ${group.coaches === 1 ? 'coach' : 'coaches'}`].join(' · ')}
                           </Text>
                         </View>
                         <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
@@ -732,6 +763,9 @@ const styles = StyleSheet.create({
   card: { borderRadius: 14, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 50, paddingVertical: 9 },
   label: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  step: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  stepValue: { minWidth: 24, textAlign: 'center', fontFamily: fonts.medium, fontSize: 16 },
   value: { fontFamily: fonts.regular, fontSize: 16 },
   input: { flex: 1.4, textAlign: 'right', fontFamily: fonts.regular, fontSize: 16, paddingVertical: 0 },
   button: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, marginTop: 6 },

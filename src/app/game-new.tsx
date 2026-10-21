@@ -54,8 +54,9 @@ export default function NewGameScreen() {
   const [teams, setTeams] = useState(oneTeam ? 1 : 2);
   // A new game starts with the age group's usual format.
   const [format, setFormat] = useState<string>(me?.activeAgeGroup?.format ?? '8v8');
-  const [quarters, setQuarters] = useState(4);
-  const [minutes, setMinutes] = useState(20);
+  // …and its usual number of parts and minutes per part.
+  const [quarters, setQuarters] = useState(me?.activeAgeGroup?.quarters ?? 4);
+  const [minutes, setMinutes] = useState(me?.activeAgeGroup?.quarterLength ?? 20);
   // Custom names per quarter; an empty one falls back to Q1, Q2…
   const [names, setNames] = useState<string[]>([]);
   const [location, setLocation] = useState('');

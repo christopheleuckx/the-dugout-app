@@ -230,6 +230,9 @@ export type AgeGroup = {
   name: string;
   // The format a new game starts with: 8v8, 9v9 or 11v11.
   format: string;
+  // How many parts a new game has, and how many minutes each part lasts.
+  quarters: number;
+  quarterLength: number;
   clubId: string;
   clubName: string;
   clubLogoUrl: string | null;
@@ -384,7 +387,7 @@ async function load(userId: string): Promise<Data> {
   // The age groups the coach is linked to, with their club and teams.
   const linked = await supabase
     .from('age_group_members')
-    .select('age_groups(id, name, default_format, video_enabled, clubs(id, name, logo_path, video_enabled, video_all_age_groups), teams(key, name, color))')
+    .select('age_groups(id, name, default_format, default_quarters, default_quarter_length, video_enabled, clubs(id, name, logo_path, video_enabled, video_all_age_groups), teams(key, name, color))')
     .eq('user_id', userId);
   const ageGroups: AgeGroup[] = ((linked.data ?? []) as any[])
     .map((row) => row.age_groups)
@@ -393,6 +396,8 @@ async function load(userId: string): Promise<Data> {
       id: a.id,
       name: a.name,
       format: a.default_format,
+      quarters: a.default_quarters ?? 4,
+      quarterLength: a.default_quarter_length ?? 20,
       clubId: a.clubs?.id ?? '',
       clubName: a.clubs?.name ?? '',
       clubLogoUrl: logoUrl(a.clubs?.logo_path),
