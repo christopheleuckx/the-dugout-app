@@ -56,8 +56,9 @@ export function SportUpcomingCard({ game }: { game: Game }) {
   const p = useSportColors();
   const { clubLogoUrl, clubName } = useData();
   const [home, away] = sides(game, { name: clubName, url: clubLogoUrl });
+  // Centred, so a card stretched next to the taller Next match block keeps even space above and below.
   return (
-    <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+    <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border, justifyContent: 'center' }]}>
       <Text style={[styles.small, { textAlign: 'center', color: game.competition === 'Cup' ? p.cup : p.soft }]}>
         {game.competition}
       </Text>
