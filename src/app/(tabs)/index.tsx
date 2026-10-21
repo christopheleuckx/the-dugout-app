@@ -188,9 +188,6 @@ export default function Dashboard() {
         <SportGreeting greeting={greeting()} firstName={me?.firstName} />
       ) : (
       <View>
-        <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 14 }}>
-          {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </Text>
         <Text style={[styles.greeting, { color: c.ink }]}>{greeting()},</Text>
         {me?.firstName ? (
           <Text style={[styles.greeting, { color: c.pitch, fontFamily: fonts.semi }]}>{me.firstName}</Text>

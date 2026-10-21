@@ -11,9 +11,6 @@ export function SportGreeting({ greeting, firstName }: { greeting: string; first
   const p = useSportColors();
   return (
     <View>
-      <Text style={[styles.small, { color: p.soft, fontSize: 14 }]}>
-        {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-      </Text>
       <Text style={[styles.greeting, { color: p.ink }]}>
         {greeting.toUpperCase()},{firstName ? '\n' : ''}
         {firstName ? <Text style={{ color: p.game }}>{firstName.toUpperCase()}</Text> : null}
