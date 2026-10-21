@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { useNewGameCards } from '../lib/cardStyle';
+import { useTheme } from '../lib/appTheme';
 import { fmtDate, useData, type Game } from '../lib/data';
 import { brand, fonts, useColors } from '../lib/theme';
 import { SportNextCard, SportResultCard, SportUpcomingCard } from './SportCard';
@@ -181,9 +181,9 @@ export function MatchCard(props: {
   today: string;
   notched?: boolean;
 }) {
-  const sport = useNewGameCards();
+  const sport = useTheme() === 'sport';
   if (props.game.competition === 'Tournament') return <TournamentCard {...props} />;
-  // The new cards (beta), when switched on for this phone in Profile.
+  // The Sport theme's cards (beta), when chosen for this phone in Profile.
   if (sport && props.variant === 'next') return <SportNextCard game={props.game} today={props.today} />;
   if (sport && props.variant === 'upcoming') return <SportUpcomingCard game={props.game} />;
   if (sport) return <SportResultCard game={props.game} />;

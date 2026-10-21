@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { LeagueHome } from '../../components/LeagueHome';
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { SportResultCard } from '../../components/SportCard';
-import { useNewGameCards } from '../../lib/cardStyle';
+import { useTheme } from '../../lib/appTheme';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
 import { currentWeek, fmtDate, todayIso, useData, type Game } from '../../lib/data';
@@ -59,7 +59,7 @@ function ResultCard({ game }: { game: Game }) {
 
 export default function Dashboard() {
   const c = useColors();
-  const sport = useNewGameCards();
+  const sport = useTheme() === 'sport';
   const { width } = useWindowDimensions();
   const { games, trainings, me, competitors, refresh } = useData();
   const today = todayIso();
