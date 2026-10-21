@@ -30,22 +30,31 @@ export function SportNextCard({ game, today }: { game: Game; today: string }) {
           <Text style={styles.tagText}>{tag}</Text>
         </View>
       </View>
-      <Text style={[styles.hero, { color: '#fff' }]}>
+      <Text style={[styles.poster, { color: '#fff' }]}>
         NEXT{'\n'}
         <Text style={{ color: p.featureAccent }}>MATCH</Text>
+        {'\n'}DAY
       </Text>
-      <View style={[styles.between, { marginTop: 14 }]}>
+      <View style={[styles.between, { marginTop: 'auto', paddingTop: 20 }]}>
         <View style={styles.crests}>
-          <Crest url={home.url} name={home.name} size={44} />
-          <Text style={[styles.vs, { color: p.featureAccent }]}>V/S</Text>
-          <Crest url={away.url} name={away.name} size={44} />
+          <Crest url={home.url} name={home.name} size={56} />
+          <Text style={[styles.vs, { color: p.featureAccent, fontSize: 18 }]}>V/S</Text>
+          <Crest url={away.url} name={away.name} size={56} />
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={[styles.italic, { fontSize: 22, color: '#fff' }]}>{fmtDate(game.date).toUpperCase()}</Text>
+          <Text style={[styles.italic, { fontSize: 24, color: '#fff' }]}>{fmtDate(game.date).toUpperCase()}</Text>
           <Text style={[styles.small, { color: p.featureSoft, fontSize: 14 }]}>
             {game.time ?? 'TBD'} · {game.homeAway}
           </Text>
         </View>
+      </View>
+      {/* The teams written out, home first like the crests. */}
+      <View style={[styles.teams, { borderTopColor: 'rgba(255,255,255,0.15)' }]}>
+        <Text style={[styles.italic, styles.teamText]} numberOfLines={2}>
+          {home.name.toUpperCase()}
+          <Text style={{ color: p.featureAccent, fontSize: 15 }}>{'  V/S  '}</Text>
+          {away.name.toUpperCase()}
+        </Text>
       </View>
     </View>
   );
@@ -163,7 +172,7 @@ export function SportTournamentCard({ game, variant, today }: { game: Game; vari
           NEXT{'\n'}
           <Text style={{ color: p.featureAccent }}>TOURNAMENT</Text>
         </Text>
-        <View style={[styles.between, { marginTop: 14, gap: 10 }]}>
+        <View style={[styles.between, { marginTop: 'auto', paddingTop: 20, gap: 10 }]}>
           <View style={[styles.crests, { flex: 1 }]}>
             <Crest url={game.opponentLogoUrl} name={host} size={44} />
             <Text style={[styles.italic, { flex: 1, fontSize: 20, color: '#fff' }]} numberOfLines={2}>
@@ -264,7 +273,7 @@ export function SportTournamentCard({ game, variant, today }: { game: Game; vari
 
 const styles = StyleSheet.create({
   italic: { fontFamily: sportFonts.display },
-  next: { flex: 1, borderRadius: sportShape.feature, paddingVertical: 16, paddingHorizontal: 16 },
+  next: { flex: 1, minHeight: 300, borderRadius: sportShape.feature, paddingTop: 16, paddingBottom: 18, paddingHorizontal: 18 },
   card: { flex: 1, borderRadius: sportShape.card, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 16 },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   small: { fontFamily: fonts.regular, fontSize: 12.5 },
@@ -272,6 +281,9 @@ const styles = StyleSheet.create({
   tag: { borderRadius: sportShape.pill, paddingHorizontal: 10, paddingVertical: 3 },
   tagText: { color: '#fff', fontFamily: fonts.medium, fontSize: 12 },
   hero: { fontFamily: sportFonts.display, fontSize: 42, lineHeight: 40, marginTop: 10 },
+  poster: { fontFamily: sportFonts.display, fontSize: 60, lineHeight: 54, marginTop: 14 },
+  teams: { borderTopWidth: 1, marginTop: 14, paddingTop: 14 },
+  teamText: { color: '#fff', fontSize: 20 },
   crests: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   vs: { fontFamily: sportFonts.display, fontSize: 15 },
   pill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: sportShape.pill, padding: 6, marginTop: 10 },
