@@ -16,20 +16,44 @@ function sides(game: Game, us: { name: string; url: string | null }) {
 }
 
 // The very next game: a dark block that stands out in light and dark mode.
-export function SportNextCard({ game, today }: { game: Game; today: string }) {
+// `compact` is the smaller block for Home, so it stays in balance with the
+// other upcoming games in its row; the Games list shows the tall poster.
+export function SportNextCard({ game, today, compact = false }: { game: Game; today: string; compact?: boolean }) {
   const p = useSportColors();
   const { clubLogoUrl, clubName } = useData();
   const [home, away] = sides(game, { name: clubName, url: clubLogoUrl });
   const status = game.cancelStatus;
   const tag = status ? status[0].toUpperCase() + status.slice(1) : game.date ? countdown(game.date, today) : 'No date';
   return (
-    <View style={[styles.next, { backgroundColor: p.feature }]}>
+    <View style={[styles.next, compact && styles.nextCompact, { backgroundColor: p.feature }]}>
       <View style={styles.between}>
         <Text style={[styles.small, { color: p.featureSoft }]}>{game.competition}</Text>
         <View style={[styles.tag, { backgroundColor: p.countdown }]}>
           <Text style={styles.tagText}>{tag}</Text>
         </View>
       </View>
+      {compact ? (
+        <>
+          <Text style={[styles.hero, { color: '#fff' }]}>
+            NEXT{'\n'}
+            <Text style={{ color: p.featureAccent }}>MATCH</Text>
+          </Text>
+          <View style={[styles.between, { marginTop: 14 }]}>
+            <View style={styles.crests}>
+              <Crest url={home.url} name={home.name} size={44} />
+              <Text style={[styles.vs, { color: p.featureAccent }]}>V/S</Text>
+              <Crest url={away.url} name={away.name} size={44} />
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={[styles.italic, { fontSize: 22, color: '#fff' }]}>{fmtDate(game.date).toUpperCase()}</Text>
+              <Text style={[styles.small, { color: p.featureSoft, fontSize: 14 }]}>
+                {game.time ?? 'TBD'} · {game.homeAway}
+              </Text>
+            </View>
+          </View>
+        </>
+      ) : (
+        <>
       <Text style={[styles.poster, { color: '#fff' }]}>
         NEXT{'\n'}
         <Text style={{ color: p.featureAccent }}>MATCH</Text>
@@ -56,6 +80,8 @@ export function SportNextCard({ game, today }: { game: Game; today: string }) {
           {away.name.toUpperCase()}
         </Text>
       </View>
+        </>
+      )}
     </View>
   );
 }
@@ -148,7 +174,7 @@ export function SportResultCard({ game }: { game: Game }) {
 // A tournament has no single opponent: the host club leads. Next: the dark block.
 // Upcoming: host, date, start and number of games in a pill. Played: a row per
 // team with its place, wins, draws, losses and goals; the club's name when only one team played.
-export function SportTournamentCard({ game, variant, today }: { game: Game; variant: 'next' | 'upcoming' | 'played'; today: string }) {
+export function SportTournamentCard({ game, variant, today, compact = false }: { game: Game; variant: 'next' | 'upcoming' | 'played'; today: string; compact?: boolean }) {
   const p = useSportColors();
   const { clubName } = useData();
   const host = game.opponent || 'Tournament';
@@ -159,7 +185,7 @@ export function SportTournamentCard({ game, variant, today }: { game: Game; vari
 
   if (variant === 'next') {
     return (
-      <View style={[styles.next, { backgroundColor: p.feature }]}>
+      <View style={[styles.next, compact && styles.nextCompact, { backgroundColor: p.feature }]}>
         <View style={styles.between}>
           <Text style={[styles.small, { color: p.featureSoft }]}>
             {level} · {games}
@@ -172,7 +198,7 @@ export function SportTournamentCard({ game, variant, today }: { game: Game; vari
           NEXT{'\n'}
           <Text style={{ color: p.featureAccent }}>TOURNAMENT</Text>
         </Text>
-        <View style={[styles.between, { marginTop: 'auto', paddingTop: 20, gap: 10 }]}>
+        <View style={[styles.between, compact ? { marginTop: 14, gap: 10 } : { marginTop: 'auto', paddingTop: 20, gap: 10 }]}>
           <View style={[styles.crests, { flex: 1 }]}>
             <Crest url={game.opponentLogoUrl} name={host} size={44} />
             <Text style={[styles.italic, { flex: 1, fontSize: 20, color: '#fff' }]} numberOfLines={2}>
@@ -281,6 +307,7 @@ const styles = StyleSheet.create({
   tag: { borderRadius: sportShape.pill, paddingHorizontal: 10, paddingVertical: 3 },
   tagText: { color: '#fff', fontFamily: fonts.medium, fontSize: 12 },
   hero: { fontFamily: sportFonts.display, fontSize: 42, lineHeight: 40, marginTop: 10 },
+  nextCompact: { minHeight: 0, paddingVertical: 16, paddingHorizontal: 16 },
   poster: { fontFamily: sportFonts.display, fontSize: 60, lineHeight: 54, marginTop: 14 },
   teams: { borderTopWidth: 1, marginTop: 14, paddingTop: 14 },
   teamText: { color: '#fff', fontSize: 20 },

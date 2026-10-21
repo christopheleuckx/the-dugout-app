@@ -180,7 +180,7 @@ export default function Dashboard() {
         <Swimlane cardWidth={upcoming.length > 1 ? Math.round(width * 0.78) : width - 32}>
           {upcoming.map((g, i) => (
             <Pressable key={g.id} style={{ flex: 1 }} onPress={() => router.push(`/game/${g.id}`)}>
-              <MatchCard game={g} variant={i === 0 ? 'next' : 'upcoming'} today={today} notched />
+              <MatchCard game={g} variant={i === 0 ? 'next' : 'upcoming'} today={today} notched compact />
             </Pressable>
           ))}
         </Swimlane>

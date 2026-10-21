@@ -180,11 +180,13 @@ export function MatchCard(props: {
   variant: 'next' | 'upcoming' | 'played';
   today: string;
   notched?: boolean;
+  // Home's smaller Next match block (Sport theme).
+  compact?: boolean;
 }) {
   const sport = useTheme() === 'sport';
   if (props.game.competition === 'Tournament') return sport ? <SportTournamentCard {...props} /> : <TournamentCard {...props} />;
   // The Sport theme's cards (beta), when chosen for this phone in Profile.
-  if (sport && props.variant === 'next') return <SportNextCard game={props.game} today={props.today} />;
+  if (sport && props.variant === 'next') return <SportNextCard game={props.game} today={props.today} compact={props.compact} />;
   if (sport && props.variant === 'upcoming') return <SportUpcomingCard game={props.game} />;
   if (sport) return <SportResultCard game={props.game} />;
   return <FixtureCard {...props} />;
