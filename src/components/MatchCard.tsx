@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
+import { useNewGameCards } from '../lib/cardStyle';
 import { fmtDate, useData, type Game } from '../lib/data';
 import { brand, fonts, useColors } from '../lib/theme';
+import { SportNextCard, SportResultCard, SportUpcomingCard } from './SportCard';
 
 const NOTCH = 26;
 const day = (iso: string) => new Date(iso + 'T00:00:00');
@@ -179,7 +181,13 @@ export function MatchCard(props: {
   today: string;
   notched?: boolean;
 }) {
-  return props.game.competition === 'Tournament' ? <TournamentCard {...props} /> : <FixtureCard {...props} />;
+  const sport = useNewGameCards();
+  if (props.game.competition === 'Tournament') return <TournamentCard {...props} />;
+  // The new cards (beta), when switched on for this phone in Profile.
+  if (sport && props.variant === 'next') return <SportNextCard game={props.game} today={props.today} />;
+  if (sport && props.variant === 'upcoming') return <SportUpcomingCard game={props.game} />;
+  if (sport) return <SportResultCard game={props.game} />;
+  return <FixtureCard {...props} />;
 }
 
 function FixtureCard({

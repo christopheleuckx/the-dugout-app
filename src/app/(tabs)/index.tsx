@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import { LeagueHome } from '../../components/LeagueHome';
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
+import { SportResultCard } from '../../components/SportCard';
+import { useNewGameCards } from '../../lib/cardStyle';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
 import { currentWeek, fmtDate, todayIso, useData, type Game } from '../../lib/data';
@@ -57,6 +59,7 @@ function ResultCard({ game }: { game: Game }) {
 
 export default function Dashboard() {
   const c = useColors();
+  const sport = useNewGameCards();
   const { width } = useWindowDimensions();
   const { games, trainings, me, competitors, refresh } = useData();
   const today = todayIso();
@@ -254,10 +257,10 @@ export default function Dashboard() {
 
       <SectionTitle>Recent results</SectionTitle>
       {results.length ? (
-        <Swimlane cardWidth={Math.round(width * 0.62)}>
+        <Swimlane cardWidth={Math.round(width * (sport ? 0.84 : 0.62))}>
           {results.map((g) => (
-            <Pressable key={g.id} onPress={() => router.push(`/game/${g.id}`)}>
-              <ResultCard game={g} />
+            <Pressable key={g.id} style={sport && { flex: 1 }} onPress={() => router.push(`/game/${g.id}`)}>
+              {sport ? <SportResultCard game={g} /> : <ResultCard game={g} />}
             </Pressable>
           ))}
         </Swimlane>

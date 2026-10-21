@@ -1,4 +1,4 @@
-import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold, useFonts } from '@expo-google-fonts/barlow-condensed';
+import { BarlowCondensed_600SemiBold, BarlowCondensed_600SemiBold_Italic, BarlowCondensed_700Bold, useFonts } from '@expo-google-fonts/barlow-condensed';
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from '@expo-google-fonts/outfit';
 import { Stack } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -16,6 +16,7 @@ function RootNavigator() {
   const { session, loading } = useAuth();
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
+    BarlowCondensed_600SemiBold_Italic,
     BarlowCondensed_700Bold,
     Outfit_400Regular,
     Outfit_500Medium,

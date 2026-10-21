@@ -2,12 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '../../components/Avatar';
 import { Screen } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
+import { setNewGameCards, useNewGameCards } from '../../lib/cardStyle';
 import { useData } from '../../lib/data';
 import { appVersion } from '../../lib/releaseNotes';
 import { supabase } from '../../lib/supabase';
@@ -20,6 +21,7 @@ export default function Profile() {
   const { signOut } = useAuth();
   const { me, refresh } = useData();
   const [choosing, setChoosing] = useState(false);
+  const newCards = useNewGameCards();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // For the admin: how full the free video storage is, to warn in time.
@@ -157,6 +159,18 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
           </Pressable>
         ) : null}
+      </View>
+
+      {/* Try the new game cards on this phone only; off brings the current ones back. */}
+      <View style={[styles.card, { backgroundColor: c.surface }]}>
+        <View style={styles.row}>
+          <Ionicons name="color-palette-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>New game cards (beta)</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Only on this phone</Text>
+          </View>
+          <Switch value={newCards} onValueChange={setNewGameCards} trackColor={{ true: c.pitch }} />
+        </View>
       </View>
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>
