@@ -260,6 +260,8 @@ export type Profile = {
   // the database only returns that age group's players, games and trainings.
   ageGroups: AgeGroup[];
   activeAgeGroup: AgeGroup | null;
+  // Per other age group: whether its trainings and games show in This week.
+  weekAgeGroups: Record<string, { trainings: boolean; games: boolean }>;
 };
 
 type Data = {
@@ -650,6 +652,7 @@ async function load(userId: string): Promise<Data> {
           tourSeen: p.tour_seen ?? 0,
           ageGroups,
           activeAgeGroup,
+          weekAgeGroups: p.week_age_groups ?? {},
           avatarUrl: p.avatar_path ? supabase.storage.from('avatars').getPublicUrl(p.avatar_path).data.publicUrl : null,
         }
       : null,

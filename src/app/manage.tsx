@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
 import { Crest } from '../components/MatchCard';
 import { useData, type Profile } from '../lib/data';
-import { setShowOtherGames, useShowOtherGames } from '../lib/otherGames';
+import { setWeekChoice, type WeekChoice } from '../lib/otherGames';
 import { goBack } from '../lib/nav';
 import { logoUrl, supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -99,6 +99,7 @@ export default function ManageScreen() {
         tourSeen: 0,
         ageGroups: [],
         activeAgeGroup: null,
+        weekAgeGroups: {},
         flags: p.feature_flags ?? {},
       })),
     );
@@ -254,8 +255,18 @@ export default function ManageScreen() {
 
 
   const clubOpen = clubs.find((club) => club.id === clubId) ?? null;
-  const showOther = useShowOtherGames();
-  const otherGroups = (me?.ageGroups ?? []).filter((a) => a.id !== me?.activeAgeGroup?.id).map((a) => a.name);
+  // What the signed-in coach shows of an age group in This week on Home.
+  const [weekChoices, setWeekChoices] = useState<Record<string, WeekChoice>>(me?.weekAgeGroups ?? {});
+  async function chooseWeek(groupId: string, change: Partial<WeekChoice>) {
+    const next: WeekChoice = { ...{ trainings: false, games: false }, ...weekChoices[groupId], ...change };
+    setError('');
+    setWeekChoices({ ...weekChoices, [groupId]: next });
+    const { error: failed } = await setWeekChoice(groupId, next);
+    if (failed) {
+      setWeekChoices(weekChoices);
+      setError(`Could not save: ${failed.message}`);
+    } else refresh();
+  }
   function newAgeGroup(club: Club) {
     setEditing(null);
     setGroupName('');
@@ -420,6 +431,38 @@ export default function ManageScreen() {
               {editing ? `An age group of ${adding.name}.` : `A new age group of ${adding.name}, with its own players, games and trainings.`}
             </Text>
             <View style={[styles.card, { backgroundColor: c.surface }]}>{field('Name', groupName, setGroupName, { placeholder: 'U13' }, true)}</View>
+            {/* What of this age group shows in This week on Home, for the signed-in coach. */}
+            {editing ? (
+              <>
+                <Text style={[styles.caption, { color: c.inkSoft }]}>This week on Home</Text>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
+                  {(
+                    [
+                      ['trainings', 'Trainings and activities'],
+                      ['games', 'Games'],
+                    ] as [keyof WeekChoice, string][]
+                  ).map(([key, label], i) => {
+                    const active = editing.id === me?.activeAgeGroup?.id;
+                    return (
+                      <View key={key} style={[styles.row, i > 0 && line]}>
+                        <Text style={[styles.label, { color: c.ink }]}>{label}</Text>
+                        <Switch
+                          value={active || !!weekChoices[editing.id]?.[key]}
+                          disabled={active}
+                          onValueChange={(on) => chooseWeek(editing.id, { [key]: on })}
+                          trackColor={{ true: c.pitch }}
+                        />
+                      </View>
+                    );
+                  })}
+                </View>
+                <Text style={[styles.note, { color: c.inkSoft }]}>
+                  {editing.id === me?.activeAgeGroup?.id
+                    ? `You are working in ${editing.name}, so its trainings and games always show.`
+                    : `Show these next to the team you are working in. Only for you; other coaches choose their own.`}
+                </Text>
+              </>
+            ) : null}
             {/* The players of this age group, used in its selections and trainings. */}
             {editing ? (
               <View style={[styles.card, { backgroundColor: c.surface }]}>
@@ -613,17 +656,6 @@ export default function ManageScreen() {
                         <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
                       </Pressable>
                     ))}
-                    {/* For a coach in more than one age group: the games of the others can join the week list on Home. */}
-                    {otherGroups.length ? (
-                      <View style={[styles.row, { minHeight: 62 }, line]}>
-                        <Ionicons name="calendar-outline" size={22} color={c.inkSoft} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }}>Show {otherGroups.join(' and ')} matches</Text>
-                          <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>In This week on Home</Text>
-                        </View>
-                        <Switch value={showOther} onValueChange={setShowOtherGames} trackColor={{ true: c.pitch }} />
-                      </View>
-                    ) : null}
                   </View>
                 )}
               </View>

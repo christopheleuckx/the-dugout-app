@@ -8,7 +8,7 @@ import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
 import { currentWeek, fmtDate, todayIso, useData, type Game } from '../../lib/data';
-import { loadOtherGames, useShowOtherGames, type OtherGame } from '../../lib/otherGames';
+import { carryOverOldSwitch, loadOtherItems, type OtherItem } from '../../lib/otherGames';
 import { supabase } from '../../lib/supabase';
 import { brand, fonts, useColors } from '../../lib/theme';
 
@@ -66,31 +66,38 @@ export default function Dashboard() {
     weekOffset === 0 ? 'This week' : `${fmtDate(week[0]).slice(4)} – ${fmtDate(week[6]).slice(4)}`;
   const inWeek = (d: string | null) => !!d && d >= week[0] && d <= week[6];
 
-  // The games of the coach's other age groups, when that is switched on in the profile.
-  const showOther = useShowOtherGames();
-  const [other, setOther] = useState<OtherGame[]>([]);
+  // The trainings and games of the other age groups switched on for This week
+  // (Club management, per age group). The age group on show is never among them.
+  const [other, setOther] = useState<OtherItem[]>([]);
   const groupId = me?.activeAgeGroup?.id;
-  const many = (me?.ageGroups.length ?? 0) > 1;
+  const chosen = JSON.stringify(me?.weekAgeGroups ?? {});
   useFocusEffect(
     useCallback(() => {
-      if (!showOther || !many) return setOther([]);
       let live = true;
-      loadOtherGames(week[0], week[6]).then((found) => live && setOther(found));
+      (async () => {
+        if (me && (await carryOverOldSwitch(me.weekAgeGroups, me.ageGroups, groupId))) return refresh();
+        if (chosen === '{}') return live && setOther([]);
+        const found = await loadOtherItems(week[0], week[6]);
+        if (live) setOther(found);
+      })();
       return () => {
         live = false;
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showOther, many, groupId, week[0]]),
+    }, [chosen, groupId, week[0]]),
   );
 
-  // Such a game opens in its own age group, so the app switches there first.
-  async function openOther(g: OtherGame) {
+  // Such a game or training opens in its own age group, so the app switches there first.
+  async function openOther(x: OtherItem) {
     if (!me) return;
-    const saved = await supabase.from('profiles').update({ active_age_group_id: g.ageGroupId }).eq('id', me.id);
+    const saved = await supabase.from('profiles').update({ active_age_group_id: x.ageGroupId }).eq('id', me.id);
     if (saved.error) return;
     await refresh();
-    router.push(`/game/${g.id}`);
+    router.push(x.kind === 'game' ? `/game/${x.id}` : `/training/${x.id}`);
   }
+  // With trainings of other age groups in the list, ours say which age group too.
+  const shown = other.filter((x) => inWeek(x.date) && x.ageGroupId !== groupId && !games.some((g) => g.id === x.id) && !trainings.some((t) => t.id === x.id));
+  const mixedTrainings = shown.some((x) => x.kind === 'training');
 
   const upcoming = games
     .filter((g) => g.date && !g.cancelStatus && (g.date > today || (g.date === today && !g.scores.length)))
@@ -117,24 +124,22 @@ export default function Dashboard() {
         meta: g.cancelStatus ?? [g.time, g.homeAway].filter(Boolean).join(' · '),
         logoUrl: g.opponentLogoUrl,
         kind: 'Game' as const,
-        other: null as OtherGame | null,
+        other: null as OtherItem | null,
       })),
-    // Right after a team switch the list may still hold games of the group now on show.
-    ...other
-      .filter((g) => inWeek(g.date) && g.ageGroupId !== groupId && !games.some((x) => x.id === g.id))
-      .map((g) => ({
-        key: `other-${g.id}`,
-        gameId: null,
-        trainingId: null,
-        date: g.date,
-        sort: g.time ?? '99:99',
-        title: `${g.ageGroup} · ${g.opponent || 'TBD'}`,
-        crestName: g.opponent || 'TBD',
-        meta: g.cancelStatus ?? [g.time, g.homeAway].filter(Boolean).join(' · '),
-        logoUrl: competitors.find((x) => x.id === g.competitorId)?.logoUrl ?? null,
-        kind: 'Game' as const,
-        other: g as OtherGame | null,
-      })),
+    // Right after a team switch the list may still hold items of the group now on show.
+    ...shown.map((x) => ({
+      key: `other-${x.id}`,
+      gameId: null,
+      trainingId: null,
+      date: x.date,
+      sort: x.time ?? '99:99',
+      title: `${x.ageGroup} · ${x.title || (x.kind === 'game' ? 'TBD' : 'Training')}`,
+      crestName: x.kind === 'game' ? x.title || 'TBD' : '',
+      meta: x.cancelStatus ?? [x.time, x.kind === 'game' ? x.homeAway : x.location].filter(Boolean).join(' · '),
+      logoUrl: x.kind === 'game' ? (competitors.find((c) => c.id === x.competitorId)?.logoUrl ?? null) : null,
+      kind: (x.kind === 'game' ? 'Game' : 'Training') as 'Game' | 'Training',
+      other: x as OtherItem | null,
+    })),
     ...trainings
       .filter((t) => inWeek(t.date) && !t.hiddenFromCalendar)
       .map((t) => ({
@@ -143,12 +148,12 @@ export default function Dashboard() {
         trainingId: t.id as string | null,
         date: t.date,
         sort: t.startTime ?? '99:99',
-        title: t.label,
+        title: mixedTrainings ? `${me?.activeAgeGroup?.name ?? ''} · ${t.label}` : t.label,
         crestName: '',
         meta: t.cancelStatus ?? [t.startTime, t.location].filter(Boolean).join(' · '),
         logoUrl: null,
         kind: 'Training' as const,
-        other: null as OtherGame | null,
+        other: null as OtherItem | null,
       })),
   ].sort((a, b) => (a.date + a.sort).localeCompare(b.date + b.sort));
   // One card per day, so a game and a training on the same day sit together.
