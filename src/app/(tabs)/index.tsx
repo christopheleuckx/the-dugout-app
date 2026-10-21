@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import { LeagueHome } from '../../components/LeagueHome';
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
-import { SportResultCard } from '../../components/SportCard';
 import { useTheme } from '../../lib/appTheme';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
@@ -260,7 +259,7 @@ export default function Dashboard() {
         <Swimlane cardWidth={Math.round(width * (sport ? 0.84 : 0.62))}>
           {results.map((g) => (
             <Pressable key={g.id} style={sport && { flex: 1 }} onPress={() => router.push(`/game/${g.id}`)}>
-              {sport ? <SportResultCard game={g} /> : <ResultCard game={g} />}
+              {sport ? <MatchCard game={g} variant="played" today={today} /> : <ResultCard game={g} />}
             </Pressable>
           ))}
         </Swimlane>

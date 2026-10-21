@@ -136,6 +136,132 @@ export function SportResultCard({ game }: { game: Game }) {
   );
 }
 
+// A tournament has no single opponent: the host club leads. Next: the dark block.
+// Upcoming: host, date, start and number of games in a pill. Played: a row per
+// team with its place, wins, draws, losses and goals; the club's name when only one team played.
+export function SportTournamentCard({ game, variant, today }: { game: Game; variant: 'next' | 'upcoming' | 'played'; today: string }) {
+  const p = useSportColors();
+  const { clubName } = useData();
+  const host = game.opponent || 'Tournament';
+  const level = game.type === 'Elite' || game.type === 'IP3' ? `${game.type} tournament` : 'Tournament';
+  const games = `${game.matches} ${game.matches === 1 ? 'game' : 'games'}`;
+  const status = game.cancelStatus;
+  const tag = status ? status[0].toUpperCase() + status.slice(1) : game.date ? countdown(game.date, today) : 'No date';
+
+  if (variant === 'next') {
+    return (
+      <View style={[styles.next, { backgroundColor: p.feature }]}>
+        <View style={styles.between}>
+          <Text style={[styles.small, { color: p.featureSoft }]}>
+            {level} · {games}
+          </Text>
+          <View style={[styles.tag, { backgroundColor: p.countdown }]}>
+            <Text style={styles.tagText}>{tag}</Text>
+          </View>
+        </View>
+        <Text style={[styles.hero, { color: '#fff' }]}>
+          NEXT{'\n'}
+          <Text style={{ color: p.featureAccent }}>TOURNAMENT</Text>
+        </Text>
+        <View style={[styles.between, { marginTop: 14, gap: 10 }]}>
+          <View style={[styles.crests, { flex: 1 }]}>
+            <Crest url={game.opponentLogoUrl} name={host} size={44} />
+            <Text style={[styles.italic, { flex: 1, fontSize: 20, color: '#fff' }]} numberOfLines={2}>
+              {host.toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={[styles.italic, { fontSize: 20, color: '#fff' }]}>{fmtDate(game.date).toUpperCase()}</Text>
+            <Text style={[styles.small, { color: p.featureSoft, fontSize: 14 }]}>{game.time ?? 'TBD'}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (variant === 'upcoming') {
+    return (
+      <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border, justifyContent: 'center' }]}>
+        <Text style={[styles.small, { textAlign: 'center', color: p.soft }]}>{level}</Text>
+        <View style={[styles.pill, { backgroundColor: p.pill, gap: 12, paddingRight: 18 }]}>
+          <Crest url={game.opponentLogoUrl} name={host} size={52} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.tiny, { color: p.soft }]}>{fmtDate(game.date)} · Host</Text>
+            <Text style={[styles.italic, { fontSize: 22, color: p.ink }]} numberOfLines={1}>
+              {host.toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            {status ? (
+              <Text style={[styles.italic, { fontSize: 20, color: p.loss }]}>{status.toUpperCase()}</Text>
+            ) : (
+              <Text style={[styles.italic, { fontSize: 26, color: p.ink }]}>{game.time ?? 'TBD'}</Text>
+            )}
+            <Text style={[styles.tiny, { color: p.soft }]}>{games}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const multi = game.numTeams > 1 || game.records.length > 1;
+  const chip = (label: string, color: string) => (
+    <View style={[styles.stat, { backgroundColor: color + '22' }]}>
+      <Text style={[styles.statText, { color }]}>{label}</Text>
+    </View>
+  );
+  // "1st Place" as typed in the web app reads as "1st"; first place gets the gold chip.
+  const place = (text: string | null) => {
+    const first = !!text && /^(1|1st|first|winner)\b/i.test(text.trim());
+    const label = text ? text.replace(/\s*place$/i, '').trim() : '–';
+    return (
+      <View style={[styles.place, { backgroundColor: first ? p.draw + '26' : p.pill }]}>
+        <Ionicons name="trophy-outline" size={13} color={first ? p.draw : p.soft} />
+        <Text style={[styles.statText, { color: first ? p.draw : p.soft }]}>{label}</Text>
+      </View>
+    );
+  };
+  return (
+    <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+      <View style={styles.row}>
+        <Crest url={game.opponentLogoUrl} name={host} size={34} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.italic, { fontSize: 20, color: p.ink }]} numberOfLines={1}>
+            {host.toUpperCase()}
+          </Text>
+          <Text style={[styles.small, { color: p.soft }]}>{level} · Host</Text>
+        </View>
+      </View>
+      {game.records.map((r) => (
+        <View key={r.team} style={[styles.teamRow, { borderTopColor: p.border }]}>
+          <View style={styles.row}>
+            <View style={[styles.bar, { backgroundColor: r.team === 'blue' ? p.teamBlue : p.teamRed }]} />
+            <Text style={[styles.italic, styles.rowName, { color: p.ink }]} numberOfLines={1}>
+              {multi ? `TEAM ${r.team === 'blue' ? 'BLUE' : 'RED'}` : clubName.toUpperCase()}
+            </Text>
+            {place(r.place)}
+          </View>
+          <View style={styles.stats}>
+            {chip(`W ${r.won}`, p.win)}
+            {chip(`D ${r.drawn}`, p.draw)}
+            {chip(`L ${r.lost}`, p.loss)}
+            <Text style={[styles.italic, { marginLeft: 'auto', fontSize: 20, color: p.ink }]}>
+              {r.goalsFor} - {r.goalsAgainst}
+            </Text>
+          </View>
+        </View>
+      ))}
+      <View style={styles.footer}>
+        {['Tournament', fmtDate(game.date), game.records.length ? games : status ? tag : 'No score'].map((t, i) => (
+          <Text key={i} style={[styles.small, i > 0 && styles.sep, { color: p.soft, borderLeftColor: p.border }]}>
+            {t}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   italic: { fontFamily: sportFonts.display },
   next: { flex: 1, borderRadius: sportShape.feature, paddingVertical: 16, paddingHorizontal: 16 },
@@ -161,4 +287,8 @@ const styles = StyleSheet.create({
   result: { fontFamily: fonts.medium, fontSize: 12, width: 36, textAlign: 'right' },
   footer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   sep: { borderLeftWidth: 1, paddingLeft: 10 },
+  stats: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 13 },
+  stat: { borderRadius: sportShape.pill, paddingHorizontal: 9, paddingVertical: 2 },
+  statText: { fontFamily: fonts.medium, fontSize: 12 },
+  place: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: sportShape.pill, paddingHorizontal: 10, paddingVertical: 4 },
 });

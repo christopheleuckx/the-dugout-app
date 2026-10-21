@@ -4,7 +4,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../lib/appTheme';
 import { fmtDate, useData, type Game } from '../lib/data';
 import { brand, fonts, useColors } from '../lib/theme';
-import { SportNextCard, SportResultCard, SportUpcomingCard } from './SportCard';
+import { SportNextCard, SportResultCard, SportTournamentCard, SportUpcomingCard } from './SportCard';
 
 const NOTCH = 26;
 const day = (iso: string) => new Date(iso + 'T00:00:00');
@@ -182,7 +182,7 @@ export function MatchCard(props: {
   notched?: boolean;
 }) {
   const sport = useTheme() === 'sport';
-  if (props.game.competition === 'Tournament') return <TournamentCard {...props} />;
+  if (props.game.competition === 'Tournament') return sport ? <SportTournamentCard {...props} /> : <TournamentCard {...props} />;
   // The Sport theme's cards (beta), when chosen for this phone in Profile.
   if (sport && props.variant === 'next') return <SportNextCard game={props.game} today={props.today} />;
   if (sport && props.variant === 'upcoming') return <SportUpcomingCard game={props.game} />;
