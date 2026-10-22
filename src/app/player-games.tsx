@@ -43,7 +43,7 @@ export default function PlayerGamesScreen() {
 
         {g.rated > 0 && g.rated < MIN_RATED_GAMES ? (
           <View style={styles.notice}>
-            <Ionicons name="warning" size={15} color={c.amber} />
+            <Ionicons name="information-circle" size={16} color={c.amber} />
             <Text style={{ flex: 1, color: c.amber, fontFamily: fonts.medium, fontSize: 12.5 }}>
               Only {g.rated} rated {g.rated === 1 ? 'game' : 'games'}: the score is not reliable yet.
             </Text>
@@ -120,7 +120,7 @@ export default function PlayerGamesScreen() {
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: 'rgba(184,114,42,0.10)' },
   caption: { fontFamily: fonts.medium, fontSize: 12.5, marginTop: 12, marginBottom: 2 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   bar: { height: 10, borderRadius: 5 },

@@ -62,6 +62,8 @@ export default function SquadPlayerScreen() {
   const coming = player.injuries.filter((i) => i.startDate > today && !i.endedOn);
   const line = player.bestPosition ? positionGroup(player.bestPosition) : null;
   const shown = attitudes ?? player.attitudes;
+  // Too few rated games for the score to say much yet.
+  const few = gameInfo.rated > 0 && gameInfo.rated < MIN_RATED_GAMES;
 
   async function saveNote() {
     if (!note || !player) return;
@@ -184,25 +186,29 @@ export default function SquadPlayerScreen() {
           ] as [string, string, string][]
         ).map(([value, label, sub], i) => (
           <View key={label} style={[styles.stat, i > 0 && { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.18)' }]}>
-            {i === 0 && gameInfo.rated > 0 && gameInfo.rated < MIN_RATED_GAMES ? (
-              // A score from only a few rated games: a warning to tap for why.
+            <Text style={{ color: '#fff', fontFamily: t.display, fontSize: 40, lineHeight: 42 }}>{value}</Text>
+            <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 13 }}>{label}</Text>
+            {i === 0 && few ? (
+              // A score from only a few rated games: a soft amber label, tap for why.
               <Pressable
-                style={styles.warn}
+                style={styles.few}
                 onPress={() =>
                   Alert.alert(
                     'Few rated games',
                     `This score is based on ${gameInfo.rated} rated ${gameInfo.rated === 1 ? 'game' : 'games'}. From ${MIN_RATED_GAMES} rated games on it gives a reliable picture; until then one game weighs heavily.`,
                   )
                 }
-                hitSlop={8}
-                accessibilityLabel="Few rated games"
+                hitSlop={6}
+                accessibilityLabel="Few rated games, tap for more"
               >
-                <Ionicons name="warning" size={16} color="#F5B83D" />
+                <Ionicons name="information-circle" size={13} color="#F5C26B" />
+                <Text style={{ color: '#F5C26B', fontFamily: fonts.medium, fontSize: 11.5 }}>
+                  {gameInfo.rated} of {MIN_RATED_GAMES} rated
+                </Text>
               </Pressable>
+            ) : sub ? (
+              <Text style={{ color: t.featureSoft, fontFamily: fonts.regular, fontSize: 12 }}>{sub}</Text>
             ) : null}
-            <Text style={{ color: '#fff', fontFamily: t.display, fontSize: 40, lineHeight: 42 }}>{value}</Text>
-            <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 13 }}>{label}</Text>
-            {sub ? <Text style={{ color: t.featureSoft, fontFamily: fonts.regular, fontSize: 12 }}>{sub}</Text> : null}
           </View>
         ))}
       </View>
@@ -285,7 +291,7 @@ const styles = StyleSheet.create({
   label: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4, alignItems: 'center' },
   stats: { flexDirection: 'row', paddingVertical: 16, paddingHorizontal: 6 },
   stat: { flex: 1, alignItems: 'center', gap: 1 },
-  warn: { position: 'absolute', top: -6, right: 6 },
+  few: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(245,194,107,0.16)' },
   note: { paddingVertical: 12 },
   noteHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   edit: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
