@@ -34,6 +34,9 @@ export const LEVEL_COLORS = ['#B5473F', '#D9822E', '#D9A12E', '#2E6FB0', '#7CC57
 
 // A game rating (1 to 5) on the 10-point scale of the player's score. A 3 is
 // the expected level (played at IP level) and counts as a solid 7.
+// Below this many rated games the score rests on too few games: it gets a warning.
+export const MIN_RATED_GAMES = 5;
+
 export const TEN_POINT: Record<number, number> = { 1: 3, 2: 5, 3: 7, 4: 8.5, 5: 10 };
 
 // One row of the player's games overview, newest first.

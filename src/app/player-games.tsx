@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -5,7 +6,7 @@ import { Crest } from '../components/MatchCard';
 import { PlayerCard, PlayerFrame, PlayerSection } from '../components/PlayerPage';
 import { useLook } from '../lib/appTheme';
 import { fmtDate, useData } from '../lib/data';
-import { playerGames } from '../lib/playerProfile';
+import { MIN_RATED_GAMES, playerGames } from '../lib/playerProfile';
 import { fonts, useColors } from '../lib/theme';
 
 // A player's games: how many he played, his ratings, Blue and Red, and every
@@ -40,6 +41,14 @@ export default function PlayerGamesScreen() {
           </Text>
         </View>
 
+        {g.rated > 0 && g.rated < MIN_RATED_GAMES ? (
+          <View style={styles.notice}>
+            <Ionicons name="warning" size={15} color={c.amber} />
+            <Text style={{ flex: 1, color: c.amber, fontFamily: fonts.medium, fontSize: 12.5 }}>
+              Only {g.rated} rated {g.rated === 1 ? 'game' : 'games'}: the score is not reliable yet.
+            </Text>
+          </View>
+        ) : null}
         <Text style={[styles.caption, { color: t.soft }]}>Rating distribution{g.average !== null ? ` · score ${g.average.toFixed(1)} / 10` : ''}</Text>
         {g.rated ? (
           [5, 4, 3, 2, 1].map((n) => (
@@ -111,6 +120,7 @@ export default function PlayerGamesScreen() {
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   caption: { fontFamily: fonts.medium, fontSize: 12.5, marginTop: 12, marginBottom: 2 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   bar: { height: 10, borderRadius: 5 },

@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EditIcon } from '../components/Icons';
 import { NavRow, PlayerCard, PlayerFrame, PlayerSection } from '../components/PlayerPage';
 import { useLook } from '../lib/appTheme';
 import { injuryOn, todayIso, useData } from '../lib/data';
-import { ATTITUDES, LEVEL_COLORS, LEVELS, playerGames, playerTrainings, positionGroup, shortName } from '../lib/playerProfile';
+import { ATTITUDES, LEVEL_COLORS, LEVELS, MIN_RATED_GAMES, playerGames, playerTrainings, positionGroup, shortName } from '../lib/playerProfile';
 import { playerStats } from '../lib/playerStats';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -184,6 +184,22 @@ export default function SquadPlayerScreen() {
           ] as [string, string, string][]
         ).map(([value, label, sub], i) => (
           <View key={label} style={[styles.stat, i > 0 && { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.18)' }]}>
+            {i === 0 && gameInfo.rated > 0 && gameInfo.rated < MIN_RATED_GAMES ? (
+              // A score from only a few rated games: a warning to tap for why.
+              <Pressable
+                style={styles.warn}
+                onPress={() =>
+                  Alert.alert(
+                    'Few rated games',
+                    `This score is based on ${gameInfo.rated} rated ${gameInfo.rated === 1 ? 'game' : 'games'}. From ${MIN_RATED_GAMES} rated games on it gives a reliable picture; until then one game weighs heavily.`,
+                  )
+                }
+                hitSlop={8}
+                accessibilityLabel="Few rated games"
+              >
+                <Ionicons name="warning" size={16} color="#F5B83D" />
+              </Pressable>
+            ) : null}
             <Text style={{ color: '#fff', fontFamily: t.display, fontSize: 40, lineHeight: 42 }}>{value}</Text>
             <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 13 }}>{label}</Text>
             {sub ? <Text style={{ color: t.featureSoft, fontFamily: fonts.regular, fontSize: 12 }}>{sub}</Text> : null}
@@ -269,6 +285,7 @@ const styles = StyleSheet.create({
   label: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4, alignItems: 'center' },
   stats: { flexDirection: 'row', paddingVertical: 16, paddingHorizontal: 6 },
   stat: { flex: 1, alignItems: 'center', gap: 1 },
+  warn: { position: 'absolute', top: -6, right: 6 },
   note: { paddingVertical: 12 },
   noteHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   edit: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
