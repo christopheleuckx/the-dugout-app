@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { brand, fonts, useColors } from './theme';
+
 // The look of the app, chosen per phone in Profile. Classic is the app as it
 // has been; Sport (beta) is the new design, rolled out section by section.
 // Kept on the phone only, so trying it changes nothing for other coaches.
@@ -98,3 +100,18 @@ export const sportShape = { card: 20, feature: 22, pill: 999 };
 export function useSportColors(): SportColors {
   return useColorScheme() === 'dark' ? sportDark : sportLight;
 }
+
+// The colours and type of a page in the theme on show, for screens built for
+// both themes: Classic keeps the app's own colours, Sport its own palette and
+// the italic capitals for titles and figures.
+export function useLook() {
+  const sport = useTheme() === 'sport';
+  const c = useColors();
+  const s = useSportColors();
+  return sport
+    ? { sport, page: s.page, card: s.card, border: s.border, pill: s.pill, ink: s.ink, soft: s.soft, accent: s.game, onAccent: s.onOwnTag, tag: s.ownTag,
+        feature: s.feature, featureSoft: s.featureSoft, teamBlue: s.teamBlue, teamRed: s.teamRed, display: sportFonts.display, radius: sportShape.card }
+    : { sport, page: c.chalk, card: c.surface, border: 'transparent', pill: c.surface2, ink: c.ink, soft: c.inkSoft, accent: c.pitch, onAccent: c.onPitch, tag: c.pitch,
+        feature: brand.navy, featureSoft: 'rgba(255,255,255,0.7)', teamBlue: c.teamBlue, teamRed: c.teamRed, display: fonts.display, radius: 14 };
+}
+export type Look = ReturnType<typeof useLook>;

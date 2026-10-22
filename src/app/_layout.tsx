@@ -60,6 +60,10 @@ function RootNavigator() {
         <Stack.Screen name="age-group-players" />
         <Stack.Screen name="age-group-player" />
         <Stack.Screen name="squad-player" />
+        <Stack.Screen name="player-positions" />
+        <Stack.Screen name="player-games" />
+        <Stack.Screen name="player-training" />
+        <Stack.Screen name="player-injuries" />
         <Stack.Screen name="player-stats" />
         <Stack.Screen name="supabase-usage" />
         <Stack.Screen name="pin" />

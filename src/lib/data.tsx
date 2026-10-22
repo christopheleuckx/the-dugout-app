@@ -23,6 +23,9 @@ export type Player = {
   strengths: string;
   primaryFocus: string;
   remarks: string;
+  // Topsport attitudes: per attitude key a level from 1 (bad) to 6 (excellent), and a note.
+  attitudes: Record<string, number>;
+  attitudeNote: string;
   // Every injury, newest first.
   injuries: Injury[];
 };
@@ -361,7 +364,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos, injuries] = await Promise.all([
-    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path, preferred_position_1, strengths, primary_focus, remarks'),
+    supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path, preferred_position_1, strengths, primary_focus, remarks, attitudes, attitude_note'),
     supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id, format, league_match_id'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
@@ -507,6 +510,8 @@ async function load(userId: string): Promise<Data> {
       strengths: r.strengths ?? '',
       primaryFocus: r.primary_focus ?? '',
       remarks: r.remarks ?? '',
+      attitudes: (r.attitudes ?? {}) as Record<string, number>,
+      attitudeNote: r.attitude_note ?? '',
       injuries: (injuries.data ?? [])
         .filter((i) => i.player_id === r.id)
         .map((i) => ({ id: i.id, startDate: i.start_date, expectedReturn: i.expected_return, endedOn: i.ended_on, note: i.note ?? '' })),
