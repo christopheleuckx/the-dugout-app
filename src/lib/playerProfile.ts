@@ -49,14 +49,18 @@ export type GameRow = {
 
 // The player's counted games (played, with a selection made), his ratings and Blue/Red.
 export function playerGames(player: Player, games: Game[]) {
+  // Every counted game, also the ones where the player has no entry at all
+  // (not selected, without a reason given).
   const rows: GameRow[] = countedGames(games)
-    .filter((g) => g.selection[player.id])
-    .map((g) => ({
-      game: g,
-      team: g.selection[player.id].team,
-      reason: g.selection[player.id].team ? null : g.selection[player.id].reason || 'Not selected',
-      rating: g.selection[player.id].team ? (g.ratings[player.id]?.score ?? null) : null,
-    }))
+    .map((g) => {
+      const s = g.selection[player.id];
+      return {
+        game: g,
+        team: s?.team ?? null,
+        reason: s?.team ? null : s?.reason || 'No reason',
+        rating: s?.team ? (g.ratings[player.id]?.score ?? null) : null,
+      };
+    })
     .reverse();
   const rated = rows.map((r) => r.rating).filter((x): x is number => x !== null);
   const distribution = [1, 2, 3, 4, 5].map((n) => rated.filter((x) => Math.round(x) === n).length);

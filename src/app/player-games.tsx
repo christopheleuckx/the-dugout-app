@@ -92,7 +92,7 @@ export default function PlayerGamesScreen() {
                   {t.sport ? (r.game.opponent || 'TBD').toUpperCase() : r.game.opponent || 'TBD'}
                 </Text>
                 <Text style={{ color: t.soft, fontFamily: fonts.regular, fontSize: 12.5 }}>
-                  {fmtDate(r.game.date)} · {r.team ? `Team ${r.team === 'blue' ? 'Blue' : 'Red'}` : 'Not selected'}
+                  {fmtDate(r.game.date)} · {r.team ? `Selected · Team ${r.team === 'blue' ? 'Blue' : 'Red'}` : 'Not selected'}
                 </Text>
               </View>
               {r.team ? (
@@ -104,15 +104,15 @@ export default function PlayerGamesScreen() {
                   <Text style={{ color: t.soft, fontFamily: fonts.regular, fontSize: 12 }}>Not rated</Text>
                 )
               ) : (
-                <View style={[styles.chip, { backgroundColor: r.reason === 'Rotation' ? t.pill : c.danger + '1F' }]}>
-                  <Text style={{ color: r.reason === 'Rotation' ? t.soft : c.danger, fontFamily: fonts.medium, fontSize: 11.5 }}>{r.reason}</Text>
+                <View style={[styles.chip, { backgroundColor: r.reason === 'Rotation' || r.reason === 'No reason' ? t.pill : c.danger + '1F' }]}>
+                  <Text style={{ color: r.reason === 'Rotation' || r.reason === 'No reason' ? t.soft : c.danger, fontFamily: fonts.medium, fontSize: 11.5 }}>{r.reason}</Text>
                 </View>
               )}
             </Pressable>
           ))}
         </PlayerCard>
       ) : (
-        <Text style={{ color: t.soft, fontFamily: fonts.regular, fontSize: 14, marginHorizontal: 4 }}>No games with a selection yet.</Text>
+        <Text style={{ color: t.soft, fontFamily: fonts.regular, fontSize: 14, marginHorizontal: 4 }}>No games played yet.</Text>
       )}
     </PlayerFrame>
   );
