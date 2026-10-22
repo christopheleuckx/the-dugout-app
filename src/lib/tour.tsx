@@ -771,6 +771,88 @@ export const TOUR_SLIDES: TourSlide[] = [
       ],
     ],
   },
+  {
+    since: 3,
+    title: 'Player page',
+    text: 'Tap a player in the Squad for their rating, games and goals, their positions, games, training and injuries, and their topsport attitudes.',
+    scenes: [
+      [
+        { key: 'bar', node: <Bar title="Jérémy Doku" sub="U12" /> },
+        {
+          key: 'who',
+          spot: 'Age group and line at a glance',
+          node: (
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              <Mark initials="JD" color={navy} size={44} />
+              <Text style={s.hello}>Jérémy D</Text>
+              <View style={[s.inline, { gap: 5 }]}>
+                <Pill label="U12" color={navy} solid />
+                <Pill label="Winger" color={blue} />
+              </View>
+            </View>
+          ),
+        },
+        {
+          key: 'stats',
+          spot: 'Rating, games played and goals',
+          node: (
+            <View style={[s.inline, { backgroundColor: navy, borderRadius: 10, paddingVertical: 8 }]}>
+              {[
+                ['3.8', 'Rating'],
+                ['11', 'Games played'],
+                ['6', 'Goals'],
+              ].map(([value, label]) => (
+                <View key={label} style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[s.tileValue, { color: '#fff' }]}>{value}</Text>
+                  <Text style={[s.mute, { color: 'rgba(255,255,255,0.75)' }]}>{label}</Text>
+                </View>
+              ))}
+            </View>
+          ),
+        },
+        {
+          key: 'nav',
+          spot: 'Positions, every game, training and injuries',
+          node: (
+            <Card>
+              <Row first title="Positions" sub="Best 7 · Developing 11" right={<Chevron />} />
+              <Row title="Games" sub="11 of 13 played · ratings, Blue and Red" right={<Chevron />} />
+              <Row title="Training" sub="95% attendance · 38 of 40" right={<Chevron />} />
+              <Row title="Injuries" sub="Not injured" right={<Chevron />} />
+            </Card>
+          ),
+        },
+        { key: 'h1', node: <Heading>Topsport attitudes</Heading> },
+        {
+          key: 'attitudes',
+          spot: 'Tap a step to rate, from bad to excellent',
+          node: (
+            <Card>
+              {(
+                [
+                  ['Coachability', 5, 'Very good', '#7CC576'],
+                  ['Respect', 6, 'Excellent', '#1F5C2E'],
+                  ['Focus', 3, 'Average', '#D9A12E'],
+                ] as [string, number, string, string][]
+              ).map(([label, level, name, color], i) => (
+                <View key={label} style={[{ paddingVertical: 5 }, i > 0 && s.rowLine]}>
+                  <View style={[s.inline, { justifyContent: 'space-between' }]}>
+                    <Text style={s.text}>{label}</Text>
+                    <Text style={[s.pillText, { color }]}>{name}</Text>
+                  </View>
+                  <View style={[s.inline, { gap: 3, marginTop: 4 }]}>
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <View key={n} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: n <= level ? color : '#EAEFF6' }} />
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </Card>
+          ),
+        },
+      ],
+    ],
+  },
 ];
 
 // The version of the tour: the highest "since" of its slides.
