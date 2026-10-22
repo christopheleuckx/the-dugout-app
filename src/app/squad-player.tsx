@@ -178,7 +178,7 @@ export default function SquadPlayerScreen() {
       <View style={[styles.stats, { backgroundColor: t.feature, borderRadius: t.radius + 2 }]}>
         {(
           [
-            [gameInfo.average !== null ? String(gameInfo.average) : '–', 'Rating', gameInfo.rated ? `${gameInfo.rated} rated ${gameInfo.rated === 1 ? 'game' : 'games'}` : 'Not rated yet'],
+            [gameInfo.average !== null ? gameInfo.average.toFixed(1) : '–', 'Rating / 10', gameInfo.rated ? `${gameInfo.rated} rated ${gameInfo.rated === 1 ? 'game' : 'games'}` : 'Not rated yet'],
             [String(stat.games), 'Games played', `of ${gameInfo.counted}`],
             [String(stat.goals), 'Goals', stat.goals && stat.games ? `${(stat.goals / stat.games).toFixed(2)} per game` : ''],
           ] as [string, string, string][]

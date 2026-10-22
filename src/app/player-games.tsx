@@ -40,7 +40,7 @@ export default function PlayerGamesScreen() {
           </Text>
         </View>
 
-        <Text style={[styles.caption, { color: t.soft }]}>Rating distribution{g.average !== null ? ` · average ${g.average}` : ''}</Text>
+        <Text style={[styles.caption, { color: t.soft }]}>Rating distribution{g.average !== null ? ` · score ${g.average.toFixed(1)} / 10` : ''}</Text>
         {g.rated ? (
           [5, 4, 3, 2, 1].map((n) => (
             <View key={n} style={styles.barRow}>

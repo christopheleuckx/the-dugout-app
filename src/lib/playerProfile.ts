@@ -32,6 +32,10 @@ export const ATTITUDES: { key: string; label: string }[] = [
 export const LEVELS = ['Bad', 'Not good', 'Average', 'Good', 'Very good', 'Excellent'];
 export const LEVEL_COLORS = ['#B5473F', '#D9822E', '#D9A12E', '#2E6FB0', '#7CC576', '#1F5C2E'];
 
+// A game rating (1 to 5) on the 10-point scale of the player's score. A 3 is
+// the expected level (played at IP level) and counts as a solid 7.
+export const TEN_POINT: Record<number, number> = { 1: 3, 2: 5, 3: 7, 4: 8.5, 5: 10 };
+
 // One row of the player's games overview, newest first.
 export type GameRow = {
   game: Game;
@@ -61,7 +65,8 @@ export function playerGames(player: Player, games: Game[]) {
     blue: rows.filter((r) => r.team === 'blue').length,
     red: rows.filter((r) => r.team === 'red').length,
     rated: rated.length,
-    average: rated.length ? Math.round((rated.reduce((a, b) => a + b, 0) / rated.length) * 10) / 10 : null,
+    // The player's score out of 10: every rated game counts, each on the 10-point scale.
+    average: rated.length ? Math.round((rated.reduce((sum, x) => sum + (TEN_POINT[Math.round(x)] ?? 0), 0) / rated.length) * 10) / 10 : null,
     distribution,
   };
 }
