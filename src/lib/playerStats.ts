@@ -1,7 +1,20 @@
 import type { Game, Player, Training } from './data';
 import { EXCUSED_TRAINING_ABSENCE_REASONS, todayIso } from './data';
 
-export type Stat = 'games' | 'goals' | 'none' | 'rotation' | 'attendance';
+export type Stat = 'games' | 'rating' | 'goals' | 'none' | 'rotation' | 'attendance';
+
+// Below this many rated games the score rests on too few games: it gets a warning.
+export const MIN_RATED_GAMES = 5;
+
+// A game rating (1 to 5) on the 10-point scale of the player's score. A 3 is
+// the expected level (played at IP level) and counts as a solid 7.
+export const TEN_POINT: Record<number, number> = { 1: 3, 2: 5, 3: 7, 4: 8.5, 5: 10 };
+
+// The player's score out of 10: every rated game counts, each on the 10-point scale.
+export function ratingScore(ratings: number[]): number | null {
+  if (!ratings.length) return null;
+  return Math.round((ratings.reduce((sum, x) => sum + (TEN_POINT[Math.round(x)] ?? 0), 0) / ratings.length) * 10) / 10;
+}
 
 // How a player stood in one game: selected, rested (Rotation), injured,
 // or not selected for another reason.
@@ -20,6 +33,9 @@ export type PlayerStat = {
   // Trainings that count for the player, and how many of them they attended.
   trainings: number;
   attended: number;
+  // The score out of 10 from the game ratings (null when not rated yet), and how many games it rests on.
+  score: number | null;
+  rated: number;
 };
 
 // Trainings that count for attendance: held (not in the future) and not cancelled.
@@ -57,8 +73,14 @@ export function playerStats(
       return s.team ? 'played' : s.reason === 'Rotation' ? 'rotation' : s.reason === 'Injured' ? 'injured' : 'other';
     });
     const n = (st: Status) => strip.filter((x) => x === st).length;
+    const ratings = counted
+      .filter((g) => g.selection[player.id]?.team)
+      .map((g) => g.ratings[player.id]?.score)
+      .filter((x): x is number => typeof x === 'number');
     const forPlayer = held.filter((t) => !EXCUSED_TRAINING_ABSENCE_REASONS.includes(t.absences[player.id] ?? ''));
     return {
+      score: ratingScore(ratings),
+      rated: ratings.length,
       trainings: forPlayer.length,
       attended: forPlayer.filter((t) => !(player.id in t.absences)).length,
       player,
@@ -74,10 +96,11 @@ export function playerStats(
   return { stats, gameCount: counted.length, trainingCount: held.length };
 }
 
-export const STAT_ORDER: Stat[] = ['games', 'goals', 'none', 'rotation', 'attendance'];
+export const STAT_ORDER: Stat[] = ['games', 'rating', 'goals', 'none', 'rotation', 'attendance'];
 
 export const STAT_TITLE: Record<Stat, string> = {
   games: 'Games played',
+  rating: 'Rating',
   goals: 'Goals scored',
   none: 'No selection',
   rotation: 'Rotation',
@@ -86,17 +109,19 @@ export const STAT_TITLE: Record<Stat, string> = {
 
 export const STAT_ABOUT: Record<Stat, string> = {
   games: 'Selected for a team in a game',
+  rating: 'Score out of 10 from the game ratings',
   goals: 'Goals in the goal log',
   none: 'Not selected, any reason',
   rotation: 'Rested because of rotation',
   attendance: 'Share of trainings attended',
 };
 
-export const STAT_UNIT: Record<Stat, string> = { games: 'games', goals: 'goals', none: 'times', rotation: 'times', attendance: 'attended' };
+export const STAT_UNIT: Record<Stat, string> = { games: 'games', rating: '/ 10', goals: 'goals', none: 'times', rotation: 'times', attendance: 'attended' };
 
 // Attendance as a whole percentage; 0 when no training counts yet.
 export const attendanceOf = (s: PlayerStat) => (s.trainings ? Math.round((s.attended / s.trainings) * 100) : 0);
 
 export function valueOf(s: PlayerStat, stat: Stat): number {
+  if (stat === 'rating') return s.score ?? 0;
   return stat === 'games' ? s.games : stat === 'goals' ? s.goals : stat === 'none' ? s.notSelected : stat === 'attendance' ? attendanceOf(s) : s.rotation;
 }

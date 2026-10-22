@@ -9,6 +9,7 @@ import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import {
   playerStats,
+  MIN_RATED_GAMES,
   STAT_ABOUT,
   STAT_ORDER,
   STAT_TITLE,
@@ -24,6 +25,7 @@ const RECENT = 5;
 
 const ICON: Record<Stat, keyof typeof Ionicons.glyphMap> = {
   games: 'trophy-outline',
+  rating: 'star-outline',
   goals: 'football-outline',
   none: 'close-circle-outline',
   rotation: 'sync-outline',
@@ -66,6 +68,8 @@ export default function PlayerStatsScreen() {
   const subtitle =
     stat === 'games'
       ? `Total number of games: ${gameCount}`
+      : stat === 'rating'
+        ? 'Highest score first · a 3 (IP level) counts as 7'
       : stat === 'goals'
         ? `Total number of goals: ${total}`
         : stat === 'none'
@@ -103,7 +107,7 @@ export default function PlayerStatsScreen() {
             {zero.length ? (
               <Pressable style={[styles.zero, { borderTopColor: c.line }]} onPress={() => setZeroOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: zeroOpen }}>
                 <Text style={{ flex: 1, color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
-                  {zero.length} {zero.length === 1 ? 'player' : 'players'}: 0
+                  {zero.length} {zero.length === 1 ? 'player' : 'players'}{stat === 'rating' ? ' not rated yet' : ': 0'}
                 </Text>
                 <Ionicons name={zeroOpen ? 'chevron-up' : 'chevron-down'} size={15} color={c.inkSoft} />
               </Pressable>
@@ -157,6 +161,7 @@ export default function PlayerStatsScreen() {
 
 function subText(s: PlayerStat, stat: Stat, gameCount: number): string {
   if (stat === 'games') return `of ${gameCount} games`;
+  if (stat === 'rating') return `${s.rated} rated ${s.rated === 1 ? 'game' : 'games'}`;
   if (stat === 'none') {
     const parts: string[] = [];
     if (s.injured) parts.push(`Injured ${s.injured}`);
@@ -199,12 +204,22 @@ function Row({ s, stat, first, c, photo }: { s: PlayerStat; stat: Stat; first: b
             ))}
           </View>
         ) : null}
-        <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }} numberOfLines={1}>
-          {subText(s, stat, s.strip.length)}
-        </Text>
+        {stat === 'rating' && s.rated < MIN_RATED_GAMES ? (
+          // A score from only a few rated games, as on the player page.
+          <View style={styles.few}>
+            <Ionicons name="information-circle" size={12} color={c.amber} />
+            <Text style={{ color: c.amber, fontFamily: fonts.medium, fontSize: 11.5 }}>
+              {s.rated} of {MIN_RATED_GAMES} rated
+            </Text>
+          </View>
+        ) : (
+          <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }} numberOfLines={1}>
+            {subText(s, stat, s.strip.length)}
+          </Text>
+        )}
       </View>
       <View style={{ alignItems: 'flex-end', minWidth: 46 }}>
-        <Text style={[styles.value, { color: c.ink }]}>{stat === 'attendance' ? `${v}%` : v}</Text>
+        <Text style={[styles.value, { color: c.ink }]}>{stat === 'attendance' ? `${v}%` : stat === 'rating' ? v.toFixed(1) : v}</Text>
         <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 10.5 }}>{STAT_UNIT[stat]}</Text>
       </View>
     </Pressable>
@@ -213,6 +228,7 @@ function Row({ s, stat, first, c, photo }: { s: PlayerStat; stat: Stat; first: b
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
+  few: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 1, backgroundColor: 'rgba(184,114,42,0.12)' },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
   round: { width: 36, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   pageTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 18 },

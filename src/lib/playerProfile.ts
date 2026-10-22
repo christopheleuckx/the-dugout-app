@@ -1,6 +1,8 @@
 import type { Game, Player, Team, Training } from './data';
 import { EXCUSED_TRAINING_ABSENCE_REASONS } from './data';
-import { countedGames, countedTrainings } from './playerStats';
+import { countedGames, countedTrainings, MIN_RATED_GAMES, ratingScore, TEN_POINT } from './playerStats';
+
+export { MIN_RATED_GAMES, TEN_POINT };
 
 // The line a position belongs to: K, the backs, the midfield, the wings, the striker.
 export function positionGroup(code: string): string | null {
@@ -31,13 +33,6 @@ export const ATTITUDES: { key: string; label: string }[] = [
 // Level 1 to 6, with its colour from red to dark green.
 export const LEVELS = ['Bad', 'Not good', 'Average', 'Good', 'Very good', 'Excellent'];
 export const LEVEL_COLORS = ['#B5473F', '#D9822E', '#D9A12E', '#2E6FB0', '#7CC576', '#1F5C2E'];
-
-// A game rating (1 to 5) on the 10-point scale of the player's score. A 3 is
-// the expected level (played at IP level) and counts as a solid 7.
-// Below this many rated games the score rests on too few games: it gets a warning.
-export const MIN_RATED_GAMES = 5;
-
-export const TEN_POINT: Record<number, number> = { 1: 3, 2: 5, 3: 7, 4: 8.5, 5: 10 };
 
 // One row of the player's games overview, newest first.
 export type GameRow = {
@@ -73,7 +68,7 @@ export function playerGames(player: Player, games: Game[]) {
     red: rows.filter((r) => r.team === 'red').length,
     rated: rated.length,
     // The player's score out of 10: every rated game counts, each on the 10-point scale.
-    average: rated.length ? Math.round((rated.reduce((sum, x) => sum + (TEN_POINT[Math.round(x)] ?? 0), 0) / rated.length) * 10) / 10 : null,
+    average: ratingScore(rated),
     distribution,
   };
 }
