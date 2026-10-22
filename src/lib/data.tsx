@@ -201,7 +201,15 @@ export type Video = {
   createdAt: string;
 };
 
-export type TrainingGroups = { numGroups: number; splitGoalies: boolean; mixed: boolean; groupIds: string[][] };
+export type TrainingGroups = {
+  numGroups: number;
+  splitGoalies: boolean;
+  mixed: boolean;
+  groupIds: string[][];
+  // Groups made from a game's selection: their names (Team Blue, Team Red...) and the game.
+  labels?: string[];
+  fromGameId?: string;
+};
 
 export type Training = {
   id: string;

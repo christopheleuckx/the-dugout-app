@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DragRow } from '../components/DragRow';
 import { fmtDate, useData, type Player, type TrainingGroups } from '../lib/data';
-import { makeGroups } from '../lib/groups';
+import { groupsFromSelection, makeGroups, nextGame } from '../lib/groups';
 import { goBack } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
@@ -22,7 +22,7 @@ export default function TrainingGroupsScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trainings, players, refresh } = useData();
+  const { trainings, players, games, refresh } = useData();
   const training = trainings.find((t) => t.id === id);
 
   const [groups, setGroups] = useState<TrainingGroups | null>(training?.groups ?? null);
@@ -50,6 +50,9 @@ export default function TrainingGroupsScreen() {
   // Present players who are in no group, for example marked present later.
   const loose = groups ? present.filter((p) => !grouped.has(p.id)) : [];
   const line = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line };
+  // The next game and the groups its selection gives; none while it has no selection.
+  const game = nextGame(games, training.date);
+  const fromSelection = game ? groupsFromSelection(game, present) : null;
 
   async function store(next: TrainingGroups | null) {
     setError('');
@@ -63,6 +66,14 @@ export default function TrainingGroupsScreen() {
   async function generate() {
     setSaving(true);
     await store({ numGroups: count, splitGoalies, mixed: true, groupIds: makeGroups(present, count, splitGoalies) });
+    setSaving(false);
+    setSheet(false);
+  }
+
+  async function generateFromSelection() {
+    if (!fromSelection || !game) return;
+    setSaving(true);
+    await store({ numGroups: 2, splitGoalies: false, mixed: false, groupIds: fromSelection.groupIds, labels: fromSelection.labels, fromGameId: game.id });
     setSaving(false);
     setSheet(false);
   }
@@ -192,7 +203,7 @@ export default function TrainingGroupsScreen() {
             {groups.groupIds.map((ids, i) =>
               box(
                 i,
-                `Group ${i + 1}`,
+                groups.labels?.[i] ?? `Group ${i + 1}`,
                 ids.map((pid) => byId.get(pid)).filter((p): p is Player => !!p),
               ),
             )}
@@ -248,6 +259,24 @@ export default function TrainingGroupsScreen() {
               <Text style={{ color: c.onPitch, fontFamily: fonts.medium, fontSize: 16 }}>{groups ? 'Regenerate groups' : 'Create groups'}</Text>
             )}
           </Pressable>
+          <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13, textAlign: 'center' }}>or</Text>
+          {/* The two teams of the next game, greyed out while it has no selection. */}
+          <Pressable
+            style={[styles.button, styles.fromGame, { borderColor: c.line, backgroundColor: c.surface2 }, !fromSelection && { opacity: 0.45 }]}
+            onPress={generateFromSelection}
+            disabled={!fromSelection || saving}
+            accessibilityState={{ disabled: !fromSelection }}
+          >
+            <Ionicons name="people" size={18} color={fromSelection ? c.pitch : c.inkSoft} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: fromSelection ? c.pitch : c.inkSoft, fontFamily: fonts.medium, fontSize: 15 }}>From the next game&apos;s selection</Text>
+              <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12.5 }} numberOfLines={1}>
+                {!game
+                  ? 'No game planned'
+                  : `vs ${game.opponent || 'TBD'} · ${fmtDate(game.date)}${fromSelection ? '' : ' · no selection yet'}`}
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </Modal>
     </View>
@@ -282,5 +311,6 @@ const styles = StyleSheet.create({
   },
   grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
   counts: { flexDirection: 'row', gap: 8 },
+  fromGame: { flexDirection: 'row', gap: 10, paddingHorizontal: 14, height: 58, borderWidth: StyleSheet.hairlineWidth },
   count: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
