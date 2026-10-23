@@ -206,7 +206,7 @@ export default function GameSelectionScreen() {
           </View>
           <Switch value={swap} onValueChange={setSwap} trackColor={{ true: c.pitch }} />
         </Pressable>
-        <Text style={[styles.hint, { color: c.inkSoft, marginTop: 0 }]}>Tap a game to take over its whole selection, with the reasons of who was not selected. Save afterwards to keep it.</Text>
+        <Text style={[styles.hint, { color: c.inkSoft, marginTop: 0 }]}>Tap a game to take over its selected players. Who is injured, sick or out for another reason in this game stays out; who was not selected there is left open, to add by hand. Save afterwards to keep it.</Text>
         {sources.length ? (
           <View style={[styles.card, { backgroundColor: c.surface }]}>
             {sources.map((g, i) => {
@@ -217,12 +217,23 @@ export default function GameSelectionScreen() {
                   key={g.id}
                   style={[styles.row, i > 0 && line]}
                   onPress={() => {
-                    const flip = (team: Team | null) => (!swap || !team ? team : team === 'blue' ? 'red' : 'blue');
-                    const next: Draft = Object.fromEntries(
-                      Object.entries(g.selection)
-                        .filter(([id]) => ids.has(id))
-                        .map(([id, x]) => [id, { team: flip(x.team), reason: x.team ? null : x.reason }]),
-                    );
+                    const flip = (team: Team) => (!swap ? team : team === 'blue' ? 'red' : 'blue');
+                    // Who is out for this game stays out: a reason already chosen here
+                    // (other than rotation), or injured on the game day.
+                    const out: Draft = Object.fromEntries([
+                      ...players.filter((p) => injuryOn(p, game.date)).map((p) => [p.id, { team: null, reason: 'Injured' }]),
+                      ...Object.entries(draft).filter(([, x]) => !x.team && x.reason && x.reason !== 'Rotation'),
+                    ]);
+                    // The selected players of that game take their team (or the other one);
+                    // who was not selected there is left open here, to add or divide by hand.
+                    const next: Draft = {
+                      ...out,
+                      ...Object.fromEntries(
+                        Object.entries(g.selection)
+                          .filter(([id, x]) => ids.has(id) && x.team && !out[id])
+                          .map(([id, x]) => [id, { team: flip(x.team as Team), reason: null }]),
+                      ),
+                    };
                     setDraft(next);
                     if (Object.values(next).some((x) => x.team === 'red')) setNumTeams(2);
                     setPage(null);
