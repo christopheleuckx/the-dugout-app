@@ -237,21 +237,9 @@ export default function GameSelectionScreen() {
                       {fmtDate(g.date)} · {g.competition}
                     </Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end', gap: 3 }}>
-                    {blue && red ? <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 11.5 }}>2 selections</Text> : null}
-                    <View style={{ flexDirection: 'row', gap: 4 }}>
-                      {blue ? (
-                        <View style={[styles.pill, { backgroundColor: c.teamBlue }]}>
-                          <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 11.5 }}>Blue {blue}</Text>
-                        </View>
-                      ) : null}
-                      {red ? (
-                        <View style={[styles.pill, { backgroundColor: c.teamRed }]}>
-                          <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 11.5 }}>Red {red}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
+                  <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                    {blue && red ? '2 selections' : '1 selection'}
+                  </Text>
                 </Pressable>
               );
             })}
