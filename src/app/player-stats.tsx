@@ -69,7 +69,7 @@ export default function PlayerStatsScreen() {
     stat === 'games'
       ? `Total number of games: ${gameCount}`
       : stat === 'rating'
-        ? 'Highest score first · a 3 (IP level) counts as 7'
+        ? 'Highest first · a 3 (IP level) is a 7, corrected for the opponent strength'
       : stat === 'goals'
         ? `Total number of goals: ${total}`
         : stat === 'none'

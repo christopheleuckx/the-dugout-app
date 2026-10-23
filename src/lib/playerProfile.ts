@@ -1,6 +1,6 @@
 import type { Game, Player, Team, Training } from './data';
 import { EXCUSED_TRAINING_ABSENCE_REASONS } from './data';
-import { countedGames, countedTrainings, MIN_RATED_GAMES, ratingScore, TEN_POINT } from './playerStats';
+import { countedGames, countedTrainings, MIN_RATED_GAMES, ratingScore, strengthOf, TEN_POINT } from './playerStats';
 
 export { MIN_RATED_GAMES, TEN_POINT };
 
@@ -67,8 +67,8 @@ export function playerGames(player: Player, games: Game[]) {
     blue: rows.filter((r) => r.team === 'blue').length,
     red: rows.filter((r) => r.team === 'red').length,
     rated: rated.length,
-    // The player's score out of 10: every rated game counts, each on the 10-point scale.
-    average: ratingScore(rated),
+    // The player's score out of 10: every rated game counts, corrected for the opponent strength.
+    average: ratingScore(rows.filter((r) => r.team && r.rating !== null).map((r) => ({ rating: r.rating as number, strength: strengthOf(r.game, r.team) }))),
     distribution,
   };
 }

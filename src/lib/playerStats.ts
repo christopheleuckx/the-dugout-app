@@ -1,4 +1,4 @@
-import type { Game, Player, Training } from './data';
+import type { Game, Player, Team, Training } from './data';
 import { EXCUSED_TRAINING_ABSENCE_REASONS, todayIso } from './data';
 
 export type Stat = 'games' | 'rating' | 'goals' | 'none' | 'rotation' | 'attendance';
@@ -10,11 +10,31 @@ export const MIN_RATED_GAMES = 5;
 // the expected level (played at IP level) and counts as a solid 7.
 export const TEN_POINT: Record<number, number> = { 1: 3, 2: 5, 3: 7, 4: 8.5, 5: 10 };
 
-// The player's score out of 10: every rated game counts, each on the 10-point scale.
-export function ratingScore(ratings: number[]): number | null {
-  if (!ratings.length) return null;
-  return Math.round((ratings.reduce((sum, x) => sum + (TEN_POINT[Math.round(x)] ?? 0), 0) / ratings.length) * 10) / 10;
+// A rated game: the player's rating (1 to 5) and the opponent strength of his
+// team's game report (1 Development to 5 High Elite), if filled in.
+export type RatedGame = { rating: number; strength: number | null };
+
+// One game on the 10-point scale, corrected for the opponent strength. Against a
+// stronger opponent the score moves part of the way up to 10 (Elite 20%, High
+// Elite 50%), so it never goes past 10; against a weaker one it goes down by a
+// share (Below IP3 10%, Development 20%). IP3, or no strength filled in: as is.
+export function gameScore({ rating, strength }: RatedGame): number {
+  const base = TEN_POINT[Math.round(rating)] ?? 0;
+  if (strength === 5) return base + (10 - base) * 0.5;
+  if (strength === 4) return base + (10 - base) * 0.2;
+  if (strength === 2) return base * 0.9;
+  if (strength === 1) return base * 0.8;
+  return base;
 }
+
+// The player's score out of 10: the average of every rated game, each corrected for the opponent.
+export function ratingScore(games: RatedGame[]): number | null {
+  if (!games.length) return null;
+  return Math.round((games.reduce((sum, g) => sum + gameScore(g), 0) / games.length) * 10) / 10;
+}
+
+// The opponent strength a team gave in its game report, if any.
+export const strengthOf = (game: Game, team: Team | null) => (team ? (game.reports[team]?.opponentScore ?? null) : null);
 
 // How a player stood in one game: selected, rested (Rotation), injured,
 // or not selected for another reason.
@@ -73,10 +93,9 @@ export function playerStats(
       return s.team ? 'played' : s.reason === 'Rotation' ? 'rotation' : s.reason === 'Injured' ? 'injured' : 'other';
     });
     const n = (st: Status) => strip.filter((x) => x === st).length;
-    const ratings = counted
-      .filter((g) => g.selection[player.id]?.team)
-      .map((g) => g.ratings[player.id]?.score)
-      .filter((x): x is number => typeof x === 'number');
+    const ratings: RatedGame[] = counted
+      .filter((g) => g.selection[player.id]?.team && typeof g.ratings[player.id]?.score === 'number')
+      .map((g) => ({ rating: g.ratings[player.id].score as number, strength: strengthOf(g, g.selection[player.id].team) }));
     const forPlayer = held.filter((t) => !EXCUSED_TRAINING_ABSENCE_REASONS.includes(t.absences[player.id] ?? ''));
     return {
       score: ratingScore(ratings),
