@@ -6,13 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlayerPhoto, usePlayerPhotos } from '../components/PlayerPhoto';
 import { UndoToast } from '../components/UndoToast';
-import { injuryOn, useData, type Team } from '../lib/data';
+import { Crest } from '../components/MatchCard';
+import { fmtDate, injuryOn, useData, type Team } from '../lib/data';
 import { generateSelection, groupOf, NOT_SELECTED_REASONS, POSITION_GROUPS, type Draft } from '../lib/selection';
 import { supabase } from '../lib/supabase';
 import { fonts, useColors } from '../lib/theme';
 import { goBack } from '../lib/nav';
 
-type Page = null | 'generate' | { player: string };
+type Page = null | 'generate' | 'copy' | { player: string };
 
 // A game's selection: every player by line, each set to a team or to a reason
 // for not being selected. Nothing is written until "Save selection".
@@ -35,6 +36,8 @@ export default function GameSelectionScreen() {
   const [perTeam, setPerTeam] = useState(11);
   const [rotation, setRotation] = useState(false);
   const [mixed, setMixed] = useState(true);
+  // Copying another game's selection: Blue and Red swapped when on.
+  const [swap, setSwap] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   // What "Reset selection" removed, while it can still be undone: the saved
@@ -184,6 +187,80 @@ export default function GameSelectionScreen() {
         </Pressable>
       </>
     );
+  } else if (page === 'copy') {
+    title = 'Copy a selection';
+    // The other games that have a selection, newest first.
+    const ids = new Set(players.map((p) => p.id));
+    const sources = games
+      .filter((g) => g.id !== game.id && Object.values(g.selection).some((x) => x.team))
+      .sort((a, b) => ((b.date ?? '') + (b.time ?? '')).localeCompare((a.date ?? '') + (a.time ?? '')));
+    const count = (g: (typeof games)[number], team: Team) => Object.entries(g.selection).filter(([id, x]) => ids.has(id) && x.team === team).length;
+    body = (
+      <>
+        {/* The whole row toggles, not only the switch itself. */}
+        <Pressable style={[styles.card, styles.row, { backgroundColor: c.surface }]} onPress={() => setSwap(!swap)} accessibilityRole="switch" accessibilityState={{ checked: swap }}>
+          <Ionicons name="swap-horizontal" size={20} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>Swap Blue and Red</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{swap ? 'Blue players go to Red, Red to Blue' : 'Copied exactly as it is'}</Text>
+          </View>
+          <Switch value={swap} onValueChange={setSwap} trackColor={{ true: c.pitch }} />
+        </Pressable>
+        <Text style={[styles.hint, { color: c.inkSoft, marginTop: 0 }]}>Tap a game to take over its whole selection, with the reasons of who was not selected. Save afterwards to keep it.</Text>
+        {sources.length ? (
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
+            {sources.map((g, i) => {
+              const blue = count(g, 'blue');
+              const red = count(g, 'red');
+              return (
+                <Pressable
+                  key={g.id}
+                  style={[styles.row, i > 0 && line]}
+                  onPress={() => {
+                    const flip = (team: Team | null) => (!swap || !team ? team : team === 'blue' ? 'red' : 'blue');
+                    const next: Draft = Object.fromEntries(
+                      Object.entries(g.selection)
+                        .filter(([id]) => ids.has(id))
+                        .map(([id, x]) => [id, { team: flip(x.team), reason: x.team ? null : x.reason }]),
+                    );
+                    setDraft(next);
+                    if (Object.values(next).some((x) => x.team === 'red')) setNumTeams(2);
+                    setPage(null);
+                  }}
+                >
+                  <Crest url={g.opponentLogoUrl} name={g.opponent || 'TBD'} size={30} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: c.ink, fontFamily: fonts.medium, fontSize: 15 }} numberOfLines={1}>
+                      {g.opponent || 'TBD'}
+                    </Text>
+                    <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12.5 }} numberOfLines={1}>
+                      {fmtDate(g.date)} · {g.competition}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                    {blue && red ? <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 11.5 }}>2 selections</Text> : null}
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
+                      {blue ? (
+                        <View style={[styles.pill, { backgroundColor: c.teamBlue }]}>
+                          <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 11.5 }}>Blue {blue}</Text>
+                        </View>
+                      ) : null}
+                      {red ? (
+                        <View style={[styles.pill, { backgroundColor: c.teamRed }]}>
+                          <Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 11.5 }}>Red {red}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={[styles.hint, { color: c.inkSoft }]}>No other game has a selection yet.</Text>
+        )}
+      </>
+    );
   } else if (page) {
     const player = players.find((p) => p.id === page.player)!;
     const current = draft[player.id];
@@ -272,28 +349,36 @@ export default function GameSelectionScreen() {
   return (
     <View style={[styles.page, { backgroundColor: c.chalk }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-        <Pressable
-          style={[styles.round, { backgroundColor: c.surface }]}
-          onPress={() => (page ? setPage(null) : goBack())}
-          accessibilityLabel={page ? 'Back' : 'Close'}
-          hitSlop={8}
-        >
-          <Ionicons name={page ? 'chevron-back' : 'close'} size={20} color={c.ink} />
-        </Pressable>
+        {/* As wide as the buttons on the right, so the title stays centred. */}
+        <View style={{ width: 80 }}>
+          <Pressable
+            style={[styles.round, { backgroundColor: c.surface }]}
+            onPress={() => (page ? setPage(null) : goBack())}
+            accessibilityLabel={page ? 'Back' : 'Close'}
+            hitSlop={8}
+          >
+            <Ionicons name={page ? 'chevron-back' : 'close'} size={20} color={c.ink} />
+          </Pressable>
+        </View>
         <Text style={[styles.title, { color: c.ink }]} numberOfLines={1}>
           {title}
         </Text>
         {page ? (
-          <View style={{ width: 36 }} />
+          <View style={{ width: 80 }} />
         ) : (
-          <Pressable
-            style={[styles.round, { backgroundColor: c.pitch }]}
-            onPress={() => setPage('generate')}
-            accessibilityLabel="Generate selection"
-            hitSlop={8}
-          >
-            <Ionicons name="sparkles" size={18} color={c.onPitch} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable style={[styles.round, { backgroundColor: c.surface }]} onPress={() => setPage('copy')} accessibilityLabel="Copy a selection from another game" hitSlop={8}>
+              <Ionicons name="copy-outline" size={17} color={c.ink} />
+            </Pressable>
+            <Pressable
+              style={[styles.round, { backgroundColor: c.pitch }]}
+              onPress={() => setPage('generate')}
+              accessibilityLabel="Generate selection"
+              hitSlop={8}
+            >
+              <Ionicons name="sparkles" size={18} color={c.onPitch} />
+            </Pressable>
+          </View>
         )}
       </View>
       <ScrollView contentContainerStyle={styles.content}>{body}</ScrollView>
