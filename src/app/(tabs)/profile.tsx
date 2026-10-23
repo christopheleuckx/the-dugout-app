@@ -128,6 +128,14 @@ export default function Profile() {
           </View>
           <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
         </Pressable>
+        <Pressable style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]} onPress={() => router.push('/team-evolution')}>
+          <Ionicons name="trending-up-outline" size={22} color={c.inkSoft} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.ink, flex: 0 }]}>Team statistics</Text>
+            <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>Team score, form and evolution</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.inkSoft} />
+        </Pressable>
       </View>
 
       <View style={[styles.card, { backgroundColor: c.surface }]}>

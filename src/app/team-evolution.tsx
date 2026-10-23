@@ -40,7 +40,7 @@ export default function TeamEvolutionScreen() {
   const y = (v: number) => 10 + ((10 - Math.min(10, Math.max(5, v))) / 5) * (H - 20);
 
   return (
-    <PlayerFrame title="Team evolution" sub={`${me?.activeAgeGroup?.name ?? ''} · demo`}>
+    <PlayerFrame title="Team statistics" sub={me?.activeAgeGroup?.name}>
       {teams.length > 1 ? (
         <View style={[styles.segment, { backgroundColor: t.pill }]}>
           {(['both', ...teams] as const).map((k) => {
