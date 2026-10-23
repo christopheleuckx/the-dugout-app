@@ -65,6 +65,7 @@ function RootNavigator() {
         <Stack.Screen name="player-training" />
         <Stack.Screen name="player-injuries" />
         <Stack.Screen name="player-stats" />
+        <Stack.Screen name="team-evolution" />
         <Stack.Screen name="supabase-usage" />
         <Stack.Screen name="pin" />
         <Stack.Screen name="video-limits" />

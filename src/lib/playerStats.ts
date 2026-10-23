@@ -19,12 +19,25 @@ export type RatedGame = { rating: number; strength: number | null };
 // Elite 50%), so it never goes past 10; against a weaker one it goes down by a
 // share (Below IP3 10%, Development 20%). IP3, or no strength filled in: as is.
 export function gameScore({ rating, strength }: RatedGame): number {
-  const base = TEN_POINT[Math.round(rating)] ?? 0;
+  return correctFor(TEN_POINT[Math.round(rating)] ?? 0, strength);
+}
+
+// A score out of 10 corrected for the opponent strength (1 to 5, or none).
+export function correctFor(base: number, strength: number | null): number {
   if (strength === 5) return base + (10 - base) * 0.5;
   if (strength === 4) return base + (10 - base) * 0.2;
   if (strength === 2) return base * 0.9;
   if (strength === 1) return base * 0.8;
   return base;
+}
+
+// A rating from 1 to 5 that may be an average (3.4) on the 10-point scale,
+// in between the points of TEN_POINT.
+export function tenOf(rating: number): number {
+  const r = Math.min(5, Math.max(1, rating));
+  const low = Math.floor(r);
+  const high = Math.min(5, low + 1);
+  return TEN_POINT[low] + (TEN_POINT[high] - TEN_POINT[low]) * (r - low);
 }
 
 // The player's score out of 10: the average of every rated game, each corrected for the opponent.
