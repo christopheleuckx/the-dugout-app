@@ -19,7 +19,7 @@ type Moment = 'starting' | 'after10';
 type Spots = Record<string, string>;
 // `after` stays null while the line-up after 10 minutes is the same as at the start.
 type Quarter = { start: Spots; after: Spots | null };
-type Sheet = null | { position: string } | { player: string };
+type Sheet = null | { position: string } | { player: string } | { copy: true };
 
 const BENCH_SLOTS = ['S1', 'S2', 'S3', 'S4', 'S5'];
 
@@ -375,7 +375,14 @@ export default function GameLineupEditScreen() {
                     <Ionicons name="shuffle" size={18} color={c.pitch} />
                     <Text style={[styles.actionText, { color: c.pitch }]}>Random line-up</Text>
                   </Pressable>
-                ) : (
+                ) : null}
+                {moment === 'starting' && count > 1 ? (
+                  <Pressable style={[styles.action, { backgroundColor: c.surface }]} onPress={() => setSheet({ copy: true })}>
+                    <Ionicons name="copy-outline" size={16} color={c.pitch} />
+                    <Text style={[styles.actionText, { color: c.pitch }]}>Copy from another {count === 2 ? 'half' : 'quarter'}</Text>
+                  </Pressable>
+                ) : null}
+                {moment === 'starting' ? null : (
                   <Pressable
                     style={[styles.action, { backgroundColor: c.surface }]}
                     onPress={() => setQuarters(quarters.map((x, n) => (n === i ? { ...x, after: null } : x)))}
@@ -464,7 +471,37 @@ export default function GameLineupEditScreen() {
         <Pressable style={{ flex: 1 }} onPress={() => setSheet(null)} accessibilityLabel="Close" />
         <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 12 }]}>
           <View style={[styles.grabber, { backgroundColor: c.line }]} />
-          {sheet && 'position' in sheet ? (
+          {sheet && 'copy' in sheet ? (
+            <>
+              <Text style={[styles.sheetTitle, { color: c.ink }]}>Copy into {label(page)}</Text>
+              <Text style={[styles.hint, { color: c.inkSoft, marginHorizontal: 0, marginBottom: 6 }]}>
+                The start line-up and the change after 10 minutes are taken over; {label(page)} is replaced.
+              </Text>
+              {quarters.map((q, n) => {
+                if (n === page) return null;
+                const placed = Object.keys(q.start).length;
+                return (
+                  <Pressable
+                    key={n}
+                    style={[styles.option, line, !placed && { opacity: 0.45 }]}
+                    disabled={!placed}
+                    onPress={() => {
+                      setQuarters(quarters.map((x, k) => (k === page ? { start: { ...q.start }, after: q.after ? { ...q.after } : null } : x)));
+                      setSheet(null);
+                    }}
+                  >
+                    <View style={[styles.badge, { backgroundColor: c.surface2 }]}>
+                      <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 12 }}>{n + 1}</Text>
+                    </View>
+                    <Text style={{ flex: 1, color: c.ink, fontFamily: fonts.regular, fontSize: 16 }}>{label(n)}</Text>
+                    <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>
+                      {placed ? `${placed} players${q.after ? ' · change after 10' : ''}` : 'Empty'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </>
+          ) : sheet && 'position' in sheet ? (
             <>
               <Text style={[styles.sheetTitle, { color: c.ink }]}>Position {sheet.position}</Text>
               <ScrollView style={{ maxHeight: 420 }}>
