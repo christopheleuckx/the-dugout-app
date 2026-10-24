@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { FilmedBadge } from '../../components/Filmed';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -168,6 +169,8 @@ export default function GameScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Filmed: the camera, above the card. */}
+        <FilmedBadge filmed={game.filmed} />
         {tournament ? (
           <>
             <View style={[styles.card, { backgroundColor: c.surface }]}>

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { sportFonts, sportShape, useSportColors } from '../lib/appTheme';
 import { fonts } from '../lib/theme';
+import { FilmedIcon } from './Filmed';
 import { Crest } from './MatchCard';
 
 // Home's greeting and week list in the Sport theme (beta).
@@ -39,6 +40,8 @@ export type WeekItem = {
   cancelled: string | null;
   crestName: string;
   logoUrl: string | null;
+  // The camera a game is filmed with, if any.
+  filmed: string | null;
   onPress: (() => void) | null;
 };
 
@@ -124,6 +127,9 @@ export function SportWeek({
                             </Text>
                           </View>
                         ) : null}
+                        {/* Filmed: the camera, under the time. */}
+                        {it.filmed ? <View style={{ flex: 1 }} /> : null}
+                        <FilmedIcon filmed={it.filmed} size={16} />
                       </View>
                     </View>
                   </Pressable>

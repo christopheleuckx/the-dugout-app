@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CAMERAS, cameraOf } from '../components/Filmed';
 import { fmtDate, toIso, useData } from '../lib/data';
 import { FORMATS } from '../lib/formats';
 import { supabase } from '../lib/supabase';
@@ -31,7 +32,7 @@ const TEAMS = [
   { value: 2, label: 'Blue and Red' },
 ];
 
-type Page = null | 'opponent' | 'date' | 'time' | 'venue' | 'competition' | 'level' | 'teams' | 'format' | 'quarters';
+type Page = null | 'opponent' | 'date' | 'time' | 'venue' | 'competition' | 'level' | 'teams' | 'format' | 'quarters' | 'filmed';
 
 // New game, or the details of an existing one when opened with its id: a
 // settings-style form. Each row opens a page to choose its value; Save writes
@@ -61,6 +62,8 @@ export default function NewGameScreen() {
   const [names, setNames] = useState<string[]>([]);
   const [location, setLocation] = useState('');
   const [remarks, setRemarks] = useState('');
+  // The camera the game is filmed with, or '' when not filmed.
+  const [filmed, setFilmed] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   // Editing starts from the game as it is stored; the scores already filled in
@@ -72,7 +75,7 @@ export default function NewGameScreen() {
     if (!id) return;
     supabase
       .from('games')
-      .select('date, time, opponent, type, competition, home_away, location, remarks, quarters, quarter_length, num_teams, quarter_scores, quarter_labels, format')
+      .select('date, time, opponent, type, competition, home_away, location, remarks, quarters, quarter_length, num_teams, quarter_scores, quarter_labels, format, filmed')
       .eq('id', id)
       .single()
       .then(({ data: g, error: failed }) => {
@@ -97,6 +100,7 @@ export default function NewGameScreen() {
         setNames(Array.isArray(g.quarter_labels) ? g.quarter_labels : []);
         setLocation(g.location ?? '');
         setRemarks(g.remarks ?? '');
+        setFilmed(g.filmed ?? '');
         setScores(Array.isArray(g.quarter_scores) ? g.quarter_scores : []);
         setLoaded(true);
       });
@@ -136,6 +140,7 @@ export default function NewGameScreen() {
         format,
         location: location.trim(),
         remarks,
+        filmed: filmed || null,
         quarter_scores: Array.from({ length: quarters }, (_, i) => scores[i] ?? { for: null, against: null }),
         quarter_labels: Array.from({ length: quarters }, (_, i) => names[i]?.trim() ?? ''),
       };
@@ -239,6 +244,7 @@ export default function NewGameScreen() {
     level: 'Level',
     teams: 'Teams',
     format: 'Format',
+    filmed: 'Filmed',
     quarters: tournament ? 'Games' : 'Quarters',
   };
 
@@ -318,6 +324,14 @@ export default function NewGameScreen() {
   else if (page === 'level') body = options(plain(LEVELS), level, setLevel);
   else if (page === 'teams') body = options(TEAMS, teams, setTeams);
   else if (page === 'format') body = options(plain(FORMATS), format, setFormat);
+  else if (page === 'filmed') {
+    body = (
+      <>
+        {options([{ value: '', label: 'Not filmed' }, ...CAMERAS.map((cam) => ({ value: cam.key as string, label: cam.sub ? `${cam.label} (${cam.sub})` : cam.label }))], filmed, setFilmed)}
+        <Text style={[styles.hint, { color: c.inkSoft }]}>Only for our own games, home or away. Unknown: filmed, but the camera is not known.</Text>
+      </>
+    );
+  }
   else if (page === 'quarters') {
     body = (
       <>
@@ -366,6 +380,7 @@ export default function NewGameScreen() {
           {oneTeam ? null : row('Teams', TEAMS.find((t) => t.value === teams)!.label, 'teams')}
           {row('Format', format, 'format')}
           {row(titles.quarters, `${quarters} × ${minutes}'`, 'quarters')}
+          {row('Filmed', cameraOf(filmed)?.label ?? 'Not filmed', 'filmed')}
         </View>
         <View style={[styles.card, { backgroundColor: c.surface }]}>
           <View style={styles.row}>

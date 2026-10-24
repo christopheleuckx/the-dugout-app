@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { sportFonts, sportShape, useSportColors } from '../lib/appTheme';
 import { fmtDate, useData, type Game } from '../lib/data';
 import { fonts } from '../lib/theme';
+import { FilmedIcon } from './Filmed';
 import { countdown, Crest } from './MatchCard';
 
 // The game cards of the Sport theme (beta, chosen per phone in Profile): bold
@@ -44,7 +45,8 @@ export function SportNextCard({ game, today, compact = false }: { game: Game; to
               <Text style={[styles.vs, { color: p.featureAccent }]}>V/S</Text>
               <Crest url={away.url} name={away.name} size={44} />
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
+            <View style={{ alignItems: 'flex-end', gap: 2 }}>
+              <FilmedIcon filmed={game.filmed} />
               <Text style={[styles.italic, { fontSize: 22, color: '#fff' }]}>{fmtDate(game.date).toUpperCase()}</Text>
               <Text style={[styles.small, { color: p.featureSoft, fontSize: 14 }]}>
                 {game.time ?? 'TBD'} · {game.homeAway}
@@ -65,7 +67,8 @@ export function SportNextCard({ game, today, compact = false }: { game: Game; to
           <Text style={[styles.vs, { color: p.featureAccent, fontSize: 18 }]}>V/S</Text>
           <Crest url={away.url} name={away.name} size={56} />
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <FilmedIcon filmed={game.filmed} />
           <Text style={[styles.italic, { fontSize: 24, color: '#fff' }]}>{fmtDate(game.date).toUpperCase()}</Text>
           <Text style={[styles.small, { color: p.featureSoft, fontSize: 14 }]}>
             {game.time ?? 'TBD'} · {game.homeAway}
@@ -99,7 +102,8 @@ export function SportUpcomingCard({ game }: { game: Game }) {
       </Text>
       <View style={[styles.pill, { backgroundColor: p.pill }]}>
         <Crest url={home.url} name={home.name} size={52} />
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <FilmedIcon filmed={game.filmed} size={16} />
           <Text style={[styles.tiny, { color: p.soft }]}>{fmtDate(game.date)}</Text>
           {game.cancelStatus ? (
             <Text style={[styles.italic, { fontSize: 22, color: p.loss }]}>{game.cancelStatus.toUpperCase()}</Text>
@@ -166,6 +170,7 @@ export function SportResultCard({ game }: { game: Game }) {
             {t}
           </Text>
         ))}
+        <FilmedIcon filmed={game.filmed} size={17} />
       </View>
     </View>
   );
@@ -324,7 +329,7 @@ const styles = StyleSheet.create({
   rowName: { flex: 1, fontSize: 20 },
   goals: { fontSize: 24, minWidth: 18, textAlign: 'right' },
   result: { fontFamily: fonts.medium, fontSize: 12, width: 36, textAlign: 'right' },
-  footer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  footer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 12 },
   sep: { borderLeftWidth: 1, paddingLeft: 10 },
   stats: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 13 },
   stat: { borderRadius: sportShape.pill, paddingHorizontal: 9, paddingVertical: 2 },

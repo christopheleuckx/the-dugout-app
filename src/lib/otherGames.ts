@@ -42,6 +42,7 @@ export type OtherItem = {
   cancelStatus: string | null;
   ageGroupId: string;
   ageGroup: string;
+  filmed: string | null;
 };
 
 // Only what the week list needs; a game or training opens after switching to its age group.
@@ -58,6 +59,7 @@ export async function loadOtherItems(from: string, to: string): Promise<OtherIte
     location: x.location ?? '',
     competitorId: x.competitor_id,
     cancelStatus: x.cancel_status,
+    filmed: x.filmed ?? null,
     ageGroupId: x.age_group_id!,
     ageGroup: x.age_group ?? '',
   }));

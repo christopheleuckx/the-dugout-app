@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { LeagueHome } from '../../components/LeagueHome';
 import { Crest, MatchCard, ResultBadge } from '../../components/MatchCard';
 import { useTheme } from '../../lib/appTheme';
+import { FilmedIcon } from '../../components/Filmed';
 import { SportGreeting, SportSectionTitle, SportWeek } from '../../components/SportHome';
 import { Swimlane } from '../../components/Swimlane';
 import { Empty, Screen, SectionTitle } from '../../components/ui';
@@ -134,6 +135,7 @@ export default function Dashboard() {
         time: g.time,
         place: g.homeAway,
         cancelled: g.cancelStatus,
+        filmed: g.filmed,
       })),
     // Right after a team switch the list may still hold items of the group now on show.
     ...shown.map((x) => ({
@@ -154,6 +156,7 @@ export default function Dashboard() {
       time: x.time,
       place: (x.kind === 'game' ? x.homeAway : x.location) ?? '',
       cancelled: x.cancelStatus,
+      filmed: x.filmed,
     })),
     ...trainings
       .filter((t) => inWeek(t.date) && !t.hiddenFromCalendar)
@@ -175,6 +178,7 @@ export default function Dashboard() {
         time: t.startTime,
         place: t.location ?? '',
         cancelled: t.cancelStatus,
+        filmed: null as string | null,
       })),
   ].sort((a, b) => (a.date + a.sort).localeCompare(b.date + b.sort));
   // One card per day, so a game and a training on the same day sit together.
@@ -275,6 +279,7 @@ export default function Dashboard() {
                       {it.meta}
                     </Text>
                   </View>
+                  <FilmedIcon filmed={it.filmed} size={18} />
                   <View style={[styles.pill, { backgroundColor: tint + '24' }]}>
                     <Text style={[styles.pillText, { color: it.kind === 'Game' ? c.pitchStrong : c.training }]}>
                       {it.kind}

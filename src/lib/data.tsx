@@ -135,6 +135,8 @@ export type Game = {
   location: string;
   cancelStatus: string | null;
   hiddenFromCalendar: boolean;
+  // The camera the game is filmed with, if any (see components/Filmed).
+  filmed: string | null;
   opponentLogoUrl: string | null;
   squadCount: number;
   // One scoreline per team that played: a 2-team game is two separate matches.
@@ -373,7 +375,7 @@ function teamRecord(game: any, team: Team): TeamRecord | null {
 async function load(userId: string): Promise<Data> {
   const [players, games, squad, competitors, trainings, absences, profile, club, u15Comps, u15Teams, u15Days, u15Games, u15Extra, coaches, gameCoaches, goals, ratings, tactics, basics, videos, injuries] = await Promise.all([
     supabase.from('players').select('id, first_name, last_name, number, best_position, developing_position, preferred_foot, quality_rating, photo_path, preferred_position_1, strengths, primary_focus, remarks, attitudes, attitude_note'),
-    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id, format, league_match_id'),
+    supabase.from('games').select('id, date, time, opponent, type, competition, home_away, location, cancel_status, hidden_from_calendar, quarters, quarter_length, team_eval, num_teams, quarter_scores, quarter_labels, lineups, competitor_id, format, league_match_id, filmed'),
     supabase.from('game_squad').select('game_id, player_id, team, not_selected_reason'),
     supabase.from('competitors').select('id, name, logo_path'),
     supabase.from('trainings').select('id, date, label, start_time, end_time, location, cancel_status, hidden_from_calendar, major_tactic_id, minor_tactic_id, basic_id, basic_ids, groups'),
@@ -599,6 +601,7 @@ async function load(userId: string): Promise<Data> {
       location: g.location,
       cancelStatus: g.cancel_status,
       hiddenFromCalendar: g.hidden_from_calendar,
+      filmed: g.filmed ?? null,
       opponentLogoUrl: (g.competitor_id && logoByCompetitor.get(g.competitor_id)) || null,
       squadCount: squadByGame.get(g.id) ?? 0,
       scores: playingTeams(g.id)

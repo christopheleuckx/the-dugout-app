@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { FilmedIcon } from '../components/Filmed';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -212,6 +213,8 @@ export default function LeagueViewScreen() {
                               <Crest url={home?.logoUrl ?? null} name={home?.name ?? '?'} size={26} />
                               {/* A match to come has its day on top of the kick-off; a played one only its score, centred. */}
                               <View style={styles.middle}>
+                                {/* One of our games that is filmed: the camera above the day. */}
+                                <FilmedIcon filmed={game?.filmed} size={16} />
                                 {played ? null : <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 12 }}>{m.date ? fmtDate(m.date) : 'No date'}</Text>}
                                 {played ? (
                                   <View style={[styles.score, { backgroundColor: c.surface2 }]}>

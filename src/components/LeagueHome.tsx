@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { FilmedIcon } from './Filmed';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -90,6 +91,7 @@ export function LeagueHome() {
                         </View>
                         {played ? null : (
                           <View style={[styles.when, { borderLeftColor: c.line }]}>
+                            <FilmedIcon filmed={game?.filmed} size={16} />
                             <Text style={{ color: c.inkSoft, fontFamily: fonts.regular, fontSize: 13 }}>{m.date ? fmtDate(m.date).slice(4) : 'No date'}</Text>
                             <Text style={{ color: c.ink, fontFamily: fonts.semi, fontSize: 16 }}>{m.time ?? '–'}</Text>
                           </View>
